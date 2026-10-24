@@ -10,10 +10,9 @@ object ShiftDate {
     fun endOf(date: LocalDate): java.time.Instant = date.plusDays(1).atTime(rolloverTime)
         .atZone(java.time.ZoneId.systemDefault()).toInstant()
 
-    /** Two-hour late-handover grace after the 08:30 shift boundary. */
-    fun canPublish(date: LocalDate, now: LocalDateTime = LocalDateTime.now()): Boolean =
-        date == current(now) || (date == current(now).minusDays(1) &&
-            now.isBefore(date.plusDays(1).atTime(rolloverTime).plusHours(2)))
+    /** Compatibility API: the day label never imposes a publishing deadline. */
+    @Suppress("UNUSED_PARAMETER")
+    fun canPublish(date: LocalDate, now: LocalDateTime = LocalDateTime.now()): Boolean = true
 
     /** The previous calendar date remains active until 08:30 local time. */
     fun current(now: LocalDateTime = LocalDateTime.now()): LocalDate =

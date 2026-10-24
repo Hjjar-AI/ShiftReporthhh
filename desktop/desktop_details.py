@@ -1,6 +1,5 @@
 """Read-only patient rounds over a captured view sequence; no clinical mutations."""
-from desktop_protocol import current_date, is_admin, require
-from desktop_clinical import local_identity
+from desktop_protocol import require
 from desktop_model import patient_name
 
 
@@ -32,7 +31,6 @@ def patient_details(owner,row):
     from desktop_widgets import set_readonly_text
     from desktop_forms import modal,guarded,dialog_actions
     from desktop_model import patient_text
-    from desktop_activity import activity_center
     owner.ready(False)
     shift=owner.store.read()
     rounds=PatientRounds(owner.client.project_id,shift['meta']['shiftId'],
@@ -50,11 +48,6 @@ def patient_details(owner,row):
     def close_details():
         if content.winfo_exists():scroll_positions[rounds.selected]=content.yview()[0]
         window.destroy()
-
-    def access():
-        admin=not owner.demo and is_admin(local_identity(owner.store,owner.client) or {})
-        if admin:activity.grid(row=2,column=0,columnspan=2,sticky='ew',padx=8,pady=4)
-        else:activity.grid_remove()
 
     def show(delta=0):
         if owner.locked or not window.winfo_exists():return
@@ -78,14 +71,8 @@ def patient_details(owner,row):
         content.after_idle(scroll)
         previous.configure(state='normal' if index>0 else 'disabled')
         next_button.configure(text='التالي' if index+1<len(ids) else 'نهاية الجولة',state='normal' if index+1<len(ids) else 'disabled')
-        edit.configure(state='normal' if current['meta']['shiftDate']==current_date(owner.client.zone) else 'disabled')
-        access()
+        edit.configure(state='normal')
 
-    def open_activity():
-        owner.ready(False)
-        rounds.patients(owner.client.project_id,owner.store.read())
-        activity_center(owner,patient_id=rounds.selected,shift_id=rounds.shift_id)
-        if window.winfo_exists():window.grab_set();access()
 
     def open_edit():
         current=owner.editable()
@@ -96,7 +83,6 @@ def patient_details(owner,row):
 
     previous=ctk.CTkButton(controls,text='السابق',height=48,width=100,command=guarded(lambda:show(-1)))
     next_button=ctk.CTkButton(controls,text='التالي',height=48,width=100,command=guarded(lambda:show(1)))
-    activity=ctk.CTkButton(controls,text='نشاط المريض',height=48,width=120,command=guarded(open_activity))
     for column,widget in enumerate((next_button,previous)):
         controls.grid_columnconfigure(column,weight=1,uniform='rounds')
         widget.grid(row=0,column=column,sticky='ew',padx=8,pady=4)
@@ -104,9 +90,6 @@ def patient_details(owner,row):
     footer.grid(row=1,column=0,columnspan=2,sticky='ew')
     actions=dialog_actions(footer,primary=('تحرير',guarded(open_edit)),cancel=('إغلاق',close_details))
     edit=actions['تحرير']
-    def mapped(event):
-        if event.widget is window and not owner.locked:access()
-    window.bind('<Map>',mapped,add='+')
     window.bind('<Configure>',lambda event:title.configure(wraplength=max(240,event.width-24))
                 if event.widget is window else None,add='+')
     window.protocol('WM_DELETE_WINDOW',close_details)

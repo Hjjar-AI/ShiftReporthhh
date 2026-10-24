@@ -35,7 +35,7 @@ def workflow_status(client, store, demo=False):
     published=datetime.fromtimestamp(entry['at']/1000,ZoneInfo(client.zone)).strftime('%Y-%m-%d %H:%M') if entry and entry.get('at') else 'غير معروف'
     text='مناوبة {} · {}\nآخر نشر معروف: {} · آخر جلب: {}'.format(shift['meta']['shiftDate'],label,published,stamp)
     if unknown:text+=' · {} عمليات غير محسومة'.format(len(unknown))
-    return text, WorkflowAction.DEMO if demo else WorkflowAction.DELIVERY_HISTORY if unknown else WorkflowAction.REVIEW_PUBLICATION if dirty and shift['meta']['shiftDate']==current_date(client.zone) else WorkflowAction.DOWNLOAD
+    return text, WorkflowAction.DEMO if demo else WorkflowAction.DELIVERY_HISTORY if unknown else WorkflowAction.REVIEW_PUBLICATION if dirty else WorkflowAction.DOWNLOAD
 
 
 def pending_tasks(shift, supervisor=None, resident=None, now=None):
@@ -80,8 +80,7 @@ def task_board(owner):
                 row=next((p for p in current['patients'] if p['externalId']==key),None)
                 if row is None:show();return
                 window.destroy()
-                if current['meta']['shiftDate']==current_date(owner.client.zone):owner.edit(row)
-                else:owner.details(row)
+                owner.edit(row)
             frame=ctk.CTkFrame(area);frame.pack(fill='x',padx=6,pady=4)
             ctk.CTkLabel(frame,text=label,wraplength=650,justify='right',anchor='e').pack(fill='x',padx=8,pady=5)
             button(frame,'فتح ملف المريض',guarded(open_patient))

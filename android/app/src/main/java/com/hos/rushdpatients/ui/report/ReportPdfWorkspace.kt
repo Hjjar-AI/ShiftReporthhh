@@ -159,7 +159,7 @@ internal class ReportPdfWorkspace(
                 options = options,
                 outputFile = tmp
             )
-            val name = reportFileName(built.shift.date)
+            val name = reportFileName(built.summary.shiftDate)
             checkNotNull(mediaStoreSaver.savePdf(context, tmp, name)) { uiText(R.string.ui_report_preview_view_model_028) }
         } finally {
             tmp.delete()
@@ -198,7 +198,7 @@ internal class ReportPdfWorkspace(
                 val safeName = (supervisor?.fullName ?: "بدون_مشرف")
                     .replace(Regex("[^\\p{L}\\p{N}_-]+"), "_")
                     .take(60)
-                val displayName = reportFileName(built.shift.date, safeName)
+                val displayName = reportFileName(built.summary.shiftDate, safeName)
                 checkNotNull(mediaStoreSaver.savePdf(context, tmp, displayName)) {
                     uiText(R.string.ui_report_pdf_workspace_002, supervisor?.fullName.orEmpty())
                 }

@@ -245,7 +245,7 @@ def render_assignments(client,shift,font_path=None,options=None):
     def team_table(group,rows,row_heights=None):
         data=[[text(group['supervisor'],11,'#FFFFFF',align='center',bold=True),''],
               [text('، '.join(group['residents']) or 'لم يُحدد مقيم',9,align='center'),'']]
-        data += [[text(name),text(str(number).translate(str.maketrans('0123456789','٠١٢٣٤٥٦٧٨٩')),align='center') if number else ''] for number,name in rows]
+        data += [[text(name),text(str(number),align='center') if number else ''] for number,name in rows]
         backgrounds=[colors['title'], subheader]
         backgrounds += [colors['page'] if options['row_shading']=='none' or i%2==0 else colors['zebra'] for i in range(len(rows))]
         table=styled_table(data,[table_width-number_width,number_width],colors,backgrounds=backgrounds)

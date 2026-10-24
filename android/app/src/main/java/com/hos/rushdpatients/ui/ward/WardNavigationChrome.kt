@@ -13,6 +13,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -27,17 +28,17 @@ internal fun WardHeader(
     onSearch: () -> Unit, onWorkflow: () -> Unit
 ) {
     val uiText = rememberUiStrings()
+    val dayLabel = remember(LocalWardTaskNow.current) { com.hos.rushdpatients.util.ShiftDate.current() }
     Column {
     WardToolbarLayout(foldingFeature) {
         AppCompactTopBar(title = {
             Text(when (viewMode) {
-                WardViewMode.ALL, WardViewMode.MINE -> uiText(R.string.ui_ward_navigation_chrome_001, uiNumber(state.patients.size))
+                WardViewMode.ALL, WardViewMode.MINE, WardViewMode.ACTIVITY -> uiText(R.string.ui_ward_navigation_chrome_001, uiNumber(state.patients.size))
                 WardViewMode.DASHBOARD -> uiText(R.string.ui_ward_navigation_chrome_002)
-                WardViewMode.ACTIVITY -> uiText(R.string.ui_ward_navigation_chrome_003)
             }, style = MaterialTheme.typography.titleSmall,
                 modifier = Modifier.semantics { heading() }, maxLines = 1,
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-            state.shift?.date?.let { Text(uiNumber(it), style = MaterialTheme.typography.labelSmall,
+            state.shift?.date?.let { Text(uiNumber(dayLabel), style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1) }
         }, navigation = {
             AppIconButton(label = uiText(R.string.ui_ward_navigation_chrome_004),

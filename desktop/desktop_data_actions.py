@@ -84,7 +84,7 @@ def start_shift(owner):
             'وصلت نسخة جديدة أثناء التأكيد؛ أعد بدء المناوبة')
     at=str(int(time.time()*1000))
     for row in selected['patients']:
-        row.update(lastEditedByDoctorId=actor['uid'],lastEditedBy=actor['name'],updatedAt=at,revision='1')
+        row.update(lastEditedByDoctorId='',lastEditedBy='',updatedAt='0',revision='1')
     old=owner.client.baseline;owner.client.baseline=snapshot
     try:owner.io(lambda:owner.store.start_shift(owner.client,selected,expected,recovery_path))
     except Exception:

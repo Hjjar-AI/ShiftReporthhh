@@ -38,7 +38,6 @@ class EmptyStart:
     def publish(self):
         require(not self.used, 'أعد مراجعة البداية الفارغة قبل محاولة جديدة')
         self.authorize(self.client.fetch_registry())
-        require(self.shift['meta']['shiftDate'] == current_date(self.client.zone), 'تغيرت المناوبة؛ أعد المراجعة')
         raw = encode_bundle([self.shift])
         self.used = True
         receipt = fingerprint(dict(operation='empty_start', project=self.client.project_id,

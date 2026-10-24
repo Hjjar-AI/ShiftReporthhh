@@ -4,6 +4,11 @@ import androidx.compose.ui.unit.dp
 
 /** Control dimensions are minimums so Arabic labels and larger fonts can grow. */
 object UiSize {
+    val pdfAppearancePreview = 72.dp
+    val splashEmblem = 240.dp
+    val aboutEmblemCompact = 128.dp
+    val aboutEmblem = 180.dp
+    val announcementEditor = 200.dp
     val statusEdge = 4.dp
     val patientOrdinal = 32.dp
     val fieldMinHeight = UiSpacing.touchTarget

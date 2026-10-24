@@ -35,4 +35,18 @@
     <string name="patient_edit_draft_restored">استُعيدت مسودة التعديل؛ الحفظ سيستبدل النسخة الحالية</string>
     <string name="patient_edit_draft_discard_failed">تعذر حذف مسودة التعديل المحفوظة</string>
     <string name="sync_unknown_chip">حالة نشر %1$s سجلات غير معروفة · آخر نشر %2$s</string>
+    <string name="telegram_wait_retry">يطلب تليجرام الانتظار %1$s ثانية؛ أعد المحاولة بعد ذلك</string>
+    <string name="pin_wait_minutes">محاولات خاطئة متعددة؛ انتظر %1$s دقيقة أو تحقق عبر تليجرام</string>
+    <string name="pin_invalid_format">الرقم السري يجب أن يكون من 4 إلى 8 أرقام</string>
+    <string name="pin_doctor_unavailable">الطبيب لم يعد متاحاً في السجل</string>
+    <string name="pin_not_enrolled">تحقق عبر تليجرام أولاً لتعيين رقم سري على هذا الجهاز</string>
+    <string name="pin_not_linked">حساب تليجرام لهذا الطبيب غير مرتبط</string>
+    <string name="pin_state_unreadable">تعذر قراءة حالة محاولات الدخول</string>
+    <string name="pin_incorrect">الرقم السري غير صحيح</string>
+    <string name="pin_account_changed">تغير حساب الطبيب أو رقمه السري؛ أعد اختيار اسمك</string>
+    <string name="priority_changed">تم تغيير أولوية المريض</string>
+    <string name="ui_comfortable_spacing">مسافات مريحة</string>
+    <string name="report_send_shared_copy">ستُنشر نسخة المرضى المراجعة كاملة، ثم يُرسل التقرير إلى الوجهات المحددة.</string>
+    <string name="publication_history_title">سجل النسخ المنشورة</string>
+    <string name="publication_history_error">تعذر تحميل سجل النسخ المنشورة</string>
 </resources>

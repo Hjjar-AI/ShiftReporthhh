@@ -78,6 +78,17 @@ class ReportDeliveryLedger @Inject constructor(
             begin(shiftId, chatId, contentKey, format, label, expectedActorId, metadata)
         }
         try { return block(record) }
+        catch (e: com.hos.rushdpatients.network.telegram.TelegramException) {
+            if (e.isRateLimited) withContext(NonCancellable + Dispatchers.IO) {
+                mutex.withLock {
+                    val log = load()
+                    save(log.copy(records = log.records.map {
+                        if (it.id == record.id && it.status == "UNKNOWN") it.copy(status = "NOT_SENT") else it
+                    }))
+                }
+            }
+            throw e
+        }
         finally {
             withContext(NonCancellable + Dispatchers.IO) {
                 mutex.withLock { activeAttempts -= record.id }

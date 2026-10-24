@@ -23,16 +23,12 @@ internal class WardSaveGuard(
 
     fun editableShiftId(): String? {
         val shift = _state.value.shift ?: return null
-        if (shift.date != ShiftDate.current()) {
-            showError(uiText(R.string.ui_ward_save_guard_001))
-            return null
-        }
         return shift.id
     }
 
     suspend fun requireEditableShift(shiftId: String) {
         val shift = shiftRepository.getById(shiftId)
-        require(shift != null && shift.date == ShiftDate.current()) {
+        require(shift != null) {
             uiText(R.string.ui_ward_save_guard_001)
         }
     }
@@ -78,7 +74,7 @@ internal class WardSaveGuard(
         } catch (e: Exception) {
             _state.update { it.copy(saving = false) }
             try {
-                if (!onStale(e)) showError(e.message ?: uiText(R.string.ui_ward_save_guard_004))
+                if (!onStale(e)) showError(com.hos.rushdpatients.ui.components.failureText(uiText, e) ?: uiText(R.string.ui_ward_save_guard_004))
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (reloadError: Exception) {

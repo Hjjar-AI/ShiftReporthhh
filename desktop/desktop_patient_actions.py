@@ -108,7 +108,7 @@ def roster(owner):
     cancel=discard_guard(window,lambda:{key for key,value in variables.items() if value.get()}!=set(selected))
     render()
     def save():
-        require(fingerprint(owner.editable())==expected,'تغيرت المسودة؛ أعد فتح أطباء المناوبة')
+        owner.editable()
         values=[key for key,variable in variables.items() if variable.get()]
         if not values or any(key not in owner.client.doctors for key in values):
             messagebox.showerror('المناوبة','حدد أطباء نشطين للمناوبة');return

@@ -45,12 +45,6 @@ def render(owner):
         owner.admin_button.pack_forget()
         owner.announcement_button.pack_forget()
         owner.assignments_button.pack_forget()
-    local = local_identity(owner.store,owner.client) if owner.store and owner.client else None
-    if local and is_admin(local) and not owner.demo:
-        if not owner.admin_sidebar.winfo_manager():owner.admin_sidebar.pack(fill='x',padx=3,pady=3,before=owner.help_sidebar)
-        owner.activity_button.pack(fill='x',padx=8,pady=4)
-        owner.activity_button.configure(state='disabled' if owner.busy else 'normal')
-    else:owner.activity_button.pack_forget()
     from desktop_doctors import permanent
     if actor and permanent(actor) and time.time()<owner.client._expires and not owner.demo:
         owner.empty_start_button.pack(fill='x',padx=8,pady=4)

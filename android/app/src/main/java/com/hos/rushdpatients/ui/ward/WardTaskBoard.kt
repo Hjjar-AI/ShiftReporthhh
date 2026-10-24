@@ -47,7 +47,32 @@ internal fun WardTaskBoard(patients: List<Patient>, doctors: List<Doctor>, now: 
     val rows = remember(patients, supervisor, resident) {
         PatientTasks.wardPending(patients, supervisor, resident, now)
     }
-    val groups = mapOf(0 to rows)
+    val completed = remember { mutableStateMapOf<String, com.hos.rushdpatients.domain.task.WardTaskEntry>() }
+    var previousPending by remember { mutableStateOf(rows) }
+    LaunchedEffect(patients, supervisor, resident) {
+        val current = patients.associateBy { it.id }
+        previousPending.forEach { old ->
+            val patient = current[old.patient.id]
+            val task = patient?.tasks?.firstOrNull { it.id == old.task.id }
+            if (patient != null && task?.done == true)
+                completed["${patient.id}:${task.id}"] = com.hos.rushdpatients.domain.task.WardTaskEntry(patient, task)
+        }
+        completed.keys.toList().forEach { key ->
+            val old = completed.getValue(key)
+            val patient = current[old.patient.id]
+            if (patient == null || patient.tasks.none { it.id == old.task.id && it.done } ||
+                (supervisor != null && patient.responsibleSpecialistId != supervisor) ||
+                (resident != null && patient.responsibleResidentId != resident)) completed.remove(key)
+        }
+        previousPending = rows
+    }
+    completed.keys.toList().forEach { taskKey ->
+        key(taskKey) {
+            LaunchedEffect(Unit) { kotlinx.coroutines.delay(2_000L); completed.remove(taskKey) }
+        }
+    }
+    val visible = (rows + completed.values).groupBy { it.patient.id }
+    val groups = patients.mapNotNull { patient -> visible[patient.id]?.let { patient to it } }
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
             Scaffold(Modifier.safeDrawingPadding(), snackbarHost = { AppSnackbarHost(snackbarHost) }) { insets ->
@@ -67,17 +92,15 @@ internal fun WardTaskBoard(patients: List<Patient>, doctors: List<Doctor>, now: 
                     LazyColumn(Modifier.weight(1f).padding(horizontal = UiSpacing.screen),
                         contentPadding = PaddingValues(bottom = UiSpacing.screen),
                         verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                        if (rows.isEmpty()) item { EmptyState(uiText(R.string.ui_ward_task_board_006), icon = AppIcons.Check) }
-                        groups.forEach { (group, entries) ->
-                            stickyHeader(key = "task-group-$group") {
-                                Surface(Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surface,
-                                    shadowElevation = com.hos.rushdpatients.ui.theme.UiElevation.low) {
-                                    Text(uiText(R.string.ui_ward_screen_011) + " · " + uiNumber(entries.size),
-                                        Modifier.padding(vertical = UiSpacing.screen), style = MaterialTheme.typography.titleMedium)
+                        if (groups.isEmpty()) item { EmptyState(uiText(R.string.ui_ward_task_board_006), icon = AppIcons.Check) }
+                        items(groups, key = { it.first.id }) { (patient, entries) ->
+                            AppCard(Modifier.fillMaxWidth()) {
+                                Column(Modifier.padding(UiPadding.content), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+                                    AppTextButton(onClick = { onPatient(patient.id) }) { Text(patient.displayName) }
+                                    entries.sortedBy { task -> patient.tasks.indexOfFirst { it.id == task.task.id } }.forEach { entry ->
+                                        key(entry.task.id) { WardTaskRow(entry, names, now, onPatient, editable, onComplete) }
+                                    }
                                 }
-                            }
-                            items(entries, key = { "${it.patient.id}:${it.task.id}" }) { entry ->
-                                WardTaskRow(entry, names, now, onPatient, editable, onComplete)
                             }
                         }
                     }
@@ -111,19 +134,12 @@ internal fun WardTaskRow(entry: com.hos.rushdpatients.domain.task.WardTaskEntry,
     names: Map<String, String>, now: Long, onPatient: (String) -> Unit,
     editable: Boolean = false, onComplete: (com.hos.rushdpatients.domain.task.WardTaskEntry) -> Unit = {}) {
     val uiText = rememberUiStrings()
-    val clinical = LocalClinicalColors.current
-    AppCard(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(
-        containerColor = clinical.pendingContainer,
-        contentColor = clinical.onPendingContainer)) {
-        Column(Modifier.padding(UiPadding.content), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-            Text(entry.patient.displayName, style = MaterialTheme.typography.titleSmall)
-            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                Checkbox(checked = false, enabled = editable, onCheckedChange = { onComplete(entry) },
-                    modifier = Modifier.sizeIn(minWidth = UiSpacing.touchTarget, minHeight = UiSpacing.touchTarget)
-                        .semantics { contentDescription = uiText(R.string.ui_patient_task_editor_009) + entry.task.description })
-                Text(entry.task.description, Modifier.weight(1f))
-            }
-            AppTextButton(onClick = { onPatient(entry.patient.id) }) { Text(uiText(R.string.ui_ward_task_board_012)) }
-        }
+    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+        Checkbox(checked = entry.task.done, enabled = editable && !entry.task.done,
+            onCheckedChange = { onComplete(entry) },
+            modifier = Modifier.sizeIn(minWidth = UiSpacing.touchTarget, minHeight = UiSpacing.touchTarget)
+                .semantics { contentDescription = uiText(R.string.ui_patient_task_editor_009) + entry.task.description })
+        Text(entry.task.description, Modifier.weight(1f),
+            textDecoration = if (entry.task.done) androidx.compose.ui.text.style.TextDecoration.LineThrough else null)
     }
 }

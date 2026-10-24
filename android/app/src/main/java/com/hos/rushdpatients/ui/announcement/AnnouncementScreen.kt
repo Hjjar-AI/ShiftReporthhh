@@ -28,7 +28,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hos.rushdpatients.domain.report.ReportDeliveryRecord
@@ -57,7 +56,7 @@ fun AnnouncementScreen(onBack: () -> Unit, viewModel: AnnouncementViewModel = hi
             state.lastMessageId?.let { Text(uiText(R.string.ui_announcement_screen_004, it),style = MaterialTheme.typography.bodySmall) }
             AppTextField(value = state.template,onValueChange = viewModel::onTemplateChange,label = { Text(uiText(R.string.ui_announcement_screen_005)) },
                 enabled = !busy,placeholder = { Text(uiText(R.string.ui_announcement_screen_006)) },
-                modifier = Modifier.fillMaxWidth().heightIn(min = 200.dp),maxLines = 20)
+                modifier = Modifier.fillMaxWidth().heightIn(min = com.hos.rushdpatients.ui.theme.UiSize.announcementEditor),maxLines = 20)
             LoadingButton(text = uiText(R.string.ui_announcement_screen_007),loading = state.reviewing,onClick = viewModel::review,
                 enabled = !busy && !state.loading && !state.ledgerUnavailable && state.deliveryRecords.isEmpty(),modifier = Modifier.fillMaxWidth())
             AppTextButton(onClick = viewModel::refresh,enabled = !busy) { Text(uiText(R.string.ui_announcement_screen_008)) }

@@ -119,7 +119,7 @@ class LoginViewModel @Inject constructor(
             } catch (e: Exception) {
                 _state.update {
                     it.copy(error = if (e is IllegalArgumentException || e is IllegalStateException)
-                        e.message ?: uiText(R.string.ui_login_view_model_003) else uiText(R.string.ui_login_view_model_004))
+                        com.hos.rushdpatients.ui.components.failureText(uiText, e) ?: uiText(R.string.ui_login_view_model_003) else uiText(R.string.ui_login_view_model_004))
                 }
             } finally {
                 _state.update { it.copy(busy = false) }

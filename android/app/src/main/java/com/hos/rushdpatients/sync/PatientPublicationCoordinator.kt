@@ -62,7 +62,6 @@ internal class PatientPublicationCoordinator(
             val built = reviewed ?: reportBuilder.build(shiftId)
             val doctorsCsv = if (actor.isAdmin && built.registryChangeSummary != null) doctorSync.preparePendingPublication(source, built.registryDoctors) else null
             if (doctorsCsv == null) doctorSync.requirePublishedAssignments(source, built.shift, built.patients)
-            require(ShiftDate.canPublish(built.shift.date)) { "انتهت مهلة نشر هذه المناوبة" }
             val remoteBundle = source.currentCsvSnapshot()?.let { downloadSnapshot(it) }.orEmpty()
             val remote = remoteBundle.firstOrNull { it.shiftDate == built.shift.date }
             val before = remote?.patients.orEmpty().associateBy(Patient::id)
@@ -118,7 +117,6 @@ internal class PatientPublicationCoordinator(
         val actor = doctorSync.requirePublishedClinician(requireNotNull(state))
         require(actor.id == review.actorId && actor.telegramId == review.telegramId) { "تغير المستخدم؛ سجّل الدخول بحساب المراجع" }
         doctorSync.requirePublishedAssignments(state, review.shift, review.patients)
-        require(ShiftDate.canPublish(review.shift.date)) { "انتهت مهلة نشر هذه المناوبة" }
     }
 
     private suspend fun uploadCsvInternal(
@@ -132,7 +130,6 @@ internal class PatientPublicationCoordinator(
             require(actor.id == review.actorId && actor.telegramId == review.telegramId) { "تغير المستخدم" }
             val shift = review.shift
             val patients = review.patients
-            require(ShiftDate.canPublish(shift.date)) { "انتهت مهلة نشر هذه المناوبة" }
             require(shift.doctorIds.distinct().size >= AppConstants.MIN_SHIFT_DOCTORS) { "حدد أطباء المناوبة قبل الرفع" }
             require(patients.none { PatientValidator.validate(it) is PatientValidationResult.Invalid }) { "بيانات مرضى غير صالحة" }
             review.doctorsCsv?.let { doctorSync.uploadReviewedDoctors(it).getOrThrow() }

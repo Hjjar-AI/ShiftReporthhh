@@ -25,6 +25,7 @@ import androidx.compose.ui.semantics.semantics
 import com.hos.rushdpatients.domain.report.ReportReadiness
 
 @Composable
+@Suppress("UNUSED_PARAMETER")
 internal fun WardSupportingPane(
     state: WardUiState,
     freshnessLabel: String,
@@ -36,29 +37,15 @@ internal fun WardSupportingPane(
     modifier: Modifier = Modifier
 ) {
     val uiText = rememberUiStrings()
-    val warnings = ReportReadiness.warnings(state.patients)
+    val warnings = com.hos.rushdpatients.ui.components.readinessWarnings(uiText, state.patients)
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(UiSpacing.screen),
         verticalArrangement = Arrangement.spacedBy(UiSpacing.medium)) {
-        Text(if (isAdmin) uiText(R.string.ui_ward_screen_004) else uiText(R.string.ui_ward_supporting_pane_001), style = MaterialTheme.typography.headlineSmall,
+        Text(uiText(R.string.ui_ward_supporting_pane_001), style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.semantics { heading() })
         Text(uiText(R.string.ui_ward_drawer_002, uiNumber(state.patients.size)))
         if (showSynchronization) PatientSyncNotice(state.syncStatus, freshnessLabel, online, onDetails = onOpenSyncCenter)
         if (warnings.isEmpty()) Text(uiText(R.string.ui_ward_supporting_pane_002))
         warnings.forEach { AppNotice(it, kind = NoticeKind.WARNING) }
-        if (isAdmin) {
-            AppDivider()
-            Text(uiText(R.string.ui_ward_supporting_pane_004), style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.semantics { heading() })
-            state.activityError?.let { AppNotice(it, kind = NoticeKind.ERROR,
-                actionLabel = uiText(R.string.ui_ward_supporting_pane_005), onAction = onActivity) }
-            val recent = state.recentActivity.filter { it.patientId != null }.take(5)
-            if (recent.isEmpty()) Text(uiText(R.string.ui_ward_supporting_pane_006))
-            recent.forEach { entry ->
-                ActivityEntry(entry, state.patients.firstOrNull { it.id == entry.patientId }?.name)
-                AppDivider()
-            }
-            AppTextButton(onClick = onActivity) { Text(uiText(R.string.ui_ward_supporting_pane_005)) }
-        }
         Text(uiText(R.string.ui_ward_supporting_pane_007), style = MaterialTheme.typography.bodySmall)
     }
 }

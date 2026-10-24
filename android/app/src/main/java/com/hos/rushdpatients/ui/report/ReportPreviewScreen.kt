@@ -379,7 +379,7 @@ fun ReportPreviewScreen(
                         ) {
                             state.readinessIssues.forEach { issue ->
                                 AppTextButton(onClick = { state.shift?.id?.let { onReviewPatients(it, issue.patientIds) } }, enabled = !busy) {
-                                    Text(issue.message, color = noticeColors(NoticeKind.WARNING).content)
+                                    Text(uiText(R.string.readiness_incomplete_patients, uiNumber(issue.patientIds.size)), color = noticeColors(NoticeKind.WARNING).content)
                                 }
                             }
                             Text(
@@ -562,8 +562,13 @@ fun ReportPreviewScreen(
         val format = if (!review.includeGeneral || review.generalAsPdf) "PDF"
             else if (review.supervisors.isEmpty()) uiText(R.string.ui_report_preview_screen_015)
             else uiText(R.string.ui_report_mixed_format)
+        val selectedSupervisorIds = review.supervisors.mapTo(linkedSetOf()) { it.doctorId }
+        val reportPatientIds = state.patients.filter {
+            review.includeGeneral || it.responsibleSpecialistId in selectedSupervisorIds
+        }.mapTo(linkedSetOf()) { it.id }
         ReportSendConfirmation(destinations = destinations, format = format,
-            warningCount = state.readinessWarnings.size,
+            warningCount = state.readinessIssues.flatMap { it.patientIds }.toSet().intersect(reportPatientIds).size,
+            patientCount = reportPatientIds.size,
             enabled = sendDisabledReason == null && targetsUnchanged && destinations.isNotEmpty(),
             unavailableReason = if (targetsUnchanged) sendDisabledReason else uiText(R.string.ui_report_preview_screen_096),
             onConfirm = { forceLocal ->
@@ -579,7 +584,7 @@ private fun DeliveryQuestion(row: ReportDeliveryRecord, enabled: Boolean,
     resolve: (ReportDeliveryRecord, DeliveryResolution) -> Unit) {
     val uiText = rememberUiStrings()
     Text(uiText(R.string.delivery_inline_question))
-    AppTextButton(onClick = { resolve(row, DeliveryResolution.RECEIVED) }, enabled = enabled) { Text(uiText(R.string.ui_yes)) }
-    AppTextButton(onClick = { resolve(row, DeliveryResolution.NOT_RECEIVED) }, enabled = enabled) { Text(uiText(R.string.delivery_inline_no)) }
-    AppTextButton(onClick = { resolve(row, DeliveryResolution.ALLOW_COPY) }, enabled = enabled) { Text(uiText(R.string.delivery_inline_extra)) }
+    com.hos.rushdpatients.ui.components.AppButton(style = com.hos.rushdpatients.ui.components.AppButtonStyle.TONAL, onClick = { resolve(row, DeliveryResolution.RECEIVED) }, enabled = enabled) { Text(uiText(R.string.delivery_received_explicit)) }
+    com.hos.rushdpatients.ui.components.AppButton(style = com.hos.rushdpatients.ui.components.AppButtonStyle.TONAL, onClick = { resolve(row, DeliveryResolution.NOT_RECEIVED) }, enabled = enabled) { Text(uiText(R.string.delivery_not_received_explicit)) }
+    com.hos.rushdpatients.ui.components.AppButton(style = com.hos.rushdpatients.ui.components.AppButtonStyle.TONAL, onClick = { resolve(row, DeliveryResolution.ALLOW_COPY) }, enabled = enabled) { Text(uiText(R.string.delivery_allow_copy_explicit)) }
 }

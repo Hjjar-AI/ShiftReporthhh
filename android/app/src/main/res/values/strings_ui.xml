@@ -168,7 +168,7 @@
     <string name="ui_ward_screen_001">"تم حفظ %1$s محلياً؛ لا يطابق التصفية الحالية"</string>
     <string name="ui_ward_screen_002" formatted="false">"التنقل الرئيسي"</string>
     <string name="ui_ward_screen_003" formatted="false">"لوحة المناوبة"</string>
-    <string name="ui_ward_screen_004" formatted="false">"جاهزية التقرير والنشاط"</string>
+    <string name="ui_ward_screen_004" formatted="false">"جاهزية التقرير"</string>
     <string name="ui_ward_screen_005" formatted="false">"ملف المريض"</string>
     <string name="ui_ward_screen_006" formatted="false">"جار تحميل بيانات المناوبة…"</string>
     <string name="ui_ward_screen_007">"تعذر تحميل بيانات المناوبة\n%1$s"</string>
@@ -537,7 +537,7 @@
     <string name="ui_report_preview_screen_010" formatted="false">"ارجع إلى المعاينة وافتح كل ملف مختار"</string>
     <string name="ui_report_preview_screen_011" formatted="false">"ارجع إلى المعاينة وافتح التقرير"</string>
     <string name="ui_report_preview_screen_012" formatted="false">"مشاركة التقرير"</string>
-    <string name="ui_report_preview_screen_013">"إرسال تقرير · %1$s"</string>
+    <string name="ui_report_preview_screen_013">"رفع للشبكة وإرسال تقرير · %1$s"</string>
     <string name="ui_report_preview_screen_014">"%1$s مجموعات مشرفين · PDF"</string>
     <string name="ui_report_preview_screen_015" formatted="false">"نصي"</string>
     <string name="ui_report_preview_screen_016">"التقرير العام · %1$s"</string>
@@ -590,7 +590,7 @@
     <string name="ui_report_preview_screen_063" formatted="false">"أطباء المناوبة: "</string>
     <string name="ui_report_preview_screen_064">"مجموعة %1$s · %2$s مريض · PDF"</string>
     <string name="ui_report_preview_screen_065">"مجموعة المشروع · %1$s"</string>
-    <string name="ui_report_preview_screen_066" formatted="false">"بعد الضغط على «إرسال تقرير» ستظهر مراجعة التأكيد النهائي للنشر والتسليم."</string>
+    <string name="ui_report_preview_screen_066" formatted="false">"بعد الضغط على «رفع للشبكة وإرسال تقرير» ستظهر مراجعة التأكيد النهائي للنشر والتسليم."</string>
     <string name="ui_report_preview_screen_067" formatted="false">"إغلاق أدوات الحفظ والسجل"</string>
     <string name="ui_report_preview_screen_068" formatted="false">"الحفظ وسجل التسليم"</string>
     <string name="ui_report_preview_screen_069" formatted="false">"ملفات محلية"</string>
@@ -882,14 +882,14 @@
     <string name="ui_confirm" formatted="false">"تأكيد"</string>
     <string name="ui_app_section_001" formatted="false">"مكتمل"</string>
     <string name="ui_app_progress_001" formatted="false">"جار التنفيذ"</string>
-    <string name="ui_report_send_confirmation_001" formatted="false">"إرسال التقرير"</string>
+    <string name="ui_report_send_confirmation_001" formatted="false">"رفع للشبكة وإرسال تقرير"</string>
     <string name="ui_report_send_confirmation_002">"الصيغة: %1$s"</string>
     <string name="ui_report_send_confirmation_003" formatted="false">"الوجهة:"</string>
     <string name="ui_report_send_confirmation_004" formatted="false">سيُنشر ما راجعته أولاً: سجل الأطباء عند وجود تعديلات عليه وبصلاحية مدير، ثم المرضى، ثم يُرسل التقرير المعروض نفسه. التعديلات المحلية اللاحقة تبقى للنشر التالي. فشل التقرير بعد النشر لا يلغي البيانات المنشورة؛ افحص حالة العملية قبل الإعادة.</string>
     <string name="ui_report_send_confirmation_005" formatted="false">التأكيد ينشر نسخة المراجعة الكاملة بما فيها الحذف والترتيب وأطباء المناوبة؛ آخر نشر ناجح هو المعتمد.</string>
     <string name="ui_report_send_confirmation_006" formatted="false">يلزم بقاء حساب المرسل وصلاحياته وتصنيفات الأطباء ووجهات الإرسال صالحة. نشر تعديلات سجل الأطباء متاح لمدير نشط فقط.</string>
     <string name="ui_report_send_confirmation_007">"توجد %1$s ملاحظات جاهزية غير مانعة."</string>
-    <string name="ui_report_send_confirmation_008" formatted="false">نشر ما راجعته وإرسال التقرير</string>
+    <string name="ui_report_send_confirmation_008" formatted="false">رفع للشبكة وإرسال تقرير</string>
     <string name="ui_app_metric_row_001">"عرض %1$s"</string>
     <string name="ui_password_field_001" formatted="false">"إخفاء كلمة المرور"</string>
     <string name="ui_password_field_002" formatted="false">"إظهار كلمة المرور"</string>
@@ -960,7 +960,7 @@
     <string name="ui_ward_patient_actions_002" formatted="false">"تم الحفظ محلياً"</string>
     <string name="ui_ward_patient_actions_003" formatted="false">"اختر طبيباً واحداً على الأقل"</string>
     <string name="ui_ward_patient_actions_004" formatted="false">"اختيار أطباء المناوبة غير صالح"</string>
-    <string name="ui_ward_save_guard_001" formatted="false">"هذه مناوبة محفوظة للعرض والاستعادة فقط ولا يمكن تعديلها"</string>
+    <string name="ui_ward_save_guard_001" formatted="false">"قائمة المرضى لم تعد متاحة؛ افتح أحدث نسخة"</string>
     <string name="ui_ward_save_guard_002" formatted="false">"اختر طبيباً مصنفاً كمقيم"</string>
     <string name="ui_ward_save_guard_003" formatted="false">"اختر طبيباً مصنفاً كاختصاصي"</string>
     <string name="ui_ward_save_guard_004" formatted="false">"تعذر حفظ التغييرات"</string>
@@ -1054,7 +1054,7 @@
     <string name="ui_report_preview_view_model_008" formatted="false">"جُلب سجل الأطباء؛ راجع التقرير وعاينه مجدداً قبل الإرسال."</string>
     <string name="ui_report_preview_view_model_009" formatted="false">"تعذر حفظ أطباء المناوبة"</string>
     <string name="ui_report_preview_view_model_010" formatted="false">"تعذر حفظ تخصيص التقرير"</string>
-    <string name="ui_report_preview_view_model_011" formatted="false">يمكن نشر المناوبة الحالية والسابقة حتى ساعتين بعد 08:30.</string>
+    <string name="ui_report_preview_view_model_011" formatted="false">قائمة المرضى غير متاحة للإرسال؛ افتح أحدث نسخة</string>
     <string name="ui_report_preview_view_model_012" formatted="false">انتهت مهلة نشر هذه المناوبة.</string>
     <string name="ui_report_preview_view_model_013" formatted="false">"يجب تسجيل الدخول قبل إرسال التقرير"</string>
     <string name="ui_report_preview_view_model_014" formatted="false">"المستخدم الحالي لم يعد نشطاً؛ أعد تسجيل الدخول"</string>
@@ -1252,7 +1252,7 @@
     <string name="ui_edit" formatted="false">"تحرير"</string>
     <string name="ui_ui_action_002" formatted="false">"الملف الكامل"</string>
     <string name="ui_review" formatted="false">"مراجعة"</string>
-    <string name="ui_send_report" formatted="false">"إرسال تقرير"</string>
+    <string name="ui_send_report" formatted="false">"رفع للشبكة وإرسال تقرير"</string>
     <string name="ui_label_diagnosis_type_001" formatted="false">"نفسي"</string>
     <string name="ui_label_diagnosis_type_002" formatted="false">"إدمان"</string>
     <string name="ui_label_diagnosis_type_003" formatted="false">"مزدوج"</string>

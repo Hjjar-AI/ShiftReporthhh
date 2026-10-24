@@ -91,6 +91,7 @@ internal fun SettingsSyncContent(
                 modifier = Modifier.fillMaxWidth()) { Text(uiText(R.string.ui_settings_data_sections_008)) }
         }
     }
+    SettingsPublicationHistory(state, viewModel)
 }
 
 @Composable

@@ -2,6 +2,7 @@ package com.hos.rushdpatients.domain.report
 
 import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.data.model.Patient
+import com.hos.rushdpatients.data.model.withoutTrackingMetadata
 import java.time.Instant
 
 /** Compare report content and delivery destinations, excluding sync and device-only metadata. */
@@ -42,7 +43,7 @@ object ReportReview {
             relevantDoctors(a) == relevantDoctors(b) && a.textChunks == b.textChunks
     }
 
-    private fun clinicalPatient(patient: Patient): Patient = patient.copy(
+    private fun clinicalPatient(patient: Patient): Patient = patient.withoutTrackingMetadata().copy(
         revision = 0,
         updatedAt = Instant.EPOCH,
         lastEditedByDoctorId = null,

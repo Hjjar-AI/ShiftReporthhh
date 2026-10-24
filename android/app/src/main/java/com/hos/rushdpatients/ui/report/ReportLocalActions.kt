@@ -103,7 +103,7 @@ internal class ReportLocalActions(
                 val uri = withContext(Dispatchers.IO) {
                     val shareDir = File(context.cacheDir, "shared_reports").apply { mkdirs() }
                     shareDir.listFiles()?.forEach { it.delete() }
-                    val file = File(shareDir, pdfWorkspace.reportFileName(built.shift.date))
+                    val file = File(shareDir, pdfWorkspace.reportFileName(built.summary.shiftDate))
                     try {
                         pdfWorkspace.renderPdf(
                             patients = built.patients, doctors = built.doctors, summary = built.summary,
@@ -156,7 +156,7 @@ internal class ReportLocalActions(
                         assignmentPdfExporter.export(built.patients, built.doctorNames, built.registryDoctors, built.summary,
                             pdfWorkspace.loadPdfOptions(), tmp)
                         require(adminAuthorizer.requireAdmin().id == actorId) { uiText(R.string.ui_report_local_actions_005) }
-                        checkNotNull(mediaStoreSaver.savePdf(context, tmp, pdfWorkspace.reportFileName(built.shift.date, "Names"),
+                        checkNotNull(mediaStoreSaver.savePdf(context, tmp, pdfWorkspace.reportFileName(built.summary.shiftDate, "Names"),
                             verifyContents = true)) {
                             uiText(R.string.ui_report_local_actions_006)
                         }

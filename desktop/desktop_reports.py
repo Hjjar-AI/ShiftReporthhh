@@ -58,7 +58,7 @@ def options_dialog(owner, export_only=False, assignments=False, force_pdf=False,
                 window.grab_set()
                 update_roster()
         button(area, 'اختيار أو تعديل أطباء المناوبة', guarded(choose_roster),
-               state='normal' if source['meta']['shiftDate'] == current_date(owner.client.zone) else 'disabled')
+               state='normal')
         update_roster()
     scope_get=None
     batch_targets={}

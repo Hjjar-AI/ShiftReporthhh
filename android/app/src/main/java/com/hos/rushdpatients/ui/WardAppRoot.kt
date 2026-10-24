@@ -22,7 +22,6 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -133,7 +132,7 @@ class RootViewModel @Inject constructor(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _unlockError.value = e.message ?: uiText(R.string.ui_pin_unlock_retry)
+                _unlockError.value = com.hos.rushdpatients.ui.components.failureText(uiText, e) ?: uiText(R.string.ui_pin_unlock_retry)
             } finally {
                 _unlocking.value = false
             }
@@ -254,7 +253,7 @@ fun WardAppRoot(
             verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
             androidx.compose.foundation.Image(
                 androidx.compose.ui.res.painterResource(R.drawable.app_emblem_transparent), contentDescription = null,
-                modifier = Modifier.padding(32.dp))
+                modifier = Modifier.padding(com.hos.rushdpatients.ui.theme.UiSpace.xxxl))
         }
         needsUnlock -> PinUnlockScreen(
             doctorName = current.doctorName,

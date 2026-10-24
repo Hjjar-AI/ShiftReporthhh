@@ -37,6 +37,9 @@ class DemoWorkspace(Workspace):
         self.reset(client)
 
     def commit(self, **changes):
+        # Retain old records without creating new audit/completion evidence.
+        changes.pop("clinicalActivity", None)
+        changes.pop("localCompletions", None)
         self.state=dict(copy.deepcopy(self.state),**copy.deepcopy(changes))
 
     def reset(self,client):

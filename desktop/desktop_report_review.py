@@ -67,7 +67,7 @@ def install_send_review(owner, window, area, actions, read_options, read_targets
         review=publication_review(delivery.plan,owner.client.zone) if delivery.needs_publish else 'بيانات المرضى مطابقة للنسخة المنشورة التي جرى فحصها؛ لا يلزم نشر جديد.'
         content=review+'\n\n'+'\n\n'.join(notes)
         if options['format']=='text':content+='\n\nمعاينة النص الذي سيُرسل:\n'+ '\n\n'.join(payloads[t] for t in targets)
-        else:content+='\n\nافتح وافحص PDF لكل وجهة أدناه. بعد ذلك اضغط إرسال تقرير للتأكيد النهائي.'
+        else:content+='\n\nافتح وافحص PDF لكل وجهة أدناه. بعد ذلك اضغط «رفع للشبكة وإرسال تقرير» للتأكيد النهائي.'
         set_readonly_text(text,content)
         for target in files:
             ctk.CTkButton(files_area,text='معاينة PDF — '+name(target),height=48,
@@ -86,7 +86,7 @@ def install_send_review(owner, window, area, actions, read_options, read_targets
         confirmation+='\nالمناوبة: '+delivery.reviewed['meta']['shiftDate']
         if delivery.needs_publish:confirmation+='\nستُنشر النسخة الكاملة التي راجعتها أولاً، ثم يُرسل التقرير. فشل التسليم لا يلغي نشر البيانات.'
         if delivery.needs_publish:confirmation+='\nتأكيدك يستبدل بيانات المناوبة المنشورة بالنسخة المحلية الكاملة التي راجعتها؛ آخر نشر ناجح هو المعتمد.'
-        if not messagebox.askyesno('تأكيد النشر وإرسال التقرير',confirmation,default='no'):return
+        if not messagebox.askyesno('تأكيد رفع للشبكة وإرسال تقرير',confirmation,default='no'):return
         delivery.plan.force_local=True
         require(signature()==prepared['signature'],'تغيرت البيانات بعد المراجعة؛ أعد المعاينة')
         result.append(dict(delivery=delivery,payloads=[(t,prepared['options']['format'],prepared['payloads'][t]) for t in prepared['targets']]))
@@ -107,6 +107,6 @@ def install_send_review(owner, window, area, actions, read_options, read_targets
             if window.winfo_exists():
                 for control in buttons.values():control.configure(state='normal')
 
-    buttons.update(dialog_actions(actions,primary=('إرسال تقرير',lambda:invoke(send)),
+    buttons.update(dialog_actions(actions,primary=('رفع للشبكة وإرسال تقرير',lambda:invoke(send)),
         cancel=('إلغاء',cancel),secondary=[('معاينة التقرير',lambda:invoke(preview))]))
     window.protocol('WM_DELETE_WINDOW',cancel)

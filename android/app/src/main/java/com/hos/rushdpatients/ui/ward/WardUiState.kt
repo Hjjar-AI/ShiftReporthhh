@@ -11,8 +11,6 @@ import com.hos.rushdpatients.data.model.Patient
 import com.hos.rushdpatients.data.model.Shift
 import com.hos.rushdpatients.domain.sort.GroupByMode
 import com.hos.rushdpatients.domain.sort.SortSpec
-import com.hos.rushdpatients.data.db.entity.AuditEntryEntity
-import com.hos.rushdpatients.sync.PublicationJournalEntry
 
 data class PatientGroup(
     val key: String?,
@@ -50,10 +48,6 @@ data class WardUiState(
     val rolloverPatients: List<Patient> = emptyList(),
     val rolloverTarget: Shift? = null,
     val rolloverSourceLabel: String = "",
-    val activityLoading: Boolean = false,
-    val activityError: String? = null,
-    val recentActivity: List<AuditEntryEntity> = emptyList(),
-    val publications: List<PublicationJournalEntry> = emptyList(),
     val groupedPatients: List<PatientGroup> = emptyList(),
     val doctors: List<Doctor> = emptyList(),
     val sortSpec: SortSpec = SortSpec.DEFAULT,

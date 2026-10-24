@@ -7,7 +7,7 @@ import java.time.Duration
 import java.time.Instant
 
 /** Presentation only: technical identifiers and stored/exported values keep their original form. */
-fun uiNumber(value: Any): String = ArabicNumbers.toArabicDigits(value.toString())
+fun uiNumber(value: Any): String = ArabicNumbers.toAscii(value.toString())
 
 fun relativeFreshness(uiText: UiStrings, updatedAt: Instant, now: Instant = Instant.now()): String {
     val minutes = Duration.between(updatedAt, now).toMinutes().coerceAtLeast(0)

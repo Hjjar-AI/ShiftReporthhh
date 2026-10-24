@@ -81,6 +81,8 @@ class ReportSender @Inject constructor(
                         catch (cancel: CancellationException) { throw cancel }
                         catch (_: Exception) { /* Partial cleanup is not proof of non-delivery. */ }
                     }
+                    if (messageIds.isNotEmpty() && e is com.hos.rushdpatients.network.telegram.TelegramException && e.isRateLimited)
+                        throw ReportDeliveryUncertainException(e)
                     throw e
                 }
                 confirmBestEffort(receipt, messageIds)
@@ -179,6 +181,7 @@ class ReportSender @Inject constructor(
     } catch (e: CancellationException) {
         throw e
     } catch (e: Exception) {
+        if (e is com.hos.rushdpatients.network.telegram.TelegramException && e.isRateLimited) throw e
         throw ReportDeliveryUncertainException(e)
     }
 

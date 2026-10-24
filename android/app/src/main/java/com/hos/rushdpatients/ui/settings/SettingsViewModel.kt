@@ -244,6 +244,23 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun loadPublicationHistory() {
+        if (_state.value.publicationHistoryLoading) return
+        _state.update { it.copy(publicationHistoryLoading = true, publicationHistoryError = null) }
+        viewModelScope.launch {
+            try {
+                val entries = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    adminAuthorizer.requireAdmin()
+                    syncService.getPublicationJournal()
+                }
+                _state.update { it.copy(publicationHistory = entries) }
+            } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+            catch (e: Exception) { _state.update { it.copy(publicationHistoryError =
+                com.hos.rushdpatients.ui.components.failureText(uiText, e) ?: uiText(R.string.publication_history_error)) } }
+            finally { _state.update { it.copy(publicationHistoryLoading = false) } }
+        }
+    }
+
     fun setReportAsPdf(value: Boolean) = preferences.setReportAsPdf(value)
 
     fun setPdfStyle(value: PdfStyle) = preferences.setPdfStyle(value)

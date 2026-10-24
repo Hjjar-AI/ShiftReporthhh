@@ -182,11 +182,14 @@ class DoctorRepository @Inject constructor(
     internal suspend fun removeCurrentShiftAssignment(id: String): com.hos.rushdpatients.data.model.Shift? =
         withContext(dispatchers.io) {
             val shifts = database.shiftDao()
-            val shift = shifts.getByDate(ShiftDate.current().toEpochDay()) ?: return@withContext null
+            val shift = shifts.getLatest() ?: return@withContext null
             val ids = shift.doctorIdsCsv.split(',').filter(String::isNotBlank)
             if (id !in ids) return@withContext null
-            val changed = shifts.updateDoctorIds(shift.id, ids.filterNot { it == id }.joinToString(","),
-                shift.revision, Instant.now().toEpochMilli())
+            val changed = shifts.updateDoctorIds(
+                shiftId = shift.id,
+                doctorIdsCsv = ids.filterNot { it == id }.joinToString(","),
+                updatedAtMillis = Instant.now().toEpochMilli()
+            )
             if (changed != 1) throw StaleShiftEditException()
             settingsRepository.putBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, true)
             com.hos.rushdpatients.data.mapper.ShiftMapper.fromEntity(shift)
@@ -196,13 +199,13 @@ class DoctorRepository @Inject constructor(
         require(patients.countActiveReferencesToDoctor(id) == 0) {
             "لا يمكن حذف طبيب مسؤول عن مرضى أو مهام معلقة؛ أعد الإسناد أولاً"
         }
-        val roster = database.shiftDao().getByDate(ShiftDate.current().toEpochDay())
+        val roster = database.shiftDao().getLatest()
             ?.doctorIdsCsv?.split(',').orEmpty()
         require(id !in roster) { "أزل الطبيب من أطباء المناوبة الحالية قبل حذفه" }
     }
 
     suspend fun protectedDeletionIds(candidateIds: Set<String>): Set<String> = withContext(dispatchers.io) {
-        val roster = database.shiftDao().getByDate(ShiftDate.current().toEpochDay())
+        val roster = database.shiftDao().getLatest()
             ?.doctorIdsCsv?.split(',').orEmpty()
         getAll().filter {
             it.id in candidateIds && (it.isPermanentAdmin || it.id in roster ||

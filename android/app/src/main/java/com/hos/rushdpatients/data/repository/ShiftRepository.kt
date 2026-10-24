@@ -13,6 +13,7 @@ import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
+@Suppress("UNUSED_PARAMETER")
 @Singleton
 class ShiftRepository @Inject constructor(
     private val dao: ShiftDao,
@@ -107,7 +108,6 @@ class ShiftRepository @Inject constructor(
             val changed = dao.updateDoctorIds(
                 shiftId = shiftId,
                 doctorIdsCsv = doctorIds.joinToString(","),
-                expectedRevision = expectedRevision,
                 updatedAtMillis = Instant.now().toEpochMilli()
             )
             if (changed != 1) throw StaleShiftEditException()
@@ -122,7 +122,6 @@ class ShiftRepository @Inject constructor(
             val changed = dao.updateSortSpec(
                 shiftId,
                 sortSpecJson,
-                expectedRevision,
                 Instant.now().toEpochMilli()
             )
             if (changed != 1) throw StaleShiftEditException()

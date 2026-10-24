@@ -31,10 +31,11 @@ import androidx.compose.ui.semantics.semantics
 import com.hos.rushdpatients.data.model.Patient
 import com.hos.rushdpatients.ui.theme.UiSpacing
 
-internal enum class DashboardFilter { ALL, MINE, URGENT, WARNINGS, UNASSIGNED, NEW_ADMISSIONS, TASK_PENDING, TASK_OVERDUE, TASK_UNASSIGNED }
+internal enum class DashboardFilter { ALL, MINE, URGENT, WARNINGS, UNASSIGNED, NEW_ADMISSIONS, TASK_PENDING }
 
 @Composable
 @OptIn(ExperimentalLayoutApi::class)
+@Suppress("UNUSED_PARAMETER")
 internal fun HandoverDashboard(
     isAdmin: Boolean,
     patients: List<Patient>,
@@ -78,23 +79,22 @@ internal fun HandoverDashboard(
         )
         FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
             if (showSynchronization) AppTextButton(onClick = onSync) { Text(uiText(R.string.ui_ward_drawer_013)) }
-            if (isAdmin) AppTextButton(onClick = onActivity) { Text(uiText(R.string.ui_ward_activity_screen_003)) }
             AppTextButton(onClick = { onFilter(DashboardFilter.ALL) }) { Text(uiText(R.string.ui_handover_dashboard_004)) }
         }
         Text(uiText(R.string.ui_handover_dashboard_005), Modifier.semantics { heading() }, style = MaterialTheme.typography.titleMedium)
         val attention = buildList {
+            if (mine > 0) add(AppMetric(uiText(R.string.ui_handover_dashboard_011), mine) { onFilter(DashboardFilter.MINE) })
+            if (unassigned > 0) add(AppMetric(uiText(R.string.ui_handover_dashboard_014), unassigned, Tone.WARNING) { onFilter(DashboardFilter.UNASSIGNED) })
+            if (warnings > 0) add(AppMetric(uiText(R.string.ui_handover_dashboard_013), warnings, Tone.WARNING) { onFilter(DashboardFilter.WARNINGS) })
+            if (taskCounts.pending > 0) add(AppMetric(uiText(R.string.ui_handover_dashboard_012), taskCounts.pending, Tone.PENDING) { onFilter(DashboardFilter.TASK_PENDING) })
             if (urgent > 0) add(AppMetric(uiText(R.string.ui_handover_dashboard_006), urgent, Tone.URGENT) { onFilter(DashboardFilter.URGENT) })
         }
         AppMetricGrid(attention)
-        if (attention.isEmpty()) com.hos.rushdpatients.ui.components.AppNotice(
+        if (urgent == 0 && unassigned == 0 && warnings == 0 && taskCounts.pending == 0) com.hos.rushdpatients.ui.components.AppNotice(
             uiText(R.string.ui_handover_dashboard_008), kind = NoticeKind.SUCCESS)
         Text(uiText(R.string.ui_handover_dashboard_009), Modifier.semantics { heading() }, style = MaterialTheme.typography.titleMedium)
         AppMetricGrid(listOf(
             AppMetric(uiText(R.string.ui_handover_dashboard_010), patients.size) { onFilter(DashboardFilter.ALL) },
-            AppMetric(uiText(R.string.ui_handover_dashboard_011), mine) { onFilter(DashboardFilter.MINE) },
-            AppMetric(uiText(R.string.ui_handover_dashboard_012), taskCounts.pending, Tone.PENDING) { onFilter(DashboardFilter.TASK_PENDING) },
-            AppMetric(uiText(R.string.ui_handover_dashboard_013), warnings) { onFilter(DashboardFilter.WARNINGS) },
-            AppMetric(uiText(R.string.ui_handover_dashboard_014), unassigned) { onFilter(DashboardFilter.UNASSIGNED) },
             AppMetric(uiText(R.string.ui_handover_dashboard_016), newAdmissions) { onFilter(DashboardFilter.NEW_ADMISSIONS) }
         ))
         if (showSynchronization) Surface(

@@ -75,17 +75,7 @@ internal fun PatientSortOptions(
     val uiText = rememberUiStrings()
     var levels by remember { mutableStateOf(initial.levels) }
 
-    var revision by remember { mutableStateOf(initialRevision) }
-    var rejected by remember { mutableStateOf<SortSpec?>(null) }
-    var latest by remember { mutableStateOf<Shift?>(null) }
-    var reviewing by remember { mutableStateOf(false) }
-    fun apply(spec: SortSpec) {
-        onApply(spec, revision) { saved ->
-            rejected = spec
-            latest = saved
-            reviewing = true
-        }
-    }
+    fun apply(spec: SortSpec) { onApply(spec, initialRevision) {} }
 
     CompositionLocalProvider(LocalFieldEnabled provides !saving) {
         Column(
@@ -98,11 +88,6 @@ internal fun PatientSortOptions(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
             ) {
-                if (rejected != null) {
-                    AppTextButton(onClick = { reviewing = true }, enabled = !saving) {
-                        Text(uiText(R.string.ui_sort_sheet_002))
-                    }
-                }
                 levels.forEachIndexed { index, level ->
                     Text(uiText(R.string.ui_sort_sheet_003) + when (index) {
                         0 -> uiText(R.string.ui_sort_sheet_004)
@@ -167,30 +152,6 @@ internal fun PatientSortOptions(
             AppTextButton(onClick = { apply(SortSpec.WORKBOOK) }, enabled = !saving,
                 modifier = Modifier.fillMaxWidth()) { Text(uiText(R.string.ui_sort_sheet_012)) }
         }
-    }
-    if (reviewing) {
-        val saved = latest
-        val draft = rejected ?: SortSpec.EMPTY
-        val savedSpec = SortSpecCodec.decode(saved?.sortSpecJson)
-        StaleEditReviewDialog(
-            differences = listOf(Triple(uiText(R.string.ui_sort_sheet_001), sortReviewLabel(uiText, draft), sortReviewLabel(uiText, savedSpec))),
-            available = saved != null,
-            onKeepDraft = {
-                if (saved != null) {
-                    levels = draft.levels
-                    revision = saved.revision
-                    reviewing = false
-                }
-            },
-            onUseSaved = {
-                if (saved != null) {
-                    levels = savedSpec.levels
-                    revision = saved.revision
-                    reviewing = false
-                }
-            },
-            onDismiss = { reviewing = false }
-        )
     }
 }
 

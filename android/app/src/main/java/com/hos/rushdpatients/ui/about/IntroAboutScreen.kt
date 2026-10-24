@@ -34,7 +34,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.unit.dp
 import com.hos.rushdpatients.BuildConfig
 import com.hos.rushdpatients.R
 
@@ -66,9 +65,9 @@ fun IntroAboutScreen(
     }) { padding ->
         Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.TopCenter) {
             Column(
-                Modifier.widthIn(max = 640.dp).fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp),
+                Modifier.widthIn(max = com.hos.rushdpatients.ui.theme.UiLayout.aboutMaxWidth).fillMaxWidth().verticalScroll(rememberScrollState()).padding(com.hos.rushdpatients.ui.theme.UiSpacing.aboutInset),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(com.hos.rushdpatients.ui.theme.UiSpacing.largeSection)
             ) {
                 IntroCredits(compact = false)
                 AppVersion()
@@ -94,7 +93,7 @@ private fun IntroCredits(compact: Boolean) {
     Surface(color = Color.White, shape = MaterialTheme.shapes.large) {
         Image(painterResource(R.drawable.app_emblem_transparent),
             contentDescription = "شعار شعبة الطب النفسي", contentScale = ContentScale.Fit,
-            modifier = Modifier.size(if (compact) 128.dp else 180.dp).padding(8.dp))
+            modifier = Modifier.size(if (compact) com.hos.rushdpatients.ui.theme.UiSize.aboutEmblemCompact else com.hos.rushdpatients.ui.theme.UiSize.aboutEmblem).padding(com.hos.rushdpatients.ui.theme.UiSpacing.screen))
     }
     CreditBlock("مساهمة تقنية", "الأطباء:\n" + technicalContributors.joinToString("\n"), prominent = true)
     CreditBlock("فكرة Excel الأولية وبنية التقرير الأساسي", introOriginalAuthorName)
@@ -102,7 +101,7 @@ private fun IntroCredits(compact: Boolean) {
 
 @Composable
 private fun CreditBlock(title: String, name: String, prominent: Boolean = false) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(com.hos.rushdpatients.ui.theme.UiSpacing.small)) {
         Text(title, style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(name, style = if (prominent) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.titleMedium,

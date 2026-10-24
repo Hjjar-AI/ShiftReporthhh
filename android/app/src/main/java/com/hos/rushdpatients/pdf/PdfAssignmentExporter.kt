@@ -148,7 +148,7 @@ class PdfAssignmentExporter @Inject constructor(
                         }
                         value.number?.let { n ->
                             val numberPaint = Paint(body).apply { textAlign = Paint.Align.CENTER }
-                            canvas.drawText(com.hos.rushdpatients.util.ArabicNumbers.toArabicDigits(n.toString()), x + tableWidth - numberWidth / 2f,
+                            canvas.drawText(com.hos.rushdpatients.util.ArabicNumbers.toAscii(n.toString()), x + tableWidth - numberWidth / 2f,
                                 cellY + padding - numberPaint.fontMetrics.top, numberPaint)
                         }
                         canvas.drawLine(x, cellY + value.height, x + tableWidth, cellY + value.height, border)

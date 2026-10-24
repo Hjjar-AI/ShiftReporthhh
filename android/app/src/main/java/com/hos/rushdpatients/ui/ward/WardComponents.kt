@@ -35,19 +35,16 @@ private enum class WardDestination(
     @StringRes val label: Int, val outlined: ImageVector, val filled: ImageVector
 ) {
     PATIENTS(R.string.ui_patients, AppIcons.OutlinedViewAgenda, AppIcons.ViewAgenda),
-    DASHBOARD(R.string.ui_ward_components_002, AppIcons.OutlinedDashboard, AppIcons.Dashboard),
-    ACTIVITY(R.string.ui_ward_navigation_chrome_003, AppIcons.OutlinedHistory, AppIcons.History);
+    DASHBOARD(R.string.ui_ward_components_002, AppIcons.OutlinedDashboard, AppIcons.Dashboard);
 
     fun selected(view: WardViewMode): Boolean = when (this) {
-        PATIENTS -> view == WardViewMode.ALL || view == WardViewMode.MINE
+        PATIENTS -> view == WardViewMode.ALL || view == WardViewMode.MINE || view == WardViewMode.ACTIVITY
         DASHBOARD -> view == WardViewMode.DASHBOARD
-        ACTIVITY -> view == WardViewMode.ACTIVITY
     }
 }
 
-private fun wardDestinations(isAdmin: Boolean) = WardDestination.values().filter {
-    isAdmin || it != WardDestination.ACTIVITY
-}
+@Suppress("UNUSED_PARAMETER")
+private fun wardDestinations(isAdmin: Boolean) = WardDestination.values().toList()
 
 @Composable
 internal fun PrimaryNavigationBar(

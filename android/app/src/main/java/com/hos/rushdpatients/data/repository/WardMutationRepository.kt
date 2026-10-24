@@ -1,6 +1,5 @@
 package com.hos.rushdpatients.data.repository
 
-import com.hos.rushdpatients.data.model.PatientTaskCodec
 import com.hos.rushdpatients.domain.task.PatientTasks
 import androidx.room.withTransaction
 import com.hos.rushdpatients.domain.patient.PatientDoctorAssignments
@@ -17,7 +16,8 @@ import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** Local clinical mutations, their pending-sync marker, and audit records commit together. */
+/** Clinical last-save-wins mutations and their pending-sync marker commit together. */
+@Suppress("UNUSED_PARAMETER")
 @Singleton
 class WardMutationRepository @Inject constructor(
     private val database: AppDatabase,
@@ -31,8 +31,8 @@ class WardMutationRepository @Inject constructor(
     private suspend fun <T> mutate(shiftId: String, block: suspend () -> T): T =
         withContext(dispatchers.io) {
             database.withTransaction {
-                require(shifts.getById(shiftId)?.date == ShiftDate.current()) {
-                    "هذه مناوبة محفوظة للعرض والاستعادة فقط ولا يمكن تعديلها"
+                require(shifts.getById(shiftId) != null) {
+                    "قائمة المرضى لم تعد متاحة"
                 }
                 val result = block()
                 settings.putBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, true)
@@ -56,11 +56,6 @@ class WardMutationRepository @Inject constructor(
                 doctors.getAllIncludingDeleted().associate { it.id to it.fullName })
             if (position != null) {
                 val shift = requireNotNull(shifts.getById(shiftId))
-                require(shift.revision == expectedShiftRevision && expectedPatients != null &&
-                    current.map { Triple(it.id, it.revision, it.sortOrder) } ==
-                        expectedPatients.sortedBy { it.sortOrder }.map { Triple(it.id, it.revision, it.sortOrder) }) {
-                    "تغيرت قائمة المرضى؛ أعد فتح الإدراج وراجع الموضع"
-                }
                 require(position in 1..current.size + 1) { "موضع المريض خارج القائمة" }
                 val priorityCount = current.count { it.isPriority }
                 require(if (patient.isPriority) position <= priorityCount + 1 else position > priorityCount) {
@@ -73,8 +68,8 @@ class WardMutationRepository @Inject constructor(
             val added = prepared.copy(
                 sortOrder = order,
                 revision = 1,
-                lastEditedByDoctorId = actor?.doctorId,
-                lastEditedByName = actor?.doctorName
+                lastEditedByDoctorId = null,
+                lastEditedByName = null
             )
             patients.upsert(added, shiftId)
             if (position != null) {
@@ -94,8 +89,8 @@ class WardMutationRepository @Inject constructor(
             val before = patients.getById(patient.id)
             val updated = patients.updateOptimistically(
                 prepareTasks(patient, before, actor).copy(
-                    lastEditedByDoctorId = actor?.doctorId,
-                    lastEditedByName = actor?.doctorName
+                    lastEditedByDoctorId = null,
+                    lastEditedByName = null
                 ),
                 shiftId,
                 patient.revision
@@ -142,12 +137,11 @@ class WardMutationRepository @Inject constructor(
         }
         decisions.forEach { (source, _) ->
             val current = patients.getById(source.id)
-            require(current != null && !current.isDeleted && current.revision == source.revision) {
+            require(current != null && !current.isDeleted) {
                 "تغيرت بيانات المناوبة السابقة؛ أعد فتح نسخ المناوبة"
             }
         }
         val target = requireNotNull(shifts.getById(shiftId))
-        require(target.revision == expectedRevision) { "تغيرت مناوبة اليوم؛ أعد فتح نسخ المناوبة" }
         require(patientsToInsert.map { it.id }.toSet().size == patientsToInsert.size &&
             patientsToInsert.all { patients.getById(it.id) == null }) { "معرّفات النسخة الجديدة مستخدمة؛ أعد فتح النسخ" }
         val registry = doctors.getAll().associateBy { it.id }
@@ -207,11 +201,9 @@ class WardMutationRepository @Inject constructor(
 
     suspend fun movePatientToTop(patient: Patient, shiftId: String, expectedShiftRevision: Long, actor: Session?) = mutate(shiftId) {
         val shift = requireNotNull(shifts.getById(shiftId))
-        require(shift.revision == expectedShiftRevision) { "تغير ترتيب المناوبة؛ أعد المحاولة" }
         val rows = PatientComparators.ordered(patients.getForShift(shiftId), SortSpecCodec.decode(shift.sortSpecJson),
             doctors.getAllIncludingDeleted().associate { it.id to it.fullName })
         val saved = rows.firstOrNull { it.id == patient.id } ?: throw StalePatientEditException()
-        if (saved.revision != patient.revision) throw StalePatientEditException()
         val rest = rows.filterNot { it.id == saved.id }
         // Keep the established priority section first; move to the start of the patient's section.
         val ordered = if (saved.isPriority) listOf(saved) + rest
@@ -226,23 +218,9 @@ class WardMutationRepository @Inject constructor(
     private suspend fun prepareTasks(patient: Patient, before: Patient?, actor: Session?): Patient {
         PatientDoctorAssignments.requireValid(patient, doctors.getAll().associateBy { it.id })
         PatientTasks.requireValid(patient.tasks, requireCompletion = false)
-        val previous = before?.tasks.orEmpty().associateBy { it.id }
-        val tasks = patient.tasks.map { draft ->
-            val old = previous[draft.id]
-            val task = draft
-            when {
-                !task.done -> task.copy(description = task.description.trim(), completedByDoctorId = null,
-                    completedByName = null, completedAtEpochMillis = null)
-                old?.done == true -> task.copy(description = task.description.trim(),
-                    completedByDoctorId = old.completedByDoctorId, completedByName = old.completedByName,
-                    completedAtEpochMillis = old.completedAtEpochMillis)
-                else -> {
-                    val completer = actor?.doctorId?.let { doctors.getById(it) }
-                    require(completer != null && !completer.isDeleted) { "سجّل الدخول لإتمام المهمة" }
-                    task.copy(description = task.description.trim(), completedByDoctorId = completer.id,
-                        completedByName = completer.fullName, completedAtEpochMillis = java.time.Instant.now().toEpochMilli())
-                }
-            }
+        val tasks = patient.tasks.map { task ->
+            task.copy(description = task.description.trim(), completedByDoctorId = null,
+                completedByName = null, completedAtEpochMillis = null)
         }
         PatientTasks.requireValid(tasks)
         return patient.copy(tasks = tasks)
@@ -250,31 +228,5 @@ class WardMutationRepository @Inject constructor(
 
     private suspend fun recordPatientChange(
         actor: Session?, action: String, before: Patient?, after: Patient?
-    ) {
-        audit.record(
-            actorDoctorId = actor?.doctorId,
-            actorName = actor?.doctorName,
-            action = action,
-            detail = after?.name ?: before?.name.orEmpty(),
-            patientId = after?.id ?: before?.id,
-            beforeValue = before?.let(::patientHistorySummary),
-            afterValue = after?.let(::patientHistorySummary)
-        )
-    }
-
-    private fun patientHistorySummary(patient: Patient): String = buildString {
-        append("name=").append(patient.name)
-        append(";diagnosis=").append(patient.initialDiagnosis)
-        append(";plan=").append(patient.treatmentPlan)
-        append(";followUp=").append(patient.followUp)
-        append(";labs=").append(patient.labs)
-        append(";tasks=").append(PatientTaskCodec.encode(patient.tasks))
-        append(";resident=").append(patient.responsibleResidentId.orEmpty())
-        append(";supervisor=").append(patient.responsibleSpecialistId.orEmpty())
-        append(";badges=").append(patient.badges.joinToString("|") { badge ->
-            "${badge.priority?.code.orEmpty()}:${badge.text}"
-        })
-        append(";priority=").append(patient.isPriority)
-        append(";revision=").append(patient.revision)
-    }
+    ) = Unit
 }

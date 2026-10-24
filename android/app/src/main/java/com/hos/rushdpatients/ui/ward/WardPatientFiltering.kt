@@ -5,7 +5,14 @@ import com.hos.rushdpatients.data.model.Patient
 import com.hos.rushdpatients.domain.patient.ArabicSearchNormalizer
 import com.hos.rushdpatients.domain.patient.PatientPredicates
 
-internal enum class WardTaskFilter { PENDING, OVERDUE, UNASSIGNED }
+internal enum class WardTaskFilter { PENDING;
+    companion object {
+        fun fromSaved(value: String): WardTaskFilter? = when (value) {
+            "PENDING", "OVERDUE", "UNASSIGNED" -> PENDING
+            else -> null
+        }
+    }
+}
 
 /** Normalize each field once per patient snapshot; preserve field-by-field substring matching. */
 internal fun wardSearchIndex(patients: List<Patient>): Map<String, List<String>> = patients.associate { patient ->
@@ -30,8 +37,6 @@ internal fun filterWardPatients(
             (!filters.newAdmissionsOnly || PatientPredicates.newAdmission(patient)) &&
             when (filters.taskFilter) {
                 WardTaskFilter.PENDING -> patient.tasks.any { !it.done }
-                WardTaskFilter.OVERDUE -> patient.tasks.any { !it.done }
-                WardTaskFilter.UNASSIGNED -> patient.tasks.any { !it.done }
                 null -> true
             } && (needle.isEmpty() || searchIndex[patient.id].orEmpty().any { needle in it })
     }.sortedByDescending { it.id in pinnedPatientIds }

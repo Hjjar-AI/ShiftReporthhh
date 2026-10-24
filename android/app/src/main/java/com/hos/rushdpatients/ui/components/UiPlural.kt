@@ -16,5 +16,5 @@ fun uiPlural(@PluralsRes resourceId: Int, quantity: Int): String {
     val resources = remember(context, configuration) {
         context.createConfigurationContext(Configuration(configuration).apply { setLocale(Locale("ar")) }).resources
     }
-    return resources.getQuantityString(resourceId, quantity, uiNumber(quantity))
+    return com.hos.rushdpatients.util.ArabicNumbers.toAscii(resources.getQuantityString(resourceId, quantity, uiNumber(quantity)))
 }

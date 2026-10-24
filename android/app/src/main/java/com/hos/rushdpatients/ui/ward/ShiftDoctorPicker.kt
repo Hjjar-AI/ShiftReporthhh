@@ -46,10 +46,6 @@ fun ShiftDoctorPicker(
 ) {
     val uiText = rememberUiStrings()
     var selected by remember { mutableStateOf(initialSelected.toList()) }
-    var revision by remember { mutableStateOf(initialRevision) }
-    var rejected by remember { mutableStateOf<List<String>?>(null) }
-    var latest by remember { mutableStateOf<Shift?>(null) }
-    var reviewing by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
     val activeDoctors = allDoctors.filterNot { it.isDeleted }
     val matchingDoctors = activeDoctors.filter { ArabicSearchNormalizer.matches(query, it.fullName) }
@@ -58,7 +54,7 @@ fun ShiftDoctorPicker(
     val requestDismiss: () -> Unit = {
         if (!saving) { if (selected.toSet() != initialSelected.toSet()) confirmDiscard = true else onDismiss() }
     }
-    if (!reviewing && !confirmDiscard) WardFormDialog(
+    if (!confirmDiscard) WardFormDialog(
         onDismissRequest = requestDismiss,
         title = { AppDialogHeader(uiText(R.string.ui_shift_doctor_picker_001)) },
         text = {
@@ -73,11 +69,6 @@ fun ShiftDoctorPicker(
                 AppSearchField(query = query, onQueryChange = { query = it },
                     label = uiText(R.string.ui_shift_doctor_picker_003), enabled = !saving)
 
-                if (rejected != null) {
-                    AppTextButton(onClick = { reviewing = true }, enabled = !saving) {
-                        Text(uiText(R.string.ui_shift_doctor_picker_004))
-                    }
-                }
                 Column(
                     modifier = Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
@@ -102,11 +93,7 @@ fun ShiftDoctorPicker(
             AppDialogConfirmAction(text = UiAction.SAVE.label(uiText), loading = saving,
                 onClick = {
                     val draft = selected.toList()
-                    onConfirm(draft, revision) { saved ->
-                        rejected = draft
-                        latest = saved
-                        reviewing = true
-                    }
+                    onConfirm(draft, initialRevision) {}
                 },
                 enabled = selected.isNotEmpty() && !saving
             )
@@ -119,30 +106,4 @@ fun ShiftDoctorPicker(
         message = uiText(R.string.ui_shift_doctor_picker_008), confirmText = uiText(R.string.ui_patient_task_editor_029),
         dismissText = uiText(R.string.ui_shift_doctor_picker_009), destructive = true,
         onConfirm = { confirmDiscard = false; onDismiss() }, onDismiss = { confirmDiscard = false })
-    if (reviewing) {
-        val saved = latest
-        val draft = rejected.orEmpty()
-        fun names(ids: List<String>) = ids.joinToString(uiText(R.string.ui_patient_card_002)) { id ->
-            allDoctors.firstOrNull { it.id == id }?.fullName ?: id
-        }
-        StaleEditReviewDialog(
-            differences = listOf(Triple(uiText(R.string.ui_shift_doctor_picker_001), names(draft), names(saved?.doctorIds.orEmpty()))),
-            available = saved != null,
-            onKeepDraft = {
-                if (saved != null) {
-                    selected = draft
-                    revision = saved.revision
-                    reviewing = false
-                }
-            },
-            onUseSaved = {
-                if (saved != null) {
-                    selected = saved.doctorIds
-                    revision = saved.revision
-                    reviewing = false
-                }
-            },
-            onDismiss = { reviewing = false }
-        )
-    }
 }

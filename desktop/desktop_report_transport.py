@@ -9,7 +9,6 @@ def send_pdf(owner, raw, shift, supervisor, reviewed_pointer, reviewed_registry,
     current = owner.fetch()
     owner.authorize(current['doctors'])
     require(pointer(current['state']) == reviewed_pointer and doctor_pointer(current['state']) == reviewed_registry, 'تغيرت نسخة المرضى أو الأطباء؛ أعد المعاينة')
-    require(shift['meta']['shiftDate'] == current_date(owner.zone), 'لا ترسل تقرير مناوبة محفوظة')
     chat, topic = report_destination(owner, current['doctors'], supervisor)
     before_send(chat, topic)
     return owner.telegram.upload(raw, 'ShiftReport_' + shift['meta']['shiftDate'] + '.pdf', topic,
@@ -23,7 +22,6 @@ def send_text(owner, text, shift, supervisor, reviewed_pointer, reviewed_registr
         owner.authorize(current['doctors'])
         require(pointer(current['state']) == reviewed_pointer and doctor_pointer(current['state']) == reviewed_registry,
                 'تغيرت نسخة المرضى أو الأطباء؛ أعد المعاينة')
-        require(shift['meta']['shiftDate'] == current_date(owner.zone), 'لا ترسل تقرير مناوبة محفوظة')
         owner.doctors = current['doctors']
         require(text == report_text(owner, shift, supervisor), 'تغير النص بعد المعاينة')
         return report_destination(owner, current['doctors'], supervisor)

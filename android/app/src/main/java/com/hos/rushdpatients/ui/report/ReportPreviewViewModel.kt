@@ -137,7 +137,7 @@ class ReportPreviewViewModel @Inject constructor(
                 val available = doctorRepository.getAll().filterNot { it.isDeleted }
                 _state.update { it.copy(shift = shift, availableDoctors = available,
                     doctors = available.filter { doctor -> doctor.id in shift.doctorIds },
-                    isReadOnly = !ShiftDate.canPublish(shift.date)) }
+                    isReadOnly = false) }
                 if (_state.value.doctors.isEmpty()) {
                     _state.update { it.copy(loading = false, previewMarkdown = "", error = null, doctorRegistryAction = null) }
                     return@launch
@@ -157,7 +157,7 @@ class ReportPreviewViewModel @Inject constructor(
                     it.copy(
                         loading = false,
                         shift = built.shift,
-                        isReadOnly = !ShiftDate.canPublish(built.shift.date),
+                        isReadOnly = false,
                         patients = built.patients,
                         doctors = built.doctors,
                         supervisorTargets = supervisorTargets,
@@ -165,7 +165,7 @@ class ReportPreviewViewModel @Inject constructor(
                         previewMarkdown = built.textChunks.joinToString("\n\n") {
                             Markdown.toPlainText(it)
                         },
-                        readinessWarnings = ReportReadiness.issues(built.patients, built.shift.date).map { it.message },
+                        readinessWarnings = com.hos.rushdpatients.ui.components.readinessWarnings(uiText, built.patients),
                         readinessIssues = ReportReadiness.issues(built.patients, built.shift.date),
                         changeBriefing = briefing,
                         registryChangeSummary = built.registryChangeSummary?.substringBefore("\nافتح")?.let { summary ->
@@ -180,7 +180,7 @@ class ReportPreviewViewModel @Inject constructor(
                 throw e
             } catch (e: Exception) {
                 _state.update {
-                    it.copy(loading = false, error = e.message ?: uiText(R.string.ui_report_preview_view_model_006))
+                    it.copy(loading = false, error = com.hos.rushdpatients.ui.components.failureText(uiText, e) ?: uiText(R.string.ui_report_preview_view_model_006))
                 }
             }
         }
@@ -200,7 +200,7 @@ class ReportPreviewViewModel @Inject constructor(
                 fetched = true
             } catch (e: CancellationException) { throw e }
             catch (e: Exception) {
-                _state.update { it.copy(error = e.message ?: uiText(R.string.ui_report_preview_view_model_007),
+                _state.update { it.copy(error = com.hos.rushdpatients.ui.components.failureText(uiText, e) ?: uiText(R.string.ui_report_preview_view_model_007),
                     doctorRegistryAction = (e as? DoctorRegistryActionRequired)?.action) }
             } finally { _state.update { it.copy(savingDoctors = false) } }
             if (fetched) load(uiText(R.string.ui_report_preview_view_model_008))
@@ -229,7 +229,7 @@ class ReportPreviewViewModel @Inject constructor(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _state.update { it.copy(snackbar = e.message ?: uiText(R.string.ui_report_preview_view_model_009)) }
+                _state.update { it.copy(snackbar = com.hos.rushdpatients.ui.components.failureText(uiText, e) ?: uiText(R.string.ui_report_preview_view_model_009)) }
             } finally {
                 _state.update { it.copy(savingDoctors = false) }
             }
@@ -248,7 +248,7 @@ class ReportPreviewViewModel @Inject constructor(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _state.update { it.copy(snackbar = e.message ?: uiText(R.string.ui_report_preview_view_model_010)) }
+                _state.update { it.copy(snackbar = com.hos.rushdpatients.ui.components.failureText(uiText, e) ?: uiText(R.string.ui_report_preview_view_model_010)) }
             } finally {
                 _state.update { it.copy(savingPdfOptions = false) }
             }
@@ -277,7 +277,7 @@ class ReportPreviewViewModel @Inject constructor(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _state.update { it.copy(snackbar = e.message ?: uiText(R.string.ui_report_preview_view_model_010)) }
+                _state.update { it.copy(snackbar = com.hos.rushdpatients.ui.components.failureText(uiText, e) ?: uiText(R.string.ui_report_preview_view_model_010)) }
             } finally {
                 _state.update { it.copy(savingPdfOptions = false) }
             }
@@ -288,7 +288,6 @@ class ReportPreviewViewModel @Inject constructor(
         val actor = activeSendingActor()
         val reviewer = reviewedActor
         require(reviewer != null && actor.id == reviewer.doctorId && actor.telegramId == reviewer.telegramId) { "تغير حساب المراجع؛ افتح التقرير بالحساب الذي راجعه" }
-        check(ShiftDate.canPublish(reviewed.shift.date)) { uiText(R.string.ui_report_preview_view_model_011) }
         val publication = syncService.prepareCsvPublication(shiftId, forceLocal, reviewed)
         _state.update { it.copy(publicationOutcome = ReportStepOutcome.IN_PROGRESS) }
         syncService.uploadReviewedCsv(publication, forceLocal).getOrThrow()
@@ -314,14 +313,16 @@ class ReportPreviewViewModel @Inject constructor(
                 deliveryLedger.resolve(record.id, record.status, resolution)
                 _state.update { it.copy(snackbar = uiText(R.string.ui_report_preview_view_model_015), retryAction = null) }
             } catch (e: CancellationException) { throw e }
-            catch (e: Exception) { _state.update { it.copy(error = e.message ?: uiText(R.string.ui_report_preview_view_model_016), retryAction = null) } }
+            catch (e: Exception) { _state.update { it.copy(error = com.hos.rushdpatients.ui.components.failureText(uiText, e) ?: uiText(R.string.ui_report_preview_view_model_016), retryAction = null) } }
         }
     }
 
     private fun recordSendFailure(error: Exception, delivered: Int = 0, cancelled: Boolean = false) {
         _state.update { current ->
-            val publication = if (current.publicationOutcome == ReportStepOutcome.IN_PROGRESS)
-                ReportStepOutcome.UNCERTAIN else current.publicationOutcome
+            val publication = if (current.publicationOutcome == ReportStepOutcome.IN_PROGRESS) {
+                if (error is com.hos.rushdpatients.network.telegram.TelegramException && error.isRateLimited)
+                    ReportStepOutcome.NOT_STARTED else ReportStepOutcome.UNCERTAIN
+            } else current.publicationOutcome
             val delivery = when {
                 error is ReportDeliveryUncertainException || cancelled && current.deliveryOutcome == ReportStepOutcome.IN_PROGRESS -> ReportStepOutcome.UNCERTAIN
                 delivered > 0 -> ReportStepOutcome.PARTIAL
@@ -336,7 +337,7 @@ class ReportPreviewViewModel @Inject constructor(
             }
             current.copy(sending = false, publicationOutcome = publication, deliveryOutcome = delivery,
                 doctorRegistryAction = (error as? DoctorRegistryActionRequired)?.action,
-                error = if (error is DoctorRegistryActionRequired) error.message else next + "\n" + error.message.orEmpty(),
+                error = if (error is DoctorRegistryActionRequired) error.message else next + "\n" + com.hos.rushdpatients.ui.components.failureText(uiText, error).orEmpty(),
                 retryAction = if (error is PdfReviewRequiredException && delivered == 0) ReportRetryAction.PREVIEW
                     else if (error is ReportDeliveryBlockedException || error is DoctorRegistryActionRequired) null
                     else if (!cancelled && delivered == 0 && publication != ReportStepOutcome.UNCERTAIN &&
@@ -469,12 +470,12 @@ class ReportPreviewViewModel @Inject constructor(
                     val savedUri = mediaStoreSaver.savePdf(
                         context = context,
                         sourceFile = tmp,
-                        displayName = reportFileName(built.shift.date)
+                        displayName = reportFileName(built.summary.shiftDate)
                     )
                     checkNotNull(savedUri) { uiText(R.string.ui_report_preview_view_model_028) }
                 }
 
-                val caption = Markdown.escape(uiText(R.string.ui_report_preview_view_model_029, built.shift.date, built.doctors.size))
+                val caption = Markdown.escape(uiText(R.string.ui_report_preview_view_model_029, built.summary.shiftDate, built.doctors.size))
                 reportSender.sendPdfReport(
                     shift = built.shift,
                     pdfFile = tmp,
@@ -514,7 +515,7 @@ class ReportPreviewViewModel @Inject constructor(
             ?: error(uiText(R.string.ui_report_preview_view_model_030))
         val reviewedFile = checkedPdf(built, target.doctorId)
         reportSender.sendSupervisorPdfReport(shift = built.shift, pdfFile = reviewedFile,
-            caption = textReportBuilder.buildTitle(built.shift, listOf(supervisor)), actor = actor,
+            caption = textReportBuilder.buildTitle(built.shift.copy(date = built.summary.shiftDate), listOf(supervisor)), actor = actor,
             supervisor = supervisor, chatId = requireNotNull(target.chatId),
             contentKey = ReportReview.supervisorFingerprint(built, target.doctorId))
     }

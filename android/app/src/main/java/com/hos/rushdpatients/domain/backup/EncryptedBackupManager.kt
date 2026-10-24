@@ -41,7 +41,7 @@ class EncryptedBackupManager @Inject constructor(
     suspend fun prepareExport(password: CharArray): PreparedBackup = withContext(dispatchers.io) {
         try {
             require(password.size >= 8) { "كلمة مرور النسخة الاحتياطية يجب ألا تقل عن 8 محارف" }
-            val shift = shiftRepository.getByDate(ShiftDate.current())
+            val shift = shiftRepository.getLatest()
                 ?: error("لا توجد وردية لإنشاء نسخة احتياطية")
             val patients = patientRepository.getForShift(shift.id)
             val plain = CsvCodec.encode(shift, patients).toByteArray(Charsets.UTF_8)
@@ -85,9 +85,7 @@ class EncryptedBackupManager @Inject constructor(
                 patientRepository.upsertAll(restored, shift.id)
                 shiftRepository.upsert(shift.copy(doctorIds = parsed.doctorIds.distinct(),
                     sortSpecJson = parsed.sortSpecJson, revision = nextRevision(shift.revision, parsed.shiftRevision)))
-                if (parsed.shiftDate == ShiftDate.current()) {
-                    settingsRepository.putBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, true)
-                }
+                settingsRepository.putBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, true)
             }
             parsed.patients.size
         } finally {

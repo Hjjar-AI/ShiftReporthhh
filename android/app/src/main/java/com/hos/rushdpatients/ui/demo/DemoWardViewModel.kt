@@ -102,11 +102,7 @@ class DemoWardViewModel @Inject constructor(
         override fun addPatient(patient: Patient, position: Int?, expectedPatients: List<Patient>?,
             expectedShiftRevision: Long?, onSuccess: () -> Unit) {
             val current = _state.value
-            if (current.patients.any { it.id == patient.id } ||
-                expectedShiftRevision?.let { it != current.revision } == true ||
-                expectedPatients?.associate { it.id to it.revision }?.let { expected ->
-                    expected != current.patients.associate { it.id to it.revision }
-                } == true) { unavailable(); return }
+            if (current.patients.any { it.id == patient.id }) { unavailable(); return }
             if (save(patient)) {
                 _state.update { saved ->
                     if (position == null) saved.copy(draft = null) else {
@@ -119,31 +115,44 @@ class DemoWardViewModel @Inject constructor(
                 onSuccess()
             }
         }
+        override fun movePatientToTop(patient: Patient) {
+            val current = _state.value
+            val saved = current.patients.firstOrNull { it.id == patient.id } ?: return
+            val rest = current.ordered.filterNot { it.id == patient.id }
+            val rows = if (saved.isPriority) listOf(saved) + rest
+                else rest.filter { it.isPriority } + saved + rest.filterNot { it.isPriority }
+            _state.update { it.copy(patients = rows.mapIndexed { index, row ->
+                if (row.sortOrder == index + 1) row else row.copy(sortOrder = index + 1, revision = row.revision + 1)
+            }, sort = SortSpec.EMPTY, revision = it.revision + 1) }
+        }
         override fun updatePatient(patient: Patient, onStale: (Patient?) -> Unit, onSuccess: () -> Unit) {
             if (save(patient, onStale)) onSuccess()
         }
         override fun deletePatient(patient: Patient, onSuccess: (Patient) -> Unit) {
             val saved = _state.value.patients.firstOrNull { it.id == patient.id }
-            if (saved == null || saved.revision != patient.revision) { unavailable(); return }
+            if (saved == null) { unavailable(); return }
             delete(patient); onSuccess(patient)
         }
         override fun restorePatient(patient: Patient) {
             if (_state.value.patients.none { it.id == patient.id }) restore(patient)
         }
         override fun applySort(spec: SortSpec, expectedRevision: Long, onStale: (Shift?) -> Unit, onSuccess: () -> Unit) {
-            if (_state.value.revision != expectedRevision) { onStale(wardState(_state.value).shift); return }
             sort(spec); onSuccess()
         }
         override fun saveDraft(draft: PatientDraft) { _state.update { it.copy(draft = draft) } }
         override fun setTaskDone(patient: Patient, taskId: String, done: Boolean, onSuccess: (Patient) -> Unit) {
-            if (patient.tasks.none { it.id == taskId && it.done != done }) return
-            val changed = patient.copy(tasks = patient.tasks.map { task ->
+            val latest = _state.value.patients.firstOrNull { it.id == patient.id } ?: return
+            if (latest.tasks.none { it.id == taskId && it.done != done }) return
+            val changed = latest.copy(tasks = latest.tasks.map { task ->
                 if (task.id != taskId) task else task.copy(done = done,
                     completedByDoctorId = null, completedByName = null, completedAtEpochMillis = null)
             })
             if (save(changed)) _state.value.patients.firstOrNull { it.id == patient.id }?.let(onSuccess)
         }
-        override fun setPriority(patient: Patient, priority: Boolean) { save(patient.copy(isPriority = priority)) }
+        override fun setPriority(patient: Patient, priority: Boolean, onSuccess: () -> Unit) {
+            val latest = _state.value.patients.firstOrNull { it.id == patient.id } ?: return
+            if (save(latest.copy(isPriority = priority))) onSuccess()
+        }
         override fun setSaveAndNext(enabled: Boolean) { this@DemoWardViewModel.setSaveAndNext(enabled) }
         override fun setPatientDetailsExpanded(expanded: Boolean) { _state.update { it.copy(expanded = expanded) } }
         override fun setTwoColumn(enabled: Boolean) { _state.update { it.copy(twoColumn = enabled) } }
@@ -151,8 +160,6 @@ class DemoWardViewModel @Inject constructor(
         override fun setGroupByMode(mode: GroupByMode) { _state.update { it.copy(groupBy = mode) } }
         override fun dismissSnackbar() { dismissMessage() }
         override fun loadRecycleBin() { }
-        override fun loadLocalActivity() { }
-        override fun loadRecentActivity() { unavailable() }
         override fun bringLatestData() { unavailable() }
         override fun bringPreviousData() { unavailable() }
         override fun offerPreviousShift() { unavailable() }
@@ -187,21 +194,16 @@ class DemoWardViewModel @Inject constructor(
     internal fun save(patient: Patient, onStale: (Patient?) -> Unit = {}): Boolean {
         val current = _state.value
         val before = current.patients.find { it.id == patient.id }
-        if ((before != null && before.revision != patient.revision) || current.deleted.any { it.id == patient.id }) {
+        if (current.deleted.any { it.id == patient.id }) {
             onStale(before)
             return false
         }
-        val actor = current.actor
-        val oldTasks = before?.tasks.orEmpty().associateBy { it.id }
         val prepared = patient.copy(
-            revision = (before?.revision ?: 0) + 1, updatedAt = Instant.now(),
-            lastEditedByDoctorId = actor.id, lastEditedByName = actor.fullName,
+            revision = (before?.revision ?: 0) + 1, updatedAt = Instant.EPOCH,
+            lastEditedByDoctorId = null, lastEditedByName = null,
             sortOrder = before?.sortOrder ?: current.patients.size + 1,
             tasks = patient.tasks.map { task ->
-                val old = oldTasks[task.id]
-                task.copy(completedByDoctorId = if (task.done) old?.completedByDoctorId ?: actor.id else null,
-                    completedByName = if (task.done) old?.completedByName ?: actor.fullName else null,
-                    completedAtEpochMillis = if (task.done) old?.completedAtEpochMillis ?: System.currentTimeMillis() else null)
+                task.copy(completedByDoctorId = null, completedByName = null, completedAtEpochMillis = null)
             }
         )
         PatientTasks.requireValid(prepared.tasks)

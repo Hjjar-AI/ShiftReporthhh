@@ -9,6 +9,7 @@ object TelegramRetry {
         allowServerRetry: Boolean = true,
         block: suspend () -> T
     ): T {
+        var waitedMillis = 0L
         var attempt = 0
         var lastError: TelegramException? = null
 
@@ -27,7 +28,10 @@ object TelegramRetry {
                 }
                 val waitSeconds: Long = e.retryAfterSeconds?.toLong()
                     ?: (attempt * 2).toLong()
-                delay(waitSeconds * 1000L)
+                val waitMillis = waitSeconds.coerceAtLeast(1L) * 1000L
+                if (waitedMillis + waitMillis > 25_000L) throw e
+                waitedMillis += waitMillis
+                delay(waitMillis)
             }
         }
         throw lastError ?: TelegramException(

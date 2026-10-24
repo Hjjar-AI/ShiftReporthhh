@@ -35,7 +35,7 @@ internal fun DemoReportContent(
     var shading by rememberSaveable { mutableStateOf(PdfRowShading.AUTO) }
     var advanced by rememberSaveable { mutableStateOf(false) }
     var showContents by rememberSaveable { mutableStateOf(false) }
-    val warnings = ReportReadiness.warnings(state.patients)
+    val warnings = com.hos.rushdpatients.ui.components.readinessWarnings(uiText, state.patients)
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
         AppSection(uiText(R.string.ui_shift_doctor_picker_001), colors = CardDefaults.cardColors(

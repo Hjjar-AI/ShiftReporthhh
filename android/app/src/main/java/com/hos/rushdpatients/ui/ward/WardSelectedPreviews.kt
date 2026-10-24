@@ -67,7 +67,7 @@ private fun SelectedWardPreview(preferences: UiPreferences, appearance: AppAppea
                         WardPatientGrid(
                             state = WardUiState(loading = false, patients = patients, groupByMode = GroupByMode.NONE),
                             visiblePatients = visible, dualPane = false, patientGridState = rememberLazyGridState(),
-                            scrollBottomClearance = 8.dp, pinnedPatientIds = emptyList(), collapsedGroups = emptyList(),
+                            scrollBottomClearance = UiSpacing.screen, pinnedPatientIds = emptyList(), collapsedGroups = emptyList(),
                             onToggleGroup = {}, onResetFilters = {},
                             controlsContent = {
                                 Column(Modifier.padding(horizontal = UiSpacing.screenGutter)) {

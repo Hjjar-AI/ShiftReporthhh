@@ -16,11 +16,10 @@ object NetworkStatus {
         val manager = context.getSystemService(ConnectivityManager::class.java) ?: return false
         val network = manager.activeNetwork ?: return false
         val capabilities = manager.getNetworkCapabilities(network) ?: return false
-        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
     }
 
-    /** Observe validated connectivity; cancellation releases the Android callback. */
+    /** Observe internet-capable connectivity; Android validation is not a Telegram reachability test; cancellation releases the Android callback. */
     fun observe(context: Context): Flow<Boolean> = callbackFlow {
         val manager = context.getSystemService(ConnectivityManager::class.java)
         if (manager == null) {
@@ -35,8 +34,7 @@ object NetworkStatus {
 
             override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) {
                 trySend(if (network == manager.activeNetwork) {
-                    capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-                        capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+                    capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
                 } else isOnline(context))
             }
 

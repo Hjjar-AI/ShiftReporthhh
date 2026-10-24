@@ -88,6 +88,8 @@ object UiDialog {
 
 /** Purpose-specific thresholds stay independent even when their current values match. */
 object UiLayout {
+    val splashMaxWidth = 520.dp
+    val aboutMaxWidth = 640.dp
     val contentMaxWidth = 720.dp
     val fetchPullDistance = 72.dp
     val roundsSwipeDistance = 64.dp

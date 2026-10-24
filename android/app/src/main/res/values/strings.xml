@@ -47,4 +47,10 @@
     <string name="ui_fetch_pull_release">اترك لمراجعة الجلب</string>
     <string name="ui_settings_search">بحث في الإعدادات</string>
     <string name="ui_settings_search_empty">لا توجد إعدادات مطابقة</string>
+    <string name="readiness_incomplete_patients">%1$s مريض ببيانات ناقصة — مراجعة</string>
+    <string name="report_send_summary">%1$s · %2$s · %3$s مريض · %4$s ببيانات ناقصة</string>
+    <string name="delivery_received_explicit">تم الاستلام</string>
+    <string name="delivery_not_received_explicit">لم يتم الاستلام</string>
+    <string name="delivery_allow_copy_explicit">السماح بنسخة إضافية واحدة</string>
+    <string name="back_online_fetch">عاد الاتصال. جلب البيانات الآن؟</string>
 </resources>

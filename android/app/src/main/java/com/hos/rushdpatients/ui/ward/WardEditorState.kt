@@ -18,7 +18,7 @@ internal sealed interface WardDialog {
     class Delete(val patient: Patient) : WardDialog
 }
 
-/** Exactly one clinical dialog, with its original revisions and draft, per ward session. */
+/** Exactly one clinical dialog with a retained draft per ward session. */
 internal class WardEditorState {
     var dialog by mutableStateOf<WardDialog?>(null)
         private set

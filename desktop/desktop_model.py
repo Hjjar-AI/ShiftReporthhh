@@ -126,6 +126,6 @@ def shift_text(shift, doctors, zone):
 def patient_edit_content(row):
     """Saved clinical identity excluding publication bookkeeping and derived doctor labels."""
     value = {key:row.get(key,'') for key in EDITABLE if key!='tasksJson'}
-    value['tasks'] = [{key:value for key,value in task.items() if key not in {'ownerName','completedByName'}}
+    value['tasks'] = [{key:value for key,value in task.items() if key not in {'ownerName','completedByDoctorId','completedByName','completedAtEpochMillis'}}
                       for task in json.loads(row.get('tasksJson') or '[]')]
     return value

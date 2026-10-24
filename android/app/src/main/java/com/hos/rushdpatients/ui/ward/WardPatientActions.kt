@@ -141,6 +141,7 @@ internal class WardPatientActions(
                 if (error !is StalePatientEditException) false else {
                     val latest = patientRepository.getById(patient.id)
                     onStale(latest?.takeIf { patientRepository.getShiftId(it.id) == shiftId })
+                    saveGuard.showError(uiText(R.string.patient_refresh_unavailable))
                     true
                 }
             }) {
@@ -154,16 +155,15 @@ internal class WardPatientActions(
     fun setTaskDone(patient: Patient, taskId: String, done: Boolean, onSuccess: (Patient) -> Unit) {
         if (_state.value.saving || _state.value.syncing) return
         val shiftId = saveGuard.editableShiftId() ?: return
-        if (patient.tasks.none { it.id == taskId && it.done != done }) return
-        val changed = patient.copy(tasks = patient.tasks.map { task ->
-            if (task.id != taskId) task else task.copy(done = done,
-                completedByDoctorId = null, completedByName = null, completedAtEpochMillis = null)
-        })
         viewModelScope.launch {
-            if (!saveGuard.validateForSave(changed)) return@launch
             var saved: Patient? = null
             saveGuard.saveAction(onSuccess = { saved?.let(onSuccess) }) {
                 saveGuard.requireEditableShift(shiftId)
+                val latest = patientRepository.getById(patient.id) ?: throw StalePatientEditException()
+                val changed = latest.copy(tasks = latest.tasks.map { task ->
+                    if (task.id != taskId) task else task.copy(done = done,
+                        completedByDoctorId = null, completedByName = null, completedAtEpochMillis = null)
+                })
                 saved = wardMutations.updatePatient(changed, shiftId, sessionManager.current())
             }
         }
@@ -197,13 +197,15 @@ internal class WardPatientActions(
         }
     }
 
-    fun setPriority(patient: Patient, priority: Boolean) {
+    fun setPriority(patient: Patient, priority: Boolean, onSuccess: () -> Unit = {}) {
+        if (_state.value.saving || _state.value.syncing) return
         val shiftId = saveGuard.editableShiftId() ?: return
         viewModelScope.launch {
-            saveGuard.saveAction(onSuccess = {}) {
+            saveGuard.saveAction(onSuccess = onSuccess) {
                 saveGuard.requireEditableShift(shiftId)
+                val latest = patientRepository.getById(patient.id) ?: throw StalePatientEditException()
                 wardMutations.updatePatient(
-                    patient.copy(isPriority = priority), shiftId, sessionManager.current()
+                    latest.copy(isPriority = priority), shiftId, sessionManager.current()
                 )
             }
         }

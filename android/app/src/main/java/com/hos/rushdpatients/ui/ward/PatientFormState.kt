@@ -64,11 +64,6 @@ internal class PatientFormStateStore {
 
 internal class EditPatientState(patient: Patient) {
     var initial by mutableStateOf(patient)
-    var baseline by mutableStateOf(patient)
-    var rejected by mutableStateOf<Patient?>(null)
-    var latest by mutableStateOf<Patient?>(null)
-    var reviewing by mutableStateOf(false)
     var draftLoaded by mutableStateOf(false)
-    var restoredEditDraft by mutableStateOf(false)
     val form = PatientFormStateStore()
 }

@@ -12,7 +12,6 @@ from desktop_announcements import administer_announcement
 from desktop_patient_draft import resume_patient
 from desktop_cards import PatientCards
 from desktop_ui_events import debounce
-from desktop_activity import activity_center
 from desktop_layout import Disclosure, build_ward_controls
 from desktop_appearance import appearance_dialog, apply as apply_appearance, preferences as appearance_preferences
 from desktop_backup import backup_dialog
@@ -115,7 +114,7 @@ def build_window(owner, root, settings, demo):
     owner.supervisor=ctk.CTkComboBox(reports,values=['التقرير العام'],state='readonly',justify='right',height=48)
     owner.supervisor.pack(fill='x',padx=8,pady=4)
     if not demo:
-        button(reports,'إرسال تقرير',lambda:owner.run(owner.report))
+        button(reports,'رفع للشبكة وإرسال تقرير',lambda:owner.run(owner.report))
         button(reports,'تقارير المشرفين (PDF)',lambda:owner.run(owner.report_batch))
         button(reports,'سجل التسليم — تحقق من محاولة سابقة',lambda:owner.run(owner.resolve))
     button(reports,'حفظ تقرير محلي',lambda:owner.run(lambda:owner.report(export_only=True)))
@@ -136,8 +135,6 @@ def build_window(owner, root, settings, demo):
         command=lambda:owner.run(lambda:export_project_join(owner)))
     owner.announcement_button=ctk.CTkButton(admin_area,text='إعلان المشروع',height=48,
         command=lambda:owner.run(lambda:administer_announcement(owner)))
-    owner.activity_button=ctk.CTkButton(admin_area,text='مركز النشاط والسجل',height=48,
-        command=lambda:owner.run(lambda:activity_center(owner)))
     from desktop_empty_start import empty_start_dialog
     owner.empty_start_button=ctk.CTkButton(admin_area,text='بداية فارغة — المدير الدائم',height=48,
         command=lambda:owner.run(lambda:empty_start_dialog(owner)))

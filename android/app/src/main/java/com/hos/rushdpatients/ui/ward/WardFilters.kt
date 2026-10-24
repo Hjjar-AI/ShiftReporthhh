@@ -40,8 +40,6 @@ internal class WardFilters(initial: WardFilterOptions = WardFilterOptions()) {
             DashboardFilter.UNASSIGNED -> unassignedOnly = true
             DashboardFilter.NEW_ADMISSIONS -> newAdmissionsOnly = true
             DashboardFilter.TASK_PENDING -> taskFilter = WardTaskFilter.PENDING
-            DashboardFilter.TASK_OVERDUE -> taskFilter = WardTaskFilter.PENDING
-            DashboardFilter.TASK_UNASSIGNED -> taskFilter = WardTaskFilter.PENDING
         }
     }
 
@@ -54,7 +52,10 @@ internal class WardFilters(initial: WardFilterOptions = WardFilterOptions()) {
         filterCount != 1 -> null
         viewMode == WardViewMode.MINE -> DashboardFilter.MINE
         urgentOnly -> DashboardFilter.URGENT
-        taskFilter == WardTaskFilter.OVERDUE -> DashboardFilter.TASK_OVERDUE
+        taskFilter == WardTaskFilter.PENDING -> DashboardFilter.TASK_PENDING
+        warningsOnly -> DashboardFilter.WARNINGS
+        unassignedOnly -> DashboardFilter.UNASSIGNED
+        newAdmissionsOnly -> DashboardFilter.NEW_ADMISSIONS
         else -> null
     }
 
@@ -68,8 +69,6 @@ internal class WardFilters(initial: WardFilterOptions = WardFilterOptions()) {
         if (newAdmissionsOnly) add(uiText(R.string.ui_handover_dashboard_016))
         when (taskFilter) {
             WardTaskFilter.PENDING -> add(uiText(R.string.ui_ward_screen_011))
-            WardTaskFilter.OVERDUE -> add(uiText(R.string.ui_ward_screen_011))
-            WardTaskFilter.UNASSIGNED -> add(uiText(R.string.ui_ward_screen_011))
             null -> Unit
         }
     }
@@ -81,7 +80,7 @@ internal class WardFilters(initial: WardFilterOptions = WardFilterOptions()) {
         }, restore = {
             WardFilters(WardFilterOptions(it[0] as String, WardViewMode.valueOf(it[1] as String),
                 it[2] as Boolean, it[3] as Boolean, it[4] as Boolean, it[5] as Boolean,
-                it[6] as Boolean, (it[7] as String).takeIf(String::isNotEmpty)?.let(WardTaskFilter::valueOf)))
+                it[6] as Boolean, (it[7] as String).takeIf(String::isNotEmpty)?.let { value -> WardTaskFilter.fromSaved(value) }))
         })
     }
 }

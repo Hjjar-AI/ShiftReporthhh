@@ -196,22 +196,11 @@ def edit_patient(owner, source, is_new=False, allow_next=False):
             require(draft['meta']['shiftId']==shift_id,'تغيرت المناوبة؛ لن تحفظ المسودة في مناوبة أخرى')
             existing = next((i for i,p in enumerate(draft['patients']) if p['externalId']==row['externalId']),None)
             require(not is_new or existing is None,'معرف المريض الجديد موجود؛ لن يُستبدل سجل آخر')
-            if not is_new and existing is not None and fingerprint(draft['patients'][existing])!=fingerprint(expected):
-                current = draft['patients'][existing]
-                from desktop_model import patient_text
-                text = 'النسخة المحفوظة الحالية:\n'+patient_text(current,owner.client.doctors,owner.client.zone)+'\n\nمسودة الإدخال:\n'+patient_text(result,owner.client.doctors,owner.client.zone)
-                if owner.text_dialog('تغير سجل المريض؛ راجع النسختين',text,True,'اعتماد المراجعة والعودة إلى التحرير'):
-                    expected = copy.deepcopy(current)
-                    last_form[0] = None
-                    retain_form()
-                    owner.status.set('راجعت النسخة الحالية؛ اضغط حفظ المريض مجدداً لتطبيق مسودتك صراحةً.')
-                return
             require(is_new or existing is not None, 'المريض لم يعد في المسودة؛ أعد فتحه')
             if existing is None:
                 require(len(draft['patients'])<200,'الحد الأقصى 200 مريض')
                 if position is not None and position.get().strip():
                     from desktop_sort import insert_patient
-                    require(draft_expected==insertion_expected,'تغيرت القائمة؛ أعد فتح الإدراج لتحديد الموضع')
                     insert_patient(draft,result,int(position.get().strip()))
                 else:draft['patients'].append(result)
             else: draft['patients'][existing] = result

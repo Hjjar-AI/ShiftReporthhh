@@ -27,8 +27,6 @@ internal interface WardController {
     fun dismissRollover()
     fun dismissSnackbar()
     fun dismissSnapshotPicker()
-    fun loadLocalActivity()
-    fun loadRecentActivity()
     fun loadRecycleBin()
     fun offerPreviousShift()
     fun restorePatient(patient: Patient)
@@ -42,7 +40,7 @@ internal interface WardController {
     fun setGroupByMode(mode: GroupByMode)
     fun setPatientDetailsExpanded(expanded: Boolean)
     fun setTaskDone(patient: Patient, taskId: String, done: Boolean, onSuccess: (Patient) -> Unit)
-    fun setPriority(patient: Patient, priority: Boolean)
+    fun setPriority(patient: Patient, priority: Boolean, onSuccess: () -> Unit = {})
     fun setSaveAndNext(enabled: Boolean)
     fun setTwoColumn(enabled: Boolean)
     fun movePatientToTop(patient: Patient) {}
@@ -70,8 +68,6 @@ internal class LiveWardController(private val viewModel: WardViewModel) : WardCo
     override fun dismissRollover() { viewModel.dismissRollover() }
     override fun dismissSnackbar() { viewModel.dismissSnackbar() }
     override fun dismissSnapshotPicker() { viewModel.dismissSnapshotPicker() }
-    override fun loadLocalActivity() { viewModel.loadLocalActivity() }
-    override fun loadRecentActivity() { viewModel.loadRecentActivity() }
     override fun loadRecycleBin() { viewModel.loadRecycleBin() }
     override fun offerPreviousShift() { viewModel.offerPreviousShift() }
     override fun restorePatient(patient: Patient) { viewModel.restorePatient(patient) }
@@ -85,7 +81,7 @@ internal class LiveWardController(private val viewModel: WardViewModel) : WardCo
     override fun setGroupByMode(mode: GroupByMode) { viewModel.setGroupByMode(mode) }
     override fun setPatientDetailsExpanded(expanded: Boolean) { viewModel.setPatientDetailsExpanded(expanded) }
     override fun setTaskDone(patient: Patient, taskId: String, done: Boolean, onSuccess: (Patient) -> Unit) { viewModel.setTaskDone(patient, taskId, done, onSuccess) }
-    override fun setPriority(patient: Patient, priority: Boolean) { viewModel.setPriority(patient, priority) }
+    override fun setPriority(patient: Patient, priority: Boolean, onSuccess: () -> Unit) { viewModel.setPriority(patient, priority, onSuccess) }
     override fun setSaveAndNext(enabled: Boolean) { viewModel.setSaveAndNext(enabled) }
     override fun setTwoColumn(enabled: Boolean) { viewModel.setTwoColumn(enabled) }
     override fun movePatientToTop(patient: Patient) { viewModel.movePatientToTop(patient) }

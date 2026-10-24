@@ -110,7 +110,7 @@ internal class PatientRetrievalCoordinator(
                     if (!allowOlder && snapshot.messageId < lastKnownMessageId) throw OlderRemoteSnapshotException()
                 }
 
-            val guardedShift = if (previous) null else shiftRepository.getByDate(ShiftDate.current())
+            val guardedShift = if (previous) null else shiftRepository.getLatest()
             val guardedPatients = guardedShift
                 ?.let { patientRepository.getForShift(it.id) }
                 .orEmpty()
@@ -144,7 +144,7 @@ internal class PatientRetrievalCoordinator(
             val overrideActor = if (allowOlder) doctorSync.requirePublishedAdmin(requireNotNull(remoteState.readState())) else null
             val applied = database.withTransaction {
                 if (!previous) {
-                    val currentShift = shiftRepository.getByDate(ShiftDate.current())
+                    val currentShift = shiftRepository.getLatest()
                     val currentPatients = currentShift
                         ?.let { patientRepository.getForShift(it.id) }
                         .orEmpty()
@@ -184,7 +184,7 @@ internal class PatientRetrievalCoordinator(
                 val pending = shiftRepository.getRecent(12).any { localShift ->
                     val rows = patientRepository.getForShift(localShift.id)
                     val baseline = settingsRepository.get(AppConstants.SETTING_KNOWN_SHIFT_SNAPSHOT_PREFIX + localShift.id)
-                    if (baseline == null) ShiftDate.canPublish(localShift.date) && (rows.isNotEmpty() || localShift.doctorIds.isNotEmpty())
+                    if (baseline == null) (rows.isNotEmpty() || localShift.doctorIds.isNotEmpty())
                     else KnownShiftSnapshot.compare(localShift, rows, baseline) == KnownShiftState.CHANGED
                 }
                 settingsRepository.putBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, pending)

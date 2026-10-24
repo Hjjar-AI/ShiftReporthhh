@@ -100,12 +100,11 @@ interface ShiftDao {
         SET doctorIdsCsv = :doctorIdsCsv,
             revision = revision + 1,
             updatedAtEpochMillis = :updatedAtMillis
-        WHERE id = :shiftId AND revision = :expectedRevision
+        WHERE id = :shiftId
     """)
     suspend fun updateDoctorIds(
         shiftId: String,
         doctorIdsCsv: String,
-        expectedRevision: Long,
         updatedAtMillis: Long
     ): Int
 
@@ -114,12 +113,11 @@ interface ShiftDao {
         SET sortSpecJson = :sortSpecJson,
             revision = revision + 1,
             updatedAtEpochMillis = :updatedAtMillis
-        WHERE id = :shiftId AND revision = :expectedRevision
+        WHERE id = :shiftId
     """)
     suspend fun updateSortSpec(
         shiftId: String,
         sortSpecJson: String?,
-        expectedRevision: Long,
         updatedAtMillis: Long
     ): Int
 

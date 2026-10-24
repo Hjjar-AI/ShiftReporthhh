@@ -188,11 +188,10 @@ class Window:
     def editable(self):
         self.ready(False)
         draft=self.store.read()
-        require(draft['meta']['shiftDate']==current_date(self.client.zone),'المناوبات السابقة للعرض فقط؛ الانتقال الساعة 08:30')
         return draft
 
     def save_draft(self,draft,expected):
-        require(fingerprint(self.editable())==expected,'تغيرت المسودة؛ أعد فتح العملية قبل الحفظ')
+        self.editable()
         ordered(draft,self.client.doctors,self.client.zone)
         self.io(lambda:self.store.save_clinical_draft(self.client,draft,expected))
         self.plan=None; self.raw_draft=None

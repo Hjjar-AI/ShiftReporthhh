@@ -88,7 +88,7 @@ class Administration:
         from desktop_protocol import current_date
         shifts = snapshot['bundle'] + ([self.workspace.read()] if self.workspace.state['draft'] else [])
         for shift in shifts:
-            if roster and shift['meta']['shiftDate'] == current_date(self.client.zone):
+            if roster:
                 require(key not in shift['meta'].get('doctors', '').split(','), 'أزل الطبيب من أطباء المناوبة الحالية أولاً')
             for patient in shift['patients']:
                 tasks = json.loads(patient.get('tasksJson') or '[]')

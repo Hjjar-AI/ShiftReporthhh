@@ -5,6 +5,7 @@ import com.hos.rushdpatients.data.db.AppDatabase
 import com.hos.rushdpatients.data.db.dao.PatientDao
 import com.hos.rushdpatients.data.mapper.PatientMapper
 import com.hos.rushdpatients.data.model.Patient
+import com.hos.rushdpatients.data.model.withoutTrackingMetadata
 import com.hos.rushdpatients.util.DispatcherProvider
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -14,6 +15,7 @@ import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 
+@Suppress("UNUSED_PARAMETER")
 @Singleton
 class PatientRepository @Inject constructor(
     private val dao: PatientDao,
@@ -45,12 +47,11 @@ class PatientRepository @Inject constructor(
     }
 
     suspend fun upsert(patient: Patient, shiftId: String) = withContext(dispatchers.io) {
-        dao.upsert(PatientMapper.toEntity(patient.copy(updatedAt = Instant.now()), shiftId))
+        dao.upsert(PatientMapper.toEntity(patient.withoutTrackingMetadata(), shiftId))
     }
 
     suspend fun upsertAll(patients: List<Patient>, shiftId: String, preserveUpdatedAt: Boolean = false) = withContext(dispatchers.io) {
-        val now = Instant.now()
-        dao.upsertAll(patients.map { PatientMapper.toEntity(if (preserveUpdatedAt) it else it.copy(updatedAt = now), shiftId) })
+        dao.upsertAll(patients.map { PatientMapper.toEntity(it.withoutTrackingMetadata(), shiftId) })
     }
 
     suspend fun insertRolloverIfShiftEmpty(patients: List<Patient>, shiftId: String) =
@@ -60,9 +61,8 @@ class PatientRepository @Inject constructor(
                     "لم تعد المناوبة فارغة؛ أعد مراجعة المرضى قبل تطبيق الترحيل"
                 }
                 if (patients.isNotEmpty()) {
-                    val now = Instant.now()
                     dao.upsertAll(
-                        patients.map { PatientMapper.toEntity(it.copy(updatedAt = now), shiftId) }
+                        patients.map { PatientMapper.toEntity(it.withoutTrackingMetadata(), shiftId) }
                     )
                 }
             }
@@ -76,14 +76,15 @@ class PatientRepository @Inject constructor(
         database.withTransaction {
             val current = dao.getById(patient.id)
                 ?: throw StalePatientEditException()
-            if (current.shiftId != shiftId || current.revision != expectedRevision ||
+            if (current.shiftId != shiftId ||
                 current.deletedAtEpochMillis != null
             ) {
                 throw StalePatientEditException()
             }
-            val updated = patient.copy(
-                revision = expectedRevision + 1,
-                updatedAt = Instant.now(),
+            val updated = patient.withoutTrackingMetadata().copy(
+                revision = current.revision + 1,
+                updatedAt = Instant.EPOCH,
+                lastEditedByDoctorId = null, lastEditedByName = null,
                 deletedAt = null
             )
             dao.upsert(PatientMapper.toEntity(updated, shiftId))
@@ -98,15 +99,16 @@ class PatientRepository @Inject constructor(
     ): Patient = withContext(dispatchers.io) {
         database.withTransaction {
             val current = dao.getById(id) ?: throw StalePatientEditException()
-            if (current.shiftId != shiftId || current.revision != expectedRevision ||
+            if (current.shiftId != shiftId ||
                 current.deletedAtEpochMillis != null
             ) {
                 throw StalePatientEditException()
             }
             val now = Instant.now()
-            val deleted = PatientMapper.fromEntity(current).copy(
-                revision = expectedRevision + 1,
-                updatedAt = now,
+            val deleted = PatientMapper.fromEntity(current).withoutTrackingMetadata().copy(
+                revision = current.revision + 1,
+                updatedAt = Instant.EPOCH,
+                lastEditedByDoctorId = null, lastEditedByName = null,
                 deletedAt = now
             )
             dao.upsert(PatientMapper.toEntity(deleted, shiftId))
@@ -121,14 +123,15 @@ class PatientRepository @Inject constructor(
     ): Patient = withContext(dispatchers.io) {
         database.withTransaction {
             val current = dao.getById(id) ?: throw StalePatientEditException()
-            if (current.shiftId != shiftId || current.revision != expectedRevision ||
+            if (current.shiftId != shiftId ||
                 current.deletedAtEpochMillis == null
             ) {
                 throw StalePatientEditException()
             }
-            val restored = PatientMapper.fromEntity(current).copy(
-                revision = expectedRevision + 1,
-                updatedAt = Instant.now(),
+            val restored = PatientMapper.fromEntity(current).withoutTrackingMetadata().copy(
+                revision = current.revision + 1,
+                updatedAt = Instant.EPOCH,
+                lastEditedByDoctorId = null, lastEditedByName = null,
                 deletedAt = null
             )
             dao.upsert(PatientMapper.toEntity(restored, shiftId))
@@ -154,7 +157,7 @@ class PatientRepository @Inject constructor(
         dao.upsert(
             existing.copy(
                 deletedAtEpochMillis = null,
-                updatedAtEpochMillis = Instant.now().toEpochMilli()
+                updatedAtEpochMillis = 0, lastEditedByDoctorId = null, lastEditedByName = null
             )
         )
     }
@@ -172,8 +175,9 @@ class PatientRepository @Inject constructor(
         dao.getAll().map(PatientMapper::fromEntity)
     }
 
+
 }
 
 class StalePatientEditException : IllegalStateException(
-    "تغيّرت بيانات المريض منذ فتحها. أعد فتح المريض وراجع أحدث نسخة قبل الحفظ."
+    "هذا المريض غير متاح في المناوبة الحالية."
 )

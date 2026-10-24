@@ -35,17 +35,22 @@ enum class UiControlSize { DEFAULT, COMPACT, STANDARD, COMFORTABLE;
 data class UiPreferences(
     val profile: String = "current",
     val density: UiDensity = UiDensity.NORMAL,
-    val controlSize: UiControlSize = UiControlSize.DEFAULT,
+    val controlSize: UiControlSize = UiControlSize.COMFORTABLE,
     val reducedMotion: Boolean = false,
     val autoHideNavigation: Boolean = false,
     val compactAddAction: Boolean = true,
     val expandPatientHeader: Boolean = false
 ) {
-    fun encode(): String = codec.encodeToString(this)
+    fun simplified(): UiPreferences = copy(
+        profile = "current", density = if (density == UiDensity.RELAXED) UiDensity.RELAXED else UiDensity.NORMAL,
+        controlSize = UiControlSize.COMFORTABLE, autoHideNavigation = false,
+        compactAddAction = true, expandPatientHeader = false
+    )
+    fun encode(): String = codec.encodeToString(simplified())
     companion object {
         private val codec = Json { ignoreUnknownKeys = true }
         fun decode(value: String?): UiPreferences = try {
-            if (value == null) UiPreferences() else codec.decodeFromString<UiPreferences>(value)
+            (if (value == null) UiPreferences() else codec.decodeFromString<UiPreferences>(value)).simplified()
         } catch (_: SerializationException) { UiPreferences() }
           catch (_: IllegalArgumentException) { UiPreferences() }
     }
@@ -56,9 +61,10 @@ val LocalUiStyle = staticCompositionLocalOf { UiStyleCatalog.current }
 
 @Composable
 fun ProvideUiPreferences(preferences: UiPreferences, content: @Composable () -> Unit) {
-    val base = UiStyleCatalog.profiles.firstOrNull { it.id == preferences.profile } ?: UiStyleCatalog.current
-    val style = if (preferences.reducedMotion) base.copy(expandMillis = 0, collapseMillis = 0, highlightMillis = 0, indicatorMillis = 0, placementMillis = 0) else base
-    CompositionLocalProvider(LocalUiPreferences provides preferences, LocalUiStyle provides style, content = content)
+    val selected = preferences.simplified()
+    val base = UiStyleCatalog.current
+    val style = if (selected.reducedMotion) base.copy(expandMillis = 0, collapseMillis = 0, highlightMillis = 0, indicatorMillis = 0, placementMillis = 0) else base
+    CompositionLocalProvider(LocalUiPreferences provides selected, LocalUiStyle provides style, content = content)
 }
 
 /** Local overrides support a compact toolbar or relaxed section without another persisted setting. */

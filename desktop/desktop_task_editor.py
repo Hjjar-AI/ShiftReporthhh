@@ -20,8 +20,6 @@ def edit_task(owner, parent, task, save):
     description = entry(area, 'وصف المهمة', task.get('description', ''), True)
     done = combo(area, 'مكتملة', {False:'لا', True:'نعم'}, bool(task.get('done')))
     ctk.CTkLabel(area,text='اعتماد المهمة يضيفها إلى المسودة؛ اضغط حفظ في صفحة المريض لحفظها.',anchor='e',justify='right',wraplength=540).pack(fill='x',padx=10,pady=4)
-    if task.get('completedByName'):
-        ctk.CTkLabel(area, text='أتمها: ' + task['completedByName'], anchor='e').pack(fill='x', padx=10)
     def draft_values():
         return (description.get('1.0','end-1c'), done())
     initial_values=draft_values()

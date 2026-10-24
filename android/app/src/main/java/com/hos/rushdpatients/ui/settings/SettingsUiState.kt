@@ -18,6 +18,9 @@ enum class SettingsRetryAction { FETCH, UPLOAD, EXPORT }
 enum class SettingsSyncRecovery { DOCTORS, PATIENTS }
 
 data class SettingsUiState(
+    val publicationHistory: List<com.hos.rushdpatients.sync.PublicationJournalEntry> = emptyList(),
+    val publicationHistoryLoading: Boolean = false,
+    val publicationHistoryError: String? = null,
     val doctorName: String = "",
     val role: String = "",
     val isAdmin: Boolean = false,

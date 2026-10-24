@@ -47,7 +47,6 @@ import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.unit.dp
 import com.hos.rushdpatients.ui.theme.UiPadding
 import com.hos.rushdpatients.ui.theme.UiSize
 
@@ -116,7 +115,7 @@ fun AppTextField(
 internal fun Modifier.appFieldLayout(uiText: UiStrings, hasLabel: Boolean, isError: Boolean, errorMessage: String? = null): Modifier =
     semantics(mergeDescendants = true) {
         if (isError) error(errorMessage?.takeIf { it.isNotBlank() } ?: uiText(R.string.ui_app_field_001))
-    }.padding(top = if (hasLabel) UiSize.fieldLabelInset else 0.dp)
+    }.padding(top = if (hasLabel) UiSize.fieldLabelInset else com.hos.rushdpatients.ui.theme.UiSpace.none)
         .defaultMinSize(minHeight = UiSize.fieldMinHeight)
 
 /** Pickers and editors share label, outline, helper/error placement and icon space. */

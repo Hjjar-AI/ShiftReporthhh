@@ -29,7 +29,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import com.hos.rushdpatients.BuildConfig
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.uiNumber
@@ -84,12 +83,12 @@ internal fun SplashIntroScreen(
             ) { onHeldChange(!held); true })
         }
         .safeDrawingPadding().padding(UiSpacing.section), contentAlignment = Alignment.Center) {
-        Column(Modifier.widthIn(max = 520.dp).fillMaxWidth().verticalScroll(rememberScrollState()),
+        Column(Modifier.widthIn(max = com.hos.rushdpatients.ui.theme.UiLayout.splashMaxWidth).fillMaxWidth().verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(uiContentGap())) {
             Surface(color = Color.White, shape = MaterialTheme.shapes.large) {
                 Image(painterResource(R.drawable.app_emblem_transparent), contentDescription = "شعار شعبة الطب النفسي",
-                    contentScale = ContentScale.Fit, modifier = Modifier.size(240.dp).padding(UiSpacing.screen))
+                    contentScale = ContentScale.Fit, modifier = Modifier.size(com.hos.rushdpatients.ui.theme.UiSize.splashEmblem).padding(UiSpacing.screen))
             }
             Text("تقرير المناوبة", style = MaterialTheme.typography.headlineSmall, color = colors.primary,
                 textAlign = TextAlign.Center, modifier = Modifier.semantics { heading() })

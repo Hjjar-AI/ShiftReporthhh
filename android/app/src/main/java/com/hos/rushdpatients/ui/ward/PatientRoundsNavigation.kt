@@ -47,7 +47,7 @@ internal fun PatientRoundsBar(
 ) {
     val uiText = rememberUiStrings()
     val counter: @Composable (Modifier) -> Unit = { modifier ->
-        Text(ArabicNumbers.toArabicDigits("${navigation.index + 1} / ${navigation.total}"),
+        Text(ArabicNumbers.toAscii("${navigation.index + 1} / ${navigation.total}"),
             style = MaterialTheme.typography.labelMedium,
             modifier = modifier.semantics { contentDescription = uiText(R.string.ui_patient_rounds_navigation_002, navigation.index + 1, navigation.total) })
     }

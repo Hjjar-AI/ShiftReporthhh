@@ -23,6 +23,7 @@ import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.getValue
@@ -64,6 +65,7 @@ internal fun WardDrawer(
     onAction: (WardDrawerAction) -> Unit
 ) {
     val uiText = rememberUiStrings()
+    val dayLabel = remember(LocalWardTaskNow.current) { com.hos.rushdpatients.util.ShiftDate.current() }
     var preferencesMenuExpanded by rememberSaveable { mutableStateOf(false) }
     var dataMenuExpanded by rememberSaveable { mutableStateOf(false) }
     var adminMenuExpanded by rememberSaveable { mutableStateOf(false) }
@@ -100,7 +102,7 @@ internal fun WardDrawer(
                                     Text(currentDoctorName ?: uiText(R.string.ui_ward_drawer_006),
                                         style = MaterialTheme.typography.bodyMedium, maxLines = 2,
                                         textAlign = TextAlign.End, overflow = TextOverflow.Ellipsis)
-                                    Text(uiNumber(state.shift?.date ?: "—"),
+                                    Text(uiNumber(dayLabel),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
@@ -123,8 +125,6 @@ internal fun WardDrawer(
                     WardDrawerRow(uiText(R.string.ui_ward_drawer_013), AppIcons.Sync) { onAction(WardDrawerAction.DATA_MANAGEMENT) }
                     DrawerToolGroup(uiText(R.string.ui_ward_drawer_012), AppIcons.Folder, dataMenuExpanded,
                         onToggle = { dataMenuExpanded = !dataMenuExpanded }) {
-                        WardDrawerRow(uiText(R.string.drawer_start_shift), AppIcons.History,
-                            enabled = !state.isReadOnly && !state.syncing && !state.saving && state.patients.isEmpty()) { onAction(WardDrawerAction.START_SHIFT) }
                         WardDrawerRow(uiText(R.string.ui_ward_drawer_016), AppIcons.History, enabled = !state.syncing && !state.saving) { onAction(WardDrawerAction.PREVIOUS) }
                         WardDrawerRow(uiText(R.string.drawer_recycle_bin), AppIcons.Recycling) { onAction(WardDrawerAction.RECYCLE_BIN) }
                     }

@@ -75,7 +75,7 @@ internal class SettingsDataOperations(
                 throw e
             } catch (e: Exception) {
                 transferFailure(e, fallback, SettingsRetryAction.FETCH)
-                _state.update { it.copy(snackbar = e.message ?: uiText(fallback)) }
+                _state.update { it.copy(snackbar = com.hos.rushdpatients.ui.components.failureText(uiText, e) ?: uiText(fallback)) }
             } finally {
                 _state.update { it.copy(syncing = false) }
             }
@@ -95,7 +95,7 @@ internal class SettingsDataOperations(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _state.update { it.copy(snackbar = e.message ?: uiText(R.string.ui_ward_shift_operations_026)) }
+                _state.update { it.copy(snackbar = com.hos.rushdpatients.ui.components.failureText(uiText, e) ?: uiText(R.string.ui_ward_shift_operations_026)) }
             } finally { _state.update { it.copy(syncing = false) } }
         }
     }
@@ -142,7 +142,7 @@ internal class SettingsDataOperations(
         viewModelScope.launch {
             try {
                 check(NetworkStatus.isOnline(context)) { uiText(R.string.ui_settings_data_operations_004) }
-                val shiftId = shiftRepository.getByDate(ShiftDate.current())?.id ?: error(uiText(R.string.ui_settings_data_operations_005))
+                val shiftId = shiftRepository.getLatest()?.id ?: error(uiText(R.string.ui_settings_data_operations_005))
                 val review = syncService.prepareCsvPublication(shiftId, forceLocal = true)
                 publicationReview = review
                 _state.update { it.copy(publicationReviewText = review.text) }
@@ -150,7 +150,7 @@ internal class SettingsDataOperations(
                 throw e
             } catch (e: Exception) {
                 transferFailure(e, R.string.ui_settings_data_operations_006, SettingsRetryAction.UPLOAD)
-                _state.update { it.copy(snackbar = e.message ?: uiText(R.string.ui_settings_data_operations_006), retryAction = SettingsRetryAction.UPLOAD) }
+                _state.update { it.copy(snackbar = com.hos.rushdpatients.ui.components.failureText(uiText, e) ?: uiText(R.string.ui_settings_data_operations_006), retryAction = SettingsRetryAction.UPLOAD) }
             } finally {
                 _state.update { it.copy(syncing = false) }
             }
@@ -181,7 +181,7 @@ internal class SettingsDataOperations(
                 throw e
             } catch (e: Exception) {
                 transferFailure(e, R.string.ui_settings_data_operations_010, SettingsRetryAction.UPLOAD)
-                _state.update { it.copy(snackbar = e.message ?: uiText(R.string.ui_settings_data_operations_010),
+                _state.update { it.copy(snackbar = com.hos.rushdpatients.ui.components.failureText(uiText, e) ?: uiText(R.string.ui_settings_data_operations_010),
                     retryAction = SettingsRetryAction.UPLOAD) }
             } finally {
                 _state.update { it.copy(syncing = false) }
@@ -220,7 +220,7 @@ internal class SettingsDataOperations(
                 _state.update {
                     it.copy(
                         exportingCsv = false,
-                        snackbar = e.message ?: uiText(R.string.ui_ward_shift_operations_017),
+                        snackbar = com.hos.rushdpatients.ui.components.failureText(uiText, e) ?: uiText(R.string.ui_ward_shift_operations_017),
                         retryAction = SettingsRetryAction.EXPORT
                     )
                 }

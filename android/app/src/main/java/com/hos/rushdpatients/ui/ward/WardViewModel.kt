@@ -16,10 +16,8 @@ import com.hos.rushdpatients.data.repository.PatientRepository
 import com.hos.rushdpatients.data.repository.ShiftRepository
 import com.hos.rushdpatients.data.repository.SettingsRepository
 import com.hos.rushdpatients.data.repository.SyncStateRepository
-import com.hos.rushdpatients.data.repository.AuditRepository
 import com.hos.rushdpatients.data.repository.WardMutationRepository
 import com.hos.rushdpatients.data.model.SyncChannel
-import com.hos.rushdpatients.domain.auth.AdminAuthorizer
 import com.hos.rushdpatients.domain.auth.SessionManager
 import com.hos.rushdpatients.domain.export.PatientCsvExporter
 import com.hos.rushdpatients.domain.sort.GroupByMode
@@ -65,8 +63,6 @@ class WardViewModel @Inject constructor(
     private val csvExporter: PatientCsvExporter,
     private val syncStateRepository: SyncStateRepository,
     private val sessionManager: SessionManager,
-    private val auditRepository: AuditRepository,
-    private val adminAuthorizer: AdminAuthorizer,
     private val json: Json,
     private val deliveryLedger: ReportDeliveryLedger,
     projectConfigStore: ProjectConfigStore
@@ -84,6 +80,7 @@ class WardViewModel @Inject constructor(
         viewModelScope, SharingStarted.WhileSubscribed(0), NetworkStatus.isOnline(context)
     )
     private var observationJob: Job? = null
+    private var requestedReviewShiftId: String? = null
 
     private val saveGuard = WardSaveGuard(uiText,
         _state, shiftRepository)
@@ -95,10 +92,7 @@ class WardViewModel @Inject constructor(
         _state, viewModelScope, shiftRepository, patientRepository, wardMutations, settingsRepository, sessionManager, json, saveGuard)
 
     private val shiftOperations = WardShiftOperations(uiText,
-        _state, viewModelScope, context, shiftRepository, patientRepository, wardMutations, syncService, settingsRepository, csvExporter, sessionManager, saveGuard, ::observeShift)
-
-    private val activityOperations = WardActivityOperations(uiText,
-        _state, viewModelScope, syncService, auditRepository, adminAuthorizer)
+        _state, viewModelScope, context, shiftRepository, patientRepository, wardMutations, syncService, settingsRepository, csvExporter, sessionManager, saveGuard, ::bindLiveShift, ::selectReviewShift)
 
     init {
         viewModelScope.launch {
@@ -108,7 +102,7 @@ class WardViewModel @Inject constructor(
         observePreferences()
         observeWorkflowStatus()
         loadDraft()
-        monitorEditabilityBoundary()
+        monitorDayLabelBoundary()
         viewModelScope.launch {
             _state.update {
                 it.copy(
@@ -175,16 +169,13 @@ class WardViewModel @Inject constructor(
         }
     }
 
-    private fun monitorEditabilityBoundary() {
+    private fun monitorDayLabelBoundary() {
         viewModelScope.launch {
             while (true) {
                 val midnight = java.time.LocalDate.now().plusDays(1).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
                 val nextBoundary = minOf(midnight, ShiftDate.endOf(ShiftDate.current()).toEpochMilli())
                 delay((nextBoundary - System.currentTimeMillis()).coerceAtLeast(1_000L))
                 _taskNow.value = System.currentTimeMillis()
-                _state.update { current ->
-                    current.copy(isReadOnly = current.shift?.date?.let { it != ShiftDate.current() } ?: false)
-                }
             }
         }
     }
@@ -199,30 +190,33 @@ class WardViewModel @Inject constructor(
 
     private fun observePreferences() = preferences.observePreferences()
 
-    private var requestedReviewShiftId: String? = null
-    fun selectReviewShift(id: String) { requestedReviewShiftId = id; observeShift(id) }
+    fun selectReviewShift(id: String) {
+        requestedReviewShiftId = id
+        observeShift(id)
+    }
 
+    private fun bindLiveShift(id: String) {
+        requestedReviewShiftId = null
+        observeShift(id)
+    }
+
+    fun onForeground(reviewShiftId: String? = null) {
+        _taskNow.value = System.currentTimeMillis()
+        if (reviewShiftId != null) {
+            if (requestedReviewShiftId != reviewShiftId) selectReviewShift(reviewShiftId)
+        } else if (_state.value.shift == null && !_state.value.loading) load()
+    }
+
+    /** Dates label the work; returning tomorrow keeps the same ward and patient identities. */
     fun load() {
         viewModelScope.launch {
             _state.update { it.copy(loading = true, error = null) }
             try {
-                val initialShift = shiftRepository.getOrCreateForDate(ShiftDate.current())
-                observeShift(requestedReviewShiftId ?: initialShift.id)
-                if (requestedReviewShiftId == null && patientRepository.countForShift(initialShift.id) == 0 &&
-                    settingsRepository.getBoolean(AppConstants.SETTING_GUIDED_ROLLOVER, false)
-                ) {
-                    val previous = shiftRepository.getRecent(12)
-                        .firstOrNull { it.date < initialShift.date }
-                    val candidates = previous?.let { patientRepository.getForShift(it.id) }.orEmpty()
-                    val sourceLabel = previous?.let { rolloverSourceLabel(it) }.orEmpty()
-                    _state.update { it.copy(rolloverPatients = candidates, rolloverTarget = initialShift,
-                        rolloverSourceLabel = sourceLabel) }
-                }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                _state.update { it.copy(loading = false, error = e.message ?: uiText(R.string.ui_ward_view_model_001)) }
-            }
+                val target = shiftRepository.getLatest()
+                    ?: shiftRepository.getOrCreateForDate(ShiftDate.current())
+                observeShift(requestedReviewShiftId ?: target.id)
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) { _state.update { it.copy(loading = false, error = e.message ?: uiText(R.string.ui_ward_view_model_001)) } }
         }
     }
 
@@ -237,8 +231,8 @@ class WardViewModel @Inject constructor(
                 ) { shift, patients, doctors -> Triple(shift, patients, doctors) }
                     .collect { (shift, patients, doctors) ->
                         if (shift == null) {
-                            val replacement = shiftRepository.getByDate(ShiftDate.current())
-                            if (replacement != null && replacement.id != shiftId) {
+                            val replacement = shiftRepository.getLatest()
+                            if (requestedReviewShiftId == null && replacement != null && replacement.id != shiftId) {
                                 _state.update { it.copy(patientDraft = null, deletedPatients = emptyList(),
                                     rolloverPatients = emptyList(), rolloverTarget = null, patients = emptyList(), groupedPatients = emptyList()) }
                                 observeShift(replacement.id)
@@ -253,7 +247,7 @@ class WardViewModel @Inject constructor(
                             it.copy(
                                 loading = false,
                                 shift = shift,
-                                isReadOnly = shift.date != ShiftDate.current(),
+                                isReadOnly = false,
                                 patients = sorted,
                                 groupedPatients = groupPatients(uiText, sorted, doctors, mode),
                                 doctors = doctors,
@@ -283,9 +277,7 @@ class WardViewModel @Inject constructor(
 
     fun dismissRollover() = shiftOperations.dismissRollover()
 
-    fun loadLocalActivity() = activityOperations.loadLocalActivity()
 
-    fun loadRecentActivity() = activityOperations.loadRecentActivity()
 
     fun applyRollover(keepAssignments: Boolean) = shiftOperations.applyRollover(keepAssignments)
 
@@ -333,7 +325,7 @@ class WardViewModel @Inject constructor(
 
     fun restorePatient(patient: Patient) = patientActions.restorePatient(patient)
 
-    fun setPriority(patient: Patient, priority: Boolean) = patientActions.setPriority(patient, priority)
+    fun setPriority(patient: Patient, priority: Boolean, onSuccess: () -> Unit = {}) = patientActions.setPriority(patient, priority, onSuccess)
 
     fun dismissSyncHint() = preferences.dismissSyncHint()
 

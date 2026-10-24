@@ -62,16 +62,17 @@ class ReportBuilder @Inject constructor(
                 .filterNot { it.isDeleted }
             val patients = PatientComparators.ordered(unsortedPatients, sortSpec, residentNames)
 
+            val reportDate = com.hos.rushdpatients.util.ShiftDate.current()
             val summary = ReportSummary(
                 patientCount = patients.size,
                 psychoCount = patients.count { isPsycho(it) },
                 escortCount = patients.count { it.hasCompanion },
-                shiftDate = shift.date,
+                shiftDate = reportDate,
                 doctors = shiftDoctors
             )
 
             val chunks = textReportBuilder.build(
-                shift = shift,
+                shift = shift.copy(date = reportDate),
                 patients = patients,
                 doctors = shiftDoctors,
                 summary = summary,

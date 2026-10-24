@@ -41,7 +41,8 @@ internal class WardShiftOperations(
     private val csvExporter: PatientCsvExporter,
     private val sessionManager: SessionManager,
     private val saveGuard: WardSaveGuard,
-    private val observeShift: (String) -> Unit
+    private val observeShift: (String) -> Unit,
+    private val observeHistoricalShift: (String) -> Unit = observeShift
 ) {
 
     private var fetchPublication: com.hos.rushdpatients.sync.CsvPublicationReview? = null
@@ -83,8 +84,7 @@ internal class WardShiftOperations(
         val at = settingsRepository.get(AppConstants.SETTING_PATIENT_DOWNLOAD_AT_PREFIX + source.id)?.toLongOrNull()
         val message = settingsRepository.get(AppConstants.SETTING_PATIENT_DOWNLOAD_MESSAGE_PREFIX + source.id)?.toLongOrNull()
         val downloaded = if (at != null && message != null && source.csvMessageId == message) {
-            java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm z")
-                .format(java.time.Instant.ofEpochMilli(at).atZone(java.time.ZoneId.systemDefault()))
+            com.hos.rushdpatients.ui.components.uiDateTime(java.time.Instant.ofEpochMilli(at))
         } else uiText(R.string.ui_ward_shift_operations_001)
         return uiText(R.string.ui_ward_shift_operations_002, source.date, downloaded) +
             uiText(R.string.ui_ward_shift_operations_003)
@@ -103,7 +103,7 @@ internal class WardShiftOperations(
                 val sourceLabel = rolloverSourceLabel(requireNotNull(previous))
                 _state.update { it.copy(rolloverPatients = candidates, rolloverTarget = shift, rolloverSourceLabel = sourceLabel) }
             } catch (e: CancellationException) { throw e }
-            catch (e: Exception) { _state.update { it.copy(snackbar = e.message ?: uiText(R.string.ui_ward_shift_operations_007)) } }
+            catch (e: Exception) { _state.update { it.copy(snackbar = com.hos.rushdpatients.ui.components.failureText(uiText, e) ?: uiText(R.string.ui_ward_shift_operations_007)) } }
         }
     }
 
@@ -123,9 +123,9 @@ internal class WardShiftOperations(
                     patient.copy(
                         id = UUID.randomUUID().toString(),
                         tasks = PatientTasks.carryForward(patient.tasks, clearOwners = !keepAssignments),
-                        sortOrder = index + 1, revision = 1, updatedAt = Instant.now(),
-                        lastEditedByDoctorId = sessionManager.current()?.doctorId,
-                        lastEditedByName = sessionManager.current()?.doctorName,
+                        sortOrder = index + 1, revision = 1, updatedAt = Instant.EPOCH,
+                        lastEditedByDoctorId = null,
+                        lastEditedByName = null,
                         responsibleResidentId = patient.responsibleResidentId.takeIf { keepAssignments },
                         responsibleSpecialistId = patient.responsibleSpecialistId.takeIf { keepAssignments }
                     )
@@ -173,7 +173,7 @@ internal class WardShiftOperations(
 
     fun selectDownloadedSnapshot(shiftId: String) {
         val selected = _state.value.snapshotChoices.firstOrNull { it.shiftId == shiftId } ?: return
-        observeShift(shiftId)
+        observeHistoricalShift(shiftId)
         _state.update {
             it.copy(
                 showSnapshotPicker = false,
@@ -214,7 +214,7 @@ internal class WardShiftOperations(
                 _state.update {
                     it.copy(
                         exportingCsv = false,
-                        snackbar = e.message ?: uiText(R.string.ui_ward_shift_operations_017),
+                        snackbar = com.hos.rushdpatients.ui.components.failureText(uiText, e) ?: uiText(R.string.ui_ward_shift_operations_017),
                         retryAction = WardRetryAction.EXPORT_CSV
                     )
                 }
@@ -231,7 +231,7 @@ internal class WardShiftOperations(
             else -> null
         }
         _state.update { it.copy(syncing = false, snackbar = null,
-            syncIssue = error.message ?: uiText(R.string.ui_ward_shift_operations_024),
+            syncIssue = com.hos.rushdpatients.ui.components.failureText(uiText, error) ?: uiText(R.string.ui_ward_shift_operations_024),
             olderRemoteConfirmation = error is com.hos.rushdpatients.sync.OlderRemoteSnapshotException,
             fetchChoiceRequired = error is com.hos.rushdpatients.sync.LocalPatientChangesPendingException,
             syncRecovery = recovery, retryAction = retry) }
@@ -273,7 +273,7 @@ internal class WardShiftOperations(
                 syncService.fetchLatestCsv(replaceLocal, allowOlder)
             }
             result.onSuccess { fetched ->
-                observeShift(fetched.shiftId)
+                if (previous) observeHistoricalShift(fetched.shiftId) else observeShift(fetched.shiftId)
                 val source = if (previous) uiText(R.string.ui_ward_shift_operations_020) else uiText(R.string.ui_ward_shift_operations_021)
                 _state.update {
                     it.copy(

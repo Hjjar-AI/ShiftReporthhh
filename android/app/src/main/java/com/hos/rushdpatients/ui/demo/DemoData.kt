@@ -20,7 +20,6 @@ internal object DemoData {
     }
 
     fun patients(doctors: List<Doctor>): List<Patient> {
-        val now = Instant.now().toEpochMilli()
         return listOf("شاي بالنعناع", "قهوة عربية", "سحلب", "كاكاو ساخن", "زنجبيل", "يانسون", "بابونج", "قرفة")
             .mapIndexed { index, name ->
                 Patient(
@@ -45,13 +44,9 @@ internal object DemoData {
                     tasks = listOf(
                         PatientTask(id = "demo-task-$index-a", description = "مراجعة نتائج تجريبية"),
                         PatientTask(id = "demo-task-$index-b", description = "تحديث ملاحظة التسليم",
-                            done = index % 3 == 0,
-                            completedByDoctorId = if (index % 3 == 0) doctors[0].id else null,
-                            completedByName = if (index % 3 == 0) doctors[0].fullName else null,
-                            completedAtEpochMillis = if (index % 3 == 0) now - 1_800_000L else null)
+                            done = index % 3 == 0)
                     ),
-                    isPriority = index == 2, sortOrder = index + 1, revision = 1,
-                    lastEditedByDoctorId = doctors[0].id, lastEditedByName = doctors[0].fullName
+                    isPriority = index == 2, sortOrder = index + 1, revision = 1
                 )
             }
     }

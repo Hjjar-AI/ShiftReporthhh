@@ -1,7 +1,6 @@
 """Task semantics shared by draft validation, publication, ward views and exports.
 
-Completion identity is stamped by the authenticated clinical save layer; validating
-a completed task here does not authorize a completion or provide trusted evidence.
+Tasks are plain text/done checklists; legacy fields remain readable.
 """
 import copy
 from datetime import date, datetime
@@ -54,19 +53,8 @@ def status_label(task, now):
 
 
 def metadata(task, doctors, zone, include_unassigned=True, include_routine_priority=True):
-    """Shared presentation rules matching Android PatientTasks.metadata.
-
-    Legacy owner/deadline/priority fields do not affect checklist presentation.
-    Formatting preserves completion details without supplying completion evidence.
-    """
-    from desktop_protocol import ZoneInfo
-    parts = []
-    if task.get('done'):
-        parts.append('أتمها ' + task['completedByName'] if task.get('completedByName') else 'إتمام بانتظار الحفظ')
-        if task.get('completedAtEpochMillis'):
-            parts.append('أُتمت في ' + datetime.fromtimestamp(task['completedAtEpochMillis']/1000,
-                                                           ZoneInfo(zone)).strftime('%Y-%m-%d %H:%M'))
-    return ' · '.join(parts)
+    """Legacy metadata is accepted on import but omitted from checklist presentation."""
+    return ''
 
 
 def task_text(task, doctors, zone, now=None, include_unassigned=True, include_routine_priority=True):
@@ -94,13 +82,6 @@ def validate(tasks, require_completion=True):
             require(task.get(key) is None or isinstance(task[key], str), 'هوية أو نص مهمة غير صالح')
         require(task.get('dueAtEpochMillis') is None or type(task['dueAtEpochMillis']) is int,
                 'صيغة موعد قديم غير صالحة')
-        if require_completion:
-            completion = [task.get(key) for key in COMPLETION]
-            if task.get('done'):
-                require(all(completion) and completion[0].strip() and completion[1].strip() and
-                        type(completion[2]) is int and completion[2] > 0, 'سجل إتمام المهمة غير مكتمل')
-            else:
-                require(all(value is None for value in completion), 'مهمة معلقة تحمل سجل إتمام')
     require(len({task['id'] for task in tasks}) == len(tasks), 'معرف مهمة مكرر')
 
 

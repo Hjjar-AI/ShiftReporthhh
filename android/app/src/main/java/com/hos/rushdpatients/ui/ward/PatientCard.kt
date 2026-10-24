@@ -19,7 +19,6 @@ import com.hos.rushdpatients.ui.theme.UiBorder
 import com.hos.rushdpatients.ui.theme.UiPatientCard
 import com.hos.rushdpatients.ui.components.uiDateTime
 import com.hos.rushdpatients.ui.components.uiNumber
-import com.hos.rushdpatients.ui.components.relativeFreshness
 import com.hos.rushdpatients.ui.theme.UiSize
 import com.hos.rushdpatients.ui.components.AppCard
 import com.hos.rushdpatients.domain.task.PatientTasks
@@ -109,7 +108,7 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
     val uiText = rememberUiStrings()
     val canExpand = patient.initialDiagnosis.isNotBlank() || patient.treatmentPlan.isNotBlank() ||
         patient.followUp.isNotBlank() || patient.labs.isNotBlank() || patient.tasks.isNotEmpty() ||
-        patient.badges.isNotEmpty() || patient.hasCompanion || patient.lastEditedByName != null
+        patient.badges.isNotEmpty() || patient.hasCompanion
     val headerExpands = com.hos.rushdpatients.ui.theme.LocalUiPreferences.current.expandPatientHeader
     val cardDensity = UiPatientCard.density(compact)
     val sectionGap = cardDensity.sectionGap
@@ -158,7 +157,6 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
                     }
                     if (patient.tasks.isNotEmpty()) append(pendingTasksLabel)
                     if (pinned) append(uiText(R.string.ui_patient_card_005))
-                    append(uiText(R.string.ui_patient_card_002)).append(relativeFreshness(uiText, patient.updatedAt))
                 }
                 stateDescription = buildString {
                     append(if (patient.badges.isEmpty()) uiText(R.string.ui_patient_card_006) else uiText(R.string.ui_patient_card_007))
@@ -273,16 +271,7 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
                 if (!readOnly) com.hos.rushdpatients.ui.components.AppButton(onClick = onEdit, style = com.hos.rushdpatients.ui.components.AppButtonStyle.TONAL) { Text(uiText(R.string.ui_ward_form_dialog_001)) }
                 com.hos.rushdpatients.ui.components.AppTextButton(onClick = onClick) { AppActionLabel(UiAction.FULL_RECORD) }
             }
-            if (expanded) patient.lastEditedByName?.let { editor ->
-                val time = remember(patient.updatedAt) {
-                    uiDateTime(patient.updatedAt)
-                }
-                Text(
-                    text = uiText(R.string.ui_patient_card_026, editor, time, relativeFreshness(uiText, patient.updatedAt)),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+
         }
     }
 }
@@ -325,6 +314,9 @@ private fun PatientIdentityHeader(
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (showViewControls) {
+                if (!readOnly) AppIconButton(
+                    label = if (patient.isPriority) uiText(R.string.ui_patient_card_017) else uiText(R.string.ui_patient_card_018),
+                    icon = if (patient.isPriority) AppIcons.Star else AppIcons.StarBorder, onClick = { onPriorityChange(!patient.isPriority) })
                 if (canExpand) AppIconButton(label = if (expanded) uiText(R.string.ui_patient_card_027) else uiText(R.string.ui_patient_card_028),
             icon = AppIcons.ExpandMore,
             iconModifier = Modifier.graphicsLayer { rotationZ = chevronRotation },

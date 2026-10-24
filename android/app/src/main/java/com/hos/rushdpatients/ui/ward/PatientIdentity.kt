@@ -17,7 +17,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import com.hos.rushdpatients.data.model.Gender
 import com.hos.rushdpatients.data.model.Patient
-import com.hos.rushdpatients.ui.components.relativeFreshness
 import com.hos.rushdpatients.ui.components.uiNumber
 import com.hos.rushdpatients.ui.theme.UiSize
 import com.hos.rushdpatients.ui.theme.UiSpacing
@@ -47,6 +46,7 @@ internal fun PatientName(name: String, modifier: Modifier = Modifier,
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
+@Suppress("UNUSED_PARAMETER")
 internal fun PatientIdentityHeading(patient: Patient, modifier: Modifier = Modifier, pinned: Boolean = false,
     showFreshness: Boolean = false, nameStyle: TextStyle = MaterialTheme.typography.titleMedium,
     showPersonal: Boolean = false, showOrdinal: Boolean = false, showDemographics: Boolean = false) {
@@ -67,7 +67,7 @@ internal fun PatientIdentityHeading(patient: Patient, modifier: Modifier = Modif
                 PatientIdentityText.admission(uiText, patient),
                 PatientIdentityText.personal(uiText, patient).takeIf { showDemographics }
             ).filter(String::isNotBlank).joinToString(" · ")
-            Text(metadata + if (showFreshness) " · ${relativeFreshness(uiText, patient.updatedAt)}" else "",
+            Text(metadata,
                 style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }

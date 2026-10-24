@@ -4,6 +4,7 @@ import androidx.compose.ui.unit.dp
 
 /** Numeric scale; semantic spacing roles below retain their current values. */
 object UiSpace {
+    val none = 0.dp
     val xxs = 1.dp
     val xs = 2.dp
     val s = 4.dp
@@ -30,5 +31,6 @@ object UiSpacing {
     val blockGap = section
     val sectionGap = screen
     val controlGap = small
+    val aboutInset = 20.dp
     val touchTarget = 48.dp
 }

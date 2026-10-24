@@ -86,7 +86,6 @@ class EmptyStartCoordinator @Inject constructor(
 
     suspend fun confirm(review: EmptyStartReview) = mutex.withLock { withContext(dispatchers.io) {
         check(!review.consumed) { "أعد مراجعة البداية الفارغة قبل محاولة جديدة" }
-        check(review.shift.date == ShiftDate.current()) { "تغيرت المناوبة؛ أعد المراجعة" }
         val source = requireNotNull(remote.readState()) { "فهرس المشروع غير متاح" }
         check(sameDoctorPublicationSource(source, review.source)) { "تغير سجل الأطباء؛ أعد المراجعة" }
         val actor = doctors.requirePublishedAdmin(source, permanentOnly = true)

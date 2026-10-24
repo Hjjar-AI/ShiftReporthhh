@@ -71,7 +71,9 @@ interface PatientDao {
     @Query("""
         UPDATE patients
         SET deletedAtEpochMillis = :deletedAtMillis,
-            updatedAtEpochMillis = :deletedAtMillis
+            updatedAtEpochMillis = 0,
+            lastEditedByDoctorId = NULL,
+            lastEditedByName = NULL
         WHERE id = :id
     """)
     suspend fun softDelete(id: String, deletedAtMillis: Long)
@@ -79,7 +81,9 @@ interface PatientDao {
     @Query("""
         UPDATE patients
         SET deletedAtEpochMillis = :deletedAtMillis,
-            updatedAtEpochMillis = :deletedAtMillis
+            updatedAtEpochMillis = 0,
+            lastEditedByDoctorId = NULL,
+            lastEditedByName = NULL
         WHERE shiftId = :shiftId
           AND id NOT IN (:retainedIds)
           AND deletedAtEpochMillis IS NULL

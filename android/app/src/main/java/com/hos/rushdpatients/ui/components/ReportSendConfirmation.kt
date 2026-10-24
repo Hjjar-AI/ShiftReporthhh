@@ -12,19 +12,14 @@ import com.hos.rushdpatients.ui.theme.UiSpacing
 
 @Composable
 fun ReportSendConfirmation(destinations: List<String>, format: String, warningCount: Int,
-    enabled: Boolean, unavailableReason: String? = null, onConfirm: (Boolean) -> Unit, onDismiss: () -> Unit) {
+    enabled: Boolean, unavailableReason: String? = null, onConfirm: (Boolean) -> Unit, onDismiss: () -> Unit, patientCount: Int = 0) {
     val uiText = rememberUiStrings()
     AppAlertDialog(onDismissRequest = onDismiss, title = { Text(uiText(R.string.ui_report_send_confirmation_001)) }, text = {
         Column(Modifier.appDialogBody().verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
             unavailableReason?.let { AppNotice(it, kind = NoticeKind.WARNING) }
-            Text(uiText(R.string.ui_report_send_confirmation_002, format))
-            Text(uiText(R.string.ui_report_send_confirmation_003))
-            destinations.forEach { Text("• $it") }
-            Text(uiText(R.string.ui_report_send_confirmation_004))
-            AppNotice(uiText(R.string.ui_report_send_confirmation_005), kind = NoticeKind.WARNING)
-            Text(uiText(R.string.ui_report_send_confirmation_006))
-            if (warningCount > 0) AppNotice(uiText(R.string.ui_report_send_confirmation_007, uiNumber(warningCount)), kind = NoticeKind.WARNING)
+            Text(uiText(R.string.report_send_summary, destinations.joinToString("، "), format, uiNumber(patientCount), uiNumber(warningCount)))
+            Text(uiText(R.string.report_send_shared_copy))
         }
     }, confirmButton = { AppButton(onClick = { onConfirm(true) }, enabled = enabled) { Text(uiText(R.string.ui_report_send_confirmation_008)) } },
         dismissButton = { AppTextButton(onClick = onDismiss) { Text(uiText(R.string.ui_cancel)) } })

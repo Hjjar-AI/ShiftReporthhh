@@ -24,7 +24,6 @@ class Review:
 
 
 def plan(owner, shift, choices=None):
-    require(shift['meta']['shiftDate'] == current_date(owner.zone), 'المناوبات السابقة للعرض فقط؛ وقت الانتقال 08:30')
     require(len({p['externalId'] for p in shift['patients']}) == len(shift['patients']), 'معرف مريض مكرر في الجدول')
     remote = owner.fetch()
     owner.authorize(remote['doctors'])
@@ -65,31 +64,12 @@ def prepare(owner, plan, restored_completions=None, saved_patients=None):
         for entry in (restored_completions or []):
             if entry['shiftId']!=shift['meta']['shiftId'] or entry['patientId']!=row['externalId']:continue
             for task in entry['tasks']:
-                if not task.get('done'):continue
-                if entry.get('local'):old_tasks[task['id']]=task
-                else:old_tasks.setdefault(task['id'],task)
-        tasks = read_tasks(row)
-        for task in tasks:
-            task['description'] = task['description'].strip()
-            before = old_tasks.get(task['id'], {})
-            resolve_owner(task, doctors, before)
-            if not task.get('done'):
-                task.update(completedByDoctorId=None, completedByName=None, completedAtEpochMillis=None)
-            elif before.get('done'):
-                for key in COMPLETION: task[key] = before[key]
-            else:
-                require(False, 'احفظ إتمام المهمة محلياً بهوية الطبيب أولاً؛ النشر لا يحدد من أتمها')
+                task.update(dict.fromkeys(COMPLETION))
         row['tasksJson'] = packed(tasks)
         row['warningFlags'] = '|'.join(level for _,level in badges_decode(row.get('warningDetails', '')) if level != 'none')
         validate_wire_patient(row)
-        changed = not old or any(row.get(k, '') != old.get(k, '') for k in EDITABLE)
-        if changed:
-            saved = saved_rows.get(row['externalId'])
-            require(saved is not None and patient_edit_content(saved)==patient_edit_content(row) and
-                    str(saved.get('updatedAt','')).isdigit() and int(saved['updatedAt'])>0,
-                    'احفظ تعديل المريض محلياً أولاً؛ النشر يحفظ هوية المحرر ولا ينسبها للناشر')
-            row.update(lastEditedByDoctorId=saved.get('lastEditedByDoctorId',''),lastEditedBy=saved.get('lastEditedBy',''),
-                       updatedAt=saved['updatedAt'],revision=str(max(int(saved.get('revision') or 0),int(old.get('revision') or 0)+1)))
+        row.update(lastEditedByDoctorId='', lastEditedBy='', updatedAt='0',
+                   revision=str(max(int(row.get('revision') or 0), int(old.get('revision') or 0)+1)))
     meta = shift['meta']
     meta.update(schemaVersion='7', snapshotId=str(uuid.uuid4()), baseSnapshotId=latest['meta'].get('snapshotId', '') if latest else '',
                 shiftRevision=str(int(latest['meta'].get('shiftRevision') or 0) + 1) if latest else '1', deviceId=owner.device,
@@ -112,11 +92,9 @@ def publish(owner, plan, before_upload):
     owner.authorize(current['doctors'])
     require((plan.force_local or pointer(current['state']) == plan.baseline_pointer) and doctor_pointer(current['state']) == plan.registry_pointer,
             'وصلت بيانات أحدث بعد المراجعة؛ أعد المراجعة')
-    require(plan.shift['meta']['shiftDate'] == current_date(owner.zone), 'انتهت المناوبة الحالية')
     others = [s for s in current['bundle'] if s['meta']['shiftId'] != plan.shift['meta']['shiftId'] and s['meta']['shiftDate'] != plan.shift['meta']['shiftDate']]
     other_ids = {p['externalId'] for s in others for p in s['patients']}
     require(not any(p['externalId'] in other_ids for p in plan.shift['patients']), 'معرف مريض مستخدم في مناوبة أخرى؛ أعد المراجعة')
-    require(not any(s['meta']['shiftDate'] > plan.shift['meta']['shiftDate'] for s in others), 'توجد مناوبة مستقبلية في الحزمة؛ صحح تاريخ الأجهزة قبل النشر')
     bundle = sorted([plan.shift] + others, key=lambda s: s['meta']['shiftDate'], reverse=True)[:3]
     raw = encode_bundle(bundle)
     before_upload()  # Persist an UNKNOWN receipt before a potentially ambiguous send.

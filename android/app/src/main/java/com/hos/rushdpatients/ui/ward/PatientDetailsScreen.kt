@@ -65,6 +65,7 @@ import java.time.Instant
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
+@Suppress("UNUSED_PARAMETER")
 internal fun PatientDetailsScreen(
     patient: Patient,
     doctorNames: Map<String, String>,
@@ -115,7 +116,6 @@ internal fun PatientDetailsScreen(
                                 val count = when (option) {
                                     PatientDetailSection.TASKS -> patient.tasks.count { !it.done }
                                     PatientDetailSection.WARNINGS -> patient.badges.size
-                                    PatientDetailSection.HISTORY -> activity.count { it.patientId == patient.id }
                                     else -> 0
                                 }
                                 AppFilterChip(
@@ -181,10 +181,7 @@ internal fun PatientDetailsScreen(
                             "• ${badge.text}$level"
                         }.ifBlank { uiText(R.string.ui_patient_details_screen_006) }
                     )
-                    PatientDetailSection.HISTORY -> AppClinicalCard(
-                        title = uiText(R.string.ui_patient_details_screen_007),
-                        content = meaningfulTimeline(uiText, patient, activity)
-                    )
+
                 }
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                     AppOutlinedButton(onClick = onCopy) {
@@ -242,47 +239,17 @@ private class PatientDetailsSession {
             restore = { saved -> PatientDetailsSession().apply {
                 saved.chunked(3).forEach { entry ->
                     positions[entry[0] as String] = PatientDetailsPosition(
-                        PatientDetailSection.valueOf(entry[1] as String), entry[2] as Int)
+                        runCatching { PatientDetailSection.valueOf(entry[1] as String) }.getOrDefault(PatientDetailSection.CLINICAL), entry[2] as Int)
                 }
             } }
         )
     }
 }
 
-private fun meaningfulTimeline(uiText: UiStrings, patient: Patient, activity: List<AuditEntryEntity>): String {
-    val matching = activity.filter { it.patientId == patient.id }
-        .sortedByDescending { it.atEpochMillis }
-        .take(20)
-    if (matching.isNotEmpty()) {
-        return matching.joinToString("\n\n") { entry ->
-            buildString {
-                append(uiDateTime(Instant.ofEpochMilli(entry.atEpochMillis)))
-                append(" · ").append(entry.actorName ?: uiText(R.string.ui_ward_activity_screen_012))
-                append("\n").append(entry.detail.ifBlank { entry.action })
-                entry.beforeValue?.takeIf(String::isNotBlank)?.let { append(uiText(R.string.ui_patient_details_screen_010)).append(it) }
-                entry.afterValue?.takeIf(String::isNotBlank)?.let { append(uiText(R.string.ui_patient_details_screen_011)).append(it) }
-            }
-        }
-    }
-    return buildString {
-        append(uiText(R.string.ui_patient_details_screen_012))
-        append(patient.lastEditedByName ?: uiText(R.string.ui_unspecified))
-        append("\n")
-        append(uiDateTime(patient.updatedAt))
-        if (patient.isPriority) append(uiText(R.string.ui_patient_details_screen_013))
-        if (patient.badges.isNotEmpty()) {
-            append(uiText(R.string.ui_patient_details_screen_014))
-            append(patient.badges.joinToString(uiText(R.string.ui_patient_card_002)) { it.text })
-        }
-    }
-}
-
-
 private enum class PatientDetailSection(@StringRes private val arabicLabelRes: Int) {
     CLINICAL(R.string.ui_patient_details_screen_015),
     TASKS(R.string.ui_tasks),
-    WARNINGS(R.string.ui_patient_details_screen_016),
-    HISTORY(R.string.ui_patient_details_screen_017);
+    WARNINGS(R.string.ui_patient_details_screen_016);
 
     fun arabicLabel(uiText: UiStrings): String = uiText(arabicLabelRes)
 }

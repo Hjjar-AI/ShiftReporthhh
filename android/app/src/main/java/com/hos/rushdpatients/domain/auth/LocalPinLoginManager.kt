@@ -12,6 +12,9 @@ import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
+enum class LocalPinFailure { INVALID_FORMAT, UNAVAILABLE, NOT_ENROLLED, NOT_LINKED, STATE_UNREADABLE, BLOCKED, INCORRECT, ACCOUNT_CHANGED }
+class LocalPinException(val reason: LocalPinFailure, val waitMinutes: Long = 0) : IllegalStateException(reason.name)
+
 /** Re-entry on an enrolled device; never creates a PIN or enrolls a new identity. */
 @Singleton
 class LocalPinLoginManager @Inject constructor(
@@ -24,44 +27,43 @@ class LocalPinLoginManager @Inject constructor(
 
     suspend fun verify(doctorId: String, pin: String): Doctor = withContext(dispatchers.io) {
         mutex.withLock {
-            require(pin.length in AppConstants.PIN_MIN_LENGTH..AppConstants.PIN_MAX_LENGTH &&
-                pin.all(Char::isDigit)) { "الرقم السري يجب أن يكون من 4 إلى 8 أرقام" }
-            val doctor = doctors.getActiveById(doctorId) ?: error("الطبيب لم يعد متاحاً في السجل")
+            if (pin.length !in AppConstants.PIN_MIN_LENGTH..AppConstants.PIN_MAX_LENGTH ||
+                !pin.all(Char::isDigit)) throw LocalPinException(LocalPinFailure.INVALID_FORMAT)
+            val doctor = doctors.getActiveById(doctorId) ?: throw LocalPinException(LocalPinFailure.UNAVAILABLE)
             val hash = doctor.extraOptions.firstOrNull { it.startsWith("pin:") }
-                ?.removePrefix("pin:") ?: error("تحقق عبر تليجرام أولاً لتعيين رقم سري على هذا الجهاز")
-            require(doctor.telegramId != null) { "حساب تليجرام لهذا الطبيب غير مرتبط" }
+                ?.removePrefix("pin:") ?: throw LocalPinException(LocalPinFailure.NOT_ENROLLED)
+            if (doctor.telegramId == null) throw LocalPinException(LocalPinFailure.NOT_LINKED)
 
             // Room is encrypted. Persist only counters/deadlines, never the submitted PIN.
             val key = "local_pin_login:$doctorId"
             val stored = settings.get(key)?.split(':') ?: listOf("0", "0")
-            check(stored.size == 2) { "تعذر قراءة حالة محاولات الدخول" }
-            val previousAttempts = stored[0].toInt()
-            val previousBlockedUntil = stored[1].toLong()
+            if (stored.size !in 2..3) throw LocalPinException(LocalPinFailure.STATE_UNREADABLE)
+            val previousAttempts = stored[0].toIntOrNull()?.takeIf { it >= 0 }
+                ?: throw LocalPinException(LocalPinFailure.STATE_UNREADABLE)
+            val previousBlockedUntil = stored[1].toLongOrNull()?.takeIf { it >= 0 }
+                ?: throw LocalPinException(LocalPinFailure.STATE_UNREADABLE)
+            val level = if (stored.size == 2) 0 else stored[2].toIntOrNull()?.takeIf { it in 0..3 }
+                ?: throw LocalPinException(LocalPinFailure.STATE_UNREADABLE)
             val now = System.currentTimeMillis()
-            require(now >= previousBlockedUntil) {
-                "محاولات خاطئة متعددة؛ انتظر خمس دقائق أو تحقق عبر تليجرام"
-            }
+            if (now < previousBlockedUntil) throw LocalPinException(LocalPinFailure.BLOCKED,
+                (previousBlockedUntil - now + 59_999) / 60_000)
             val attempts = (if (previousBlockedUntil > 0) 0 else previousAttempts) + 1
-            val blockedUntil = if (attempts >= AppConstants.LOGIN_MAX_ATTEMPTS) now + LOCKOUT_MS else 0L
+            val nextLevel = if (attempts >= AppConstants.LOGIN_MAX_ATTEMPTS) (level + 1).coerceAtMost(3) else level
+            val duration = listOf(5L, 15L, 60L)[(nextLevel - 1).coerceAtLeast(0)]
+            val blockedUntil = if (attempts >= AppConstants.LOGIN_MAX_ATTEMPTS) now + duration * 60_000 else 0L
             // Count before hashing so cancellation/recreation cannot erase a submitted attempt.
-            withContext(NonCancellable) { settings.put(key, "$attempts:$blockedUntil") }
-            require(hasher.verify(pin, hash)) {
-                if (blockedUntil > 0) "محاولات خاطئة متعددة؛ انتظر خمس دقائق أو تحقق عبر تليجرام"
-                else "الرقم السري غير صحيح"
-            }
+            withContext(NonCancellable) { settings.put(key, "$attempts:$blockedUntil:$nextLevel") }
+            if (!hasher.verify(pin, hash)) throw if (blockedUntil > 0)
+                LocalPinException(LocalPinFailure.BLOCKED, duration) else LocalPinException(LocalPinFailure.INCORRECT)
 
-            val current = doctors.getActiveById(doctorId) ?: error("الطبيب لم يعد متاحاً في السجل")
-            require(current.telegramId == doctor.telegramId &&
-                current.extraOptions.firstOrNull { it.startsWith("pin:") } == "pin:$hash") {
-                "تغير حساب الطبيب أو رقمه السري؛ أعد اختيار اسمك"
-            }
+            val current = doctors.getActiveById(doctorId) ?: throw LocalPinException(LocalPinFailure.UNAVAILABLE)
+            if (current.telegramId != doctor.telegramId ||
+                current.extraOptions.firstOrNull { it.startsWith("pin:") } != "pin:$hash")
+                throw LocalPinException(LocalPinFailure.ACCOUNT_CHANGED)
             settings.delete(key)
             // Session privileges come from the live record, not the selected card's snapshot.
             current
         }
     }
 
-    private companion object {
-        const val LOCKOUT_MS = 5 * 60 * 1000L
-    }
 }

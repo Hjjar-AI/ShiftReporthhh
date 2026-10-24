@@ -16,7 +16,8 @@ class UiStrings(private val resources: Resources) {
     constructor(@ApplicationContext context: Context) : this(context.resources)
 
     operator fun invoke(@StringRes id: Int, vararg arguments: Any?): String =
-        if (arguments.isEmpty()) resources.getString(id) else resources.getString(id, *arguments)
+        com.hos.rushdpatients.util.ArabicNumbers.toAscii(
+            if (arguments.isEmpty()) resources.getString(id) else resources.getString(id, *arguments))
 }
 
 @Composable

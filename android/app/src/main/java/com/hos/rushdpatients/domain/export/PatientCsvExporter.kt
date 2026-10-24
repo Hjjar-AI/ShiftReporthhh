@@ -50,9 +50,9 @@ class PatientCsvExporter @Inject constructor(
         data class Failure(val message: String) : Result
     }
 
-    /** Exports the shift that matches the current shift-date boundary. */
+    /** Exports the latest working ward, without a day-boundary restriction. */
     suspend fun exportCurrentShift(): Result = withContext(dispatchers.io) {
-        val shift = shiftRepository.getByDate(ShiftDate.current())
+        val shift = shiftRepository.getLatest()
             ?: return@withContext Result.Failure("لا توجد وردية للتصدير")
         exportShift(shift.id)
     }
