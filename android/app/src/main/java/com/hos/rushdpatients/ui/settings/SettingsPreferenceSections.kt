@@ -20,37 +20,6 @@ import com.hos.rushdpatients.ui.theme.UiSpacing
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun SettingsPatientCardsContent(state: SettingsUiState, viewModel: SettingsViewModel) {
-    val uiText = rememberUiStrings()
-    SettingsSubheading(uiText(R.string.ui_settings_preference_sections_001))
-    Text(
-        uiText(R.string.ui_settings_preference_sections_002),
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant
-    )
-    AppToggleRow(
-        title = uiText(R.string.ui_settings_preference_sections_003),
-        subtitle = uiText(R.string.ui_settings_preference_sections_004),
-        checked = state.patientDetailsExpanded,
-        onCheckedChange = viewModel::setPatientDetailsExpanded
-    )
-    AppToggleRow(
-        title = uiText(R.string.ui_settings_preference_sections_005),
-        subtitle = uiText(R.string.ui_settings_preference_sections_006),
-        checked = state.patientTwoColumn,
-        onCheckedChange = viewModel::setPatientTwoColumn
-    )
-    AppToggleRow(
-        title = uiText(R.string.ui_settings_preference_sections_007),
-        subtitle = uiText(R.string.ui_settings_preference_sections_008),
-        checked = state.patientCompactDensity,
-        onCheckedChange = viewModel::setPatientCompactDensity
-    )
-    SettingsPatientCardPreview(state)
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
 internal fun SettingsWorkflowContent(state: SettingsUiState, viewModel: SettingsViewModel) {
     val uiText = rememberUiStrings()
     SettingsSubheading(uiText(R.string.ui_settings_preference_sections_009))
@@ -60,14 +29,7 @@ internal fun SettingsWorkflowContent(state: SettingsUiState, viewModel: Settings
         checked = state.saveAndNext,
         onCheckedChange = viewModel::setSaveAndNext
     )
-    AppDivider()
-    SettingsSubheading(uiText(R.string.ui_settings_preference_sections_011))
-    AppToggleRow(
-        title = uiText(R.string.ui_settings_preference_sections_012),
-        subtitle = uiText(R.string.ui_settings_preference_sections_013),
-        checked = state.guidedRollover,
-        onCheckedChange = viewModel::setGuidedRollover
-    )
+
 }
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)

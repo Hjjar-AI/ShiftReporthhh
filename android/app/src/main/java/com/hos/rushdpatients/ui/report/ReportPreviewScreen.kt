@@ -322,7 +322,7 @@ fun ReportPreviewScreen(
                             actionLabel = when (state.retryAction) {
                                 ReportRetryAction.PREVIEW -> uiText(R.string.ui_report_preview_screen_037)
                                 ReportRetryAction.SEND -> uiText(R.string.ui_report_preview_screen_038)
-                                ReportRetryAction.SAVE -> uiText(R.string.ui_report_preview_screen_039)
+                                ReportRetryAction.SAVE, ReportRetryAction.SAVE_SUPERVISORS -> uiText(R.string.ui_report_preview_screen_039)
                                 ReportRetryAction.SHARE -> uiText(R.string.ui_report_preview_screen_040)
                                 ReportRetryAction.ASSIGNMENTS -> uiText(R.string.ui_report_preview_screen_041)
                                 null -> null
@@ -436,14 +436,9 @@ fun ReportPreviewScreen(
                         }
                         AppToggleRow(title = uiText(R.string.ui_settings_report_section_010), checked = options.darkMode, enabled = !busy,
                             onCheckedChange = { update(options.copy(darkMode = it)) })
-                        AppPdfAppearanceControls(weight = options.ruleWeight, contrast = options.ruleContrast,
-                            shading = options.rowShading, dark = options.darkMode, enabled = !busy,
+                        AppPdfAppearanceControls(shading = options.rowShading, dark = options.darkMode, enabled = !busy,
                             showShading = state.pdfStyle != PdfStyle.CARDS,
-                            onWeight = { update(options.copy(ruleWeight = it)) },
-                            onContrast = { update(options.copy(ruleContrast = it)) },
-                            onShading = { update(options.copy(rowShading = it)) },
-                            onPreset = { update(options.copy(ruleWeight = it.weight, ruleContrast = it.contrast,
-                                rowShading = it.shading, darkMode = if (it.lightOnly) false else options.darkMode)) })
+                            onShading = { update(options.copy(rowShading = it)) })
                         Text(uiText(R.string.ui_report_preview_screen_055), style = MaterialTheme.typography.bodySmall)
                     }
                 }
@@ -481,6 +476,9 @@ fun ReportPreviewScreen(
                             onClick = viewModel::sharePdf, modifier = Modifier.fillMaxWidth(),
                             enabled = !busy && state.summary != null)
                     } else Text(uiText(R.string.ui_report_preview_screen_073), style = MaterialTheme.typography.bodySmall)
+                    LoadingButton(text = uiText(R.string.report_save_supervisor_pdfs), outlined = true, loading = state.exportingLocalPdf,
+                        onClick = viewModel::exportSupervisorPdfs, modifier = Modifier.fillMaxWidth(),
+                        enabled = !busy && state.summary != null && state.patients.isNotEmpty())
                     if (state.isAdmin) {
                         AppOutlinedButton(onClick = viewModel::exportAssignments, modifier = Modifier.fillMaxWidth(),
                             enabled = !busy && state.shift != null) { Text(uiText(R.string.ui_report_preview_screen_074)) }

@@ -33,7 +33,7 @@ enum class ReportStepOutcome(@StringRes private val arabicLabelRes: Int) {
     fun arabicLabel(uiText: UiStrings): String = uiText(arabicLabelRes)
 }
 
-enum class ReportRetryAction { SEND, PREVIEW, SAVE, SHARE, ASSIGNMENTS }
+enum class ReportRetryAction { SEND, PREVIEW, SAVE, SAVE_SUPERVISORS, SHARE, ASSIGNMENTS }
 
 data class ReportUiState(
     val loading: Boolean = true,

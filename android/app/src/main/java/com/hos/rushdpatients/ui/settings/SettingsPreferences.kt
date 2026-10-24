@@ -8,10 +8,7 @@ import com.hos.rushdpatients.config.AppConstants
 import com.hos.rushdpatients.data.repository.SettingsRepository
 import com.hos.rushdpatients.domain.patient.PatientCardStyle
 import com.hos.rushdpatients.pdf.PdfColorPreset
-import com.hos.rushdpatients.pdf.PdfRuleWeight
-import com.hos.rushdpatients.pdf.PdfRuleContrast
 import com.hos.rushdpatients.pdf.PdfRowShading
-import com.hos.rushdpatients.pdf.PdfPresentationPreset
 import com.hos.rushdpatients.pdf.PdfOrientation
 import com.hos.rushdpatients.pdf.PdfPaperSize
 import com.hos.rushdpatients.pdf.PdfStyle
@@ -77,19 +74,9 @@ internal class SettingsPreferences(
         }
     }
 
-    fun setPdfRuleWeight(value: PdfRuleWeight) {
-        viewModelScope.launch {
-            settingsRepository.put(AppConstants.SETTING_PDF_RULE_WEIGHT, value.name)
-            _state.update { it.copy(pdfRuleWeight = value) }
-        }
-    }
 
-    fun setPdfRuleContrast(value: PdfRuleContrast) {
-        viewModelScope.launch {
-            settingsRepository.put(AppConstants.SETTING_PDF_RULE_CONTRAST, value.name)
-            _state.update { it.copy(pdfRuleContrast = value) }
-        }
-    }
+
+
 
     fun setPdfRowShading(value: PdfRowShading) {
         viewModelScope.launch {
@@ -98,19 +85,7 @@ internal class SettingsPreferences(
         }
     }
 
-    fun setPdfPresentationPreset(value: PdfPresentationPreset) {
-        viewModelScope.launch {
-            val settings = mutableMapOf(
-                AppConstants.SETTING_PDF_RULE_WEIGHT to value.weight.name,
-                AppConstants.SETTING_PDF_RULE_CONTRAST to value.contrast.name,
-                AppConstants.SETTING_PDF_ROW_SHADING to value.shading.name
-            )
-            if (value.lightOnly) settings[AppConstants.SETTING_PDF_DARK_MODE] = "false"
-            settingsRepository.putAll(settings)
-            _state.update { it.copy(pdfRuleWeight = value.weight, pdfRuleContrast = value.contrast,
-                pdfRowShading = value.shading, pdfDarkMode = if (value.lightOnly) false else it.pdfDarkMode) }
-        }
-    }
+
 
     fun setPdfDarkMode(value: Boolean) {
         viewModelScope.launch {
@@ -119,12 +94,7 @@ internal class SettingsPreferences(
         }
     }
 
-    fun setPdfSeparateBySupervisor(value: Boolean) {
-        viewModelScope.launch {
-            settingsRepository.putBoolean(AppConstants.SETTING_PDF_SEPARATE_BY_SUPERVISOR, value)
-            _state.update { it.copy(pdfSeparateBySupervisor = value) }
-        }
-    }
+
 
     fun setUiPreferences(requested: com.hos.rushdpatients.ui.theme.UiPreferences) {
         val value = requested.simplified()
@@ -164,26 +134,11 @@ internal class SettingsPreferences(
         }
     }
 
-    fun setPatientDetailsExpanded(value: Boolean) {
-        viewModelScope.launch {
-            settingsRepository.putBoolean(AppConstants.SETTING_PATIENT_DETAILS_EXPANDED, value)
-            _state.update { it.copy(patientDetailsExpanded = value) }
-        }
-    }
 
-    fun setPatientTwoColumn(value: Boolean) {
-        viewModelScope.launch {
-            settingsRepository.putBoolean(AppConstants.SETTING_PATIENT_TWO_COLUMN, value)
-            _state.update { it.copy(patientTwoColumn = value) }
-        }
-    }
 
-    fun setPatientCompactDensity(value: Boolean) {
-        viewModelScope.launch {
-            settingsRepository.putBoolean(AppConstants.SETTING_PATIENT_COMPACT_DENSITY, value)
-            _state.update { it.copy(patientCompactDensity = value) }
-        }
-    }
+
+
+
 
     fun setSaveAndNext(value: Boolean) {
         viewModelScope.launch {
@@ -199,12 +154,7 @@ internal class SettingsPreferences(
         }
     }
 
-    fun setGuidedRollover(value: Boolean) {
-        viewModelScope.launch {
-            settingsRepository.putBoolean(AppConstants.SETTING_GUIDED_ROLLOVER, value)
-            _state.update { it.copy(guidedRollover = value) }
-        }
-    }
+
 
     fun setBiometric(value: Boolean) {
         viewModelScope.launch {

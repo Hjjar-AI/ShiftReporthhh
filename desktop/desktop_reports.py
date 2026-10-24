@@ -100,7 +100,7 @@ def options_dialog(owner, export_only=False, assignments=False, force_pdf=False,
     appearance_area.pack(fill='x')
     from desktop_pdf_settings import appearance_controls
     appearance = appearance_controls(appearance_area, previous)
-    separate = combo(appearance_area, 'ملف PDF لكل مشرف عند الحفظ المحلي', {False:'ملف واحد', True:'ملف لكل مشرف'}, previous['separate']) if export_only and not assignments else lambda:previous['separate']
+
     description=ctk.CTkLabel(area,text='',wraplength=620,justify='right',anchor='e')
     description.pack(fill='x',padx=10,pady=8)
     def refresh_options():
@@ -131,7 +131,7 @@ def options_dialog(owner, export_only=False, assignments=False, force_pdf=False,
     result = []
     def read_options():
         return dict(format=format_get(), layout=layout(), paper=paper(), orientation=orientation(),
-                    separate=separate(), ward=previous['ward'], **appearance())
+                    separate=False, ward=previous['ward'], **appearance())
     def save_options(options):
         preferences = dict(previous, **appearance()) if assignments else dict(options)
         if force_pdf or settings_only:preferences['format']=previous['format']

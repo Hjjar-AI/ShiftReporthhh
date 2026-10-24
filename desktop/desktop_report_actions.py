@@ -47,8 +47,8 @@ def report_batch(owner):
         raise
 
 
-def report(owner,export_only=False):
-    if export_only:return owner._report(export_only=True)
+def report(owner,export_only=False,separate=False):
+    if export_only:return owner._report(export_only=True,separate=separate)
     owner.report_attempt=ReportAttempt();owner.show_report_attempt()
     try:
         return owner._report()
@@ -62,7 +62,7 @@ def report(owner,export_only=False):
     finally:owner.show_report_attempt()
 
 
-def _report(owner,export_only=False):
+def _report(owner,export_only=False,separate=False):
     owner.ready(not export_only);local=owner.store.read(owner.client)
     if not export_only:
         review=options_dialog(owner,review_send=True)
@@ -72,16 +72,16 @@ def _report(owner,export_only=False):
         sent=review['delivery'].send(review['payloads'],confirm_repeat)
         if sent:owner.notify_success('تم تسليم التقرير إلى الوجهة التي راجعتها.')
         return
-    options=options_dialog(owner,export_only=True)
+    options=options_dialog(owner,export_only=True,force_pdf=separate)
     if options is None:return
     local=owner.store.read(owner.client)
     if owner.demo:require(export_only and options['format']=='pdf','في الوضع التجريبي يسمح بحفظ PDF محلي فقط')
-    supervisor=owner.selected_supervisor()
+    supervisor=None if separate else owner.selected_supervisor()
     font=owner.settings.get('PDF_FONT')
     if font and not Path(font).is_absolute():font=str(BASE/font)
     from desktop_pdf import render_report
     if export_only:
-        if options['format']=='pdf' and options['separate']:
+        if options['format']=='pdf' and separate:
             export_supervisor_pdfs(owner,local,supervisor,font,options)
             return
         if options['format']=='text':

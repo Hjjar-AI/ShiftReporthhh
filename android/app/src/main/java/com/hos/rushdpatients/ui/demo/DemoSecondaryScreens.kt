@@ -30,8 +30,6 @@ internal fun DemoReportContent(
     var style by rememberSaveable { mutableStateOf(PdfStyle.CLASSIC) }
     var orientation by rememberSaveable { mutableStateOf(PdfOrientation.PORTRAIT) }
     var color by rememberSaveable { mutableStateOf(PdfColorPreset.TEAL) }
-    var weight by rememberSaveable { mutableStateOf(PdfRuleWeight.MEDIUM) }
-    var contrast by rememberSaveable { mutableStateOf(PdfRuleContrast.MEDIUM) }
     var shading by rememberSaveable { mutableStateOf(PdfRowShading.AUTO) }
     var advanced by rememberSaveable { mutableStateOf(false) }
     var showContents by rememberSaveable { mutableStateOf(false) }
@@ -70,16 +68,15 @@ internal fun DemoReportContent(
                         enabled = !state.exporting, label = { Text(value.uiLabel(uiText)) })
                 }
             }
-            AppPdfAppearanceControls(weight, contrast, shading, dark = false,
-                onWeight = { weight = it }, onContrast = { contrast = it }, onShading = { shading = it },
-                onPreset = { weight = it.weight; contrast = it.contrast; shading = it.shading },
+            AppPdfAppearanceControls(shading, dark = false,
+                onShading = { shading = it },
                 enabled = !state.exporting, showShading = style != PdfStyle.CARDS)
         }
         LoadingButton(text = uiText(R.string.ui_demo_secondary_screens_007), loading = state.exporting,
             enabled = !state.exporting && state.patients.isNotEmpty() && state.shiftDoctorIds.isNotEmpty(),
             modifier = Modifier.fillMaxWidth(), onClick = {
                 onExport(PdfExportOptions(orientation = orientation, colorPreset = color,
-                    ruleWeight = weight, ruleContrast = contrast, rowShading = shading), style)
+                    rowShading = shading), style)
             })
         AppTextButton(onClick = { showContents = !showContents }) {
             Text(if (showContents) uiText(R.string.ui_demo_secondary_screens_008) else uiText(R.string.ui_demo_secondary_screens_009))

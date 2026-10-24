@@ -44,7 +44,6 @@ object AppConstants {
     const val SETTING_PDF_PAPER_SIZE = "pdf_paper_size"
     const val SETTING_PDF_COLOR_PRESET = "pdf_color_preset"
     const val SETTING_PDF_DARK_MODE = "pdf_dark_mode"
-    const val SETTING_PDF_SEPARATE_BY_SUPERVISOR = "pdf_separate_by_supervisor"
     const val SETTING_PDF_RULE_WEIGHT = "pdf_rule_weight"
     const val SETTING_PDF_RULE_CONTRAST = "pdf_rule_contrast"
     const val SETTING_PDF_ROW_SHADING = "pdf_row_shading"
@@ -71,9 +70,7 @@ object AppConstants {
     const val SETTING_PATIENTS_SYNC_PENDING = "patients_sync_pending"
     const val SETTING_PATIENT_DRAFT = "patient_draft"
     const val SETTING_LAST_ENCRYPTED_BACKUP_AT = "last_encrypted_backup_at"
-    const val SETTING_SYNC_LONG_PRESS_HINT_SHOWN = "sync_long_press_hint_shown"
     const val SETTING_KNOWN_SHIFT_SNAPSHOT_PREFIX = "known_shift_snapshot:"
-    const val SETTING_GUIDED_ROLLOVER = "guided_rollover"
     const val SETTING_DEVICE_ID = "device_id"
 
     // Audit actions

@@ -2,6 +2,14 @@
 
 Feature summaries; [current behavior/evidence](current-state.md) · [unfinished work](roadmap.md) · [remaining checks](testing-handoff.md). Source completion does not establish runtime verification.
 
+## 25 October 2026 — selected settings/export/sort cleanup
+
+- Remove obsolete guided-rollover and transfer-hold-hint controls/state/reads. Remove duplicate card settings/section; View Options owns expansion/two-column/compact choices, Settings retains its real read-only card preview. Keep old stored settings without migration/deletion.
+- Replace persistent split-PDF preference with explicit «حفظ PDF مستقل لكل مشرف» in Android report tools and desktop. Export retry retains split intent; general text mode can still export supervisor PDFs. General PDF sending retains the existing single local-copy behavior; no automatic bulk split export.
+- Replace level editors with manual/name/admission-duration/workbook presets in Android/desktop. Imported custom sort definitions remain compatible until an explicit preset changes them; existing persisted ordering/export rules and priority-first behavior remain.
+- Fix PDF thickness/contrast at Medium in shared renderers and preference loading; remove selectors/presets that changed them from settings, review and demo. Old values ignored; A4/A5, color, shading and dark mode retained.
+- Python3.8 grammar, values XML, changed Kotlin delimiters/string references/dp imports and `git diff --check` passed. No compilation/build/tests/device/live runs or schema/version changes. Existing tests expecting removed controls/options need an authorized update/check.
+
 ## 25 October 2026 — owner-approved simplification
 
 - Owner chose «رفع للشبكة وإرسال تقرير» for the combined action. Android shared action/header/review/final-confirmation labels and desktop entry/review/confirmation use it; standalone publication wording and reviewed behavior retained. Resource/Python grammar/diff checks only; no build/tests.

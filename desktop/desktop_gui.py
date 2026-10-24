@@ -456,11 +456,11 @@ class Window:
     def report_batch(self):
         return desktop_report_actions.report_batch(self)
 
-    def report(self,export_only=False):
-        return desktop_report_actions.report(self, export_only)
+    def report(self,export_only=False,separate=False):
+        return desktop_report_actions.report(self, export_only, separate)
 
-    def _report(self,export_only=False):
-        return desktop_report_actions._report(self, export_only)
+    def _report(self,export_only=False,separate=False):
+        return desktop_report_actions._report(self, export_only, separate)
 
     def resolve(self):
         return desktop_data_actions.resolve(self)

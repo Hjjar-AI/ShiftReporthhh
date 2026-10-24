@@ -1,14 +1,12 @@
 """Saved PDF appearance controls shared by settings and report review."""
 import tkinter as tk
 import desktop_widgets as ctk
-from desktop_pdf_content import normalize_options, palette, PRESENTATION_PRESETS
+from desktop_pdf_content import normalize_options, palette
 
 
 CHOICES = {
     'color': ('اللون', {'teal':'فيروزي', 'blue':'أزرق', 'green':'أخضر', 'purple':'بنفسجي', 'pastel':'باستيل'}),
     'dark': ('مظهر PDF', {False:'فاتح', True:'داكن'}),
-    'rule_weight': ('سماكة الفواصل الأفقية', {'thin':'رفيعة · 0.75 نقطة', 'medium':'متوسطة · 1.5 نقطة', 'thick':'سميكة · 2.25 نقطة'}),
-    'rule_contrast': ('وضوح الفواصل', {'light':'خفيف', 'medium':'متوسط', 'strong':'واضح'}),
     'row_shading': ('تظليل صفوف الجدول', {'auto':'تلقائي حسب الفرق', 'zebra':'صفوف متناوبة', 'none':'دون تظليل'}),
 }
 
@@ -18,8 +16,10 @@ def appearance_controls(parent, previous):
     show_shading = [True]
     preview = tk.Canvas(parent, height=76, highlightthickness=0)
     def read():
-        return {key:next(value for value,label in mapping.items() if label==variables[key].get())
+        result={key:next(value for value,label in mapping.items() if label==variables[key].get())
                 for key,(_,mapping) in CHOICES.items()}
+        result.update(rule_weight='medium',rule_contrast='medium')
+        return result
     def refresh(*args):
         if len(variables)!=len(CHOICES):return
         colors=palette(normalize_options(dict(previous,**read())))
@@ -30,15 +30,6 @@ def appearance_controls(parent, previous):
             shade=colors['page'] if not show_shading[0] or colors['shading']=='none' or index%2==0 else colors['zebra']
             preview.create_rectangle(8,y,width-8,y+21,fill=shade,outline='')
             preview.create_line(8,y+21,width-8,y+21,fill=colors['rule'],width=line_width)
-    def apply_preset(key):
-        for name,value in PRESENTATION_PRESETS[key].items():
-            variables[name].set(CHOICES[name][1][value])
-        refresh()
-    ctk.CTkLabel(parent,text='اختيار سريع',anchor='e').pack(fill='x',padx=10,pady=(6,0))
-    presets=ctk.CTkFrame(parent,fg_color='transparent');presets.pack(fill='x')
-    for key,label in [('balanced','متوازن'),('clear','فواصل واضحة'),('print','للطباعة')]:
-        control=ctk.CTkButton(presets,text=label,height=48,width=100,command=lambda k=key:apply_preset(k))
-        control.pack(side='right',fill='x',expand=True,padx=3,pady=3)
     for key,(label,mapping) in CHOICES.items():
         row=ctk.CTkFrame(parent,fg_color='transparent');row.pack(fill='x');rows[key]=row
         ctk.CTkLabel(row,text=label,anchor='e').pack(fill='x',padx=10,pady=(6,0))

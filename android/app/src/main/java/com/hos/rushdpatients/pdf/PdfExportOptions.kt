@@ -44,7 +44,8 @@ enum class PdfColorPreset(val arabicLabel: String) {
 enum class PdfRuleWeight(val arabicLabel: String, val points: Float) {
     THIN("رفيعة", .75f), MEDIUM("متوسطة", 1.5f), THICK("سميكة", 2.25f);
     companion object {
-        fun fromSetting(value: String?): PdfRuleWeight = entries.firstOrNull { it.name == value } ?: MEDIUM
+        @Suppress("UNUSED_PARAMETER")
+        fun fromSetting(value: String?): PdfRuleWeight = MEDIUM
     }
 }
 
@@ -53,7 +54,8 @@ enum class PdfRuleContrast(val arabicLabel: String, val light: Int, val dark: In
     MEDIUM("متوسط", 0xFF94A3B8.toInt(), 0xFF64748B.toInt()),
     STRONG("واضح", 0xFF64748B.toInt(), 0xFF94A3B8.toInt());
     companion object {
-        fun fromSetting(value: String?): PdfRuleContrast = entries.firstOrNull { it.name == value } ?: MEDIUM
+        @Suppress("UNUSED_PARAMETER")
+        fun fromSetting(value: String?): PdfRuleContrast = MEDIUM
     }
 }
 

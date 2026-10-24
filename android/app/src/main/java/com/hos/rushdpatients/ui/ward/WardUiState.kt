@@ -63,7 +63,6 @@ data class WardUiState(
     val twoColumn: Boolean = false,
     val compactCards: Boolean = false,
     val saveAndNext: Boolean = false,
-    val showSyncHint: Boolean = false,
     val lastOperation: String? = null,
     val retryAction: WardRetryAction? = null,
     val error: String? = null,

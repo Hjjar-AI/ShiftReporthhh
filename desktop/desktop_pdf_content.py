@@ -28,6 +28,8 @@ def normalize_options(options=None):
     require(type(result['dark']) is bool and type(result['separate']) is bool, 'خيارات PDF غير صالحة')
     require(result['rule_weight'] in RULE_WEIGHTS and result['rule_contrast'] in RULE_CONTRASTS and
             result['row_shading'] in {'auto','zebra','none'}, 'خيارات فواصل PDF غير صالحة')
+    # Legacy options remain readable; separator appearance and split-export preference are retired.
+    result.update(rule_weight='medium', rule_contrast='medium', separate=False)
     return result
 
 

@@ -123,7 +123,6 @@ internal enum class SettingsSectionId(
     val adminOnly: Boolean = false
 ) {
     APPEARANCE(R.string.ui_demo_secondary_screens_014, SettingsWorkspace.APPEARANCE),
-    PATIENT_CARDS(R.string.ui_settings_section_layout_028, SettingsWorkspace.APPEARANCE),
     WORKFLOW(R.string.ui_settings_section_layout_029, SettingsWorkspace.APPEARANCE),
     REPORT(R.string.ui_settings_section_layout_030, SettingsWorkspace.REPORTS),
     SYNC(R.string.ui_sync_center_patients, SettingsWorkspace.DATA),
@@ -142,13 +141,8 @@ internal enum class SettingsSectionId(
 
 internal fun SettingsSectionId.summary(uiText: UiStrings, state: SettingsUiState): String = when (this) {
     SettingsSectionId.APPEARANCE -> uiText(R.string.ui_settings_section_layout_005, state.appearance.arabicLabel(uiText), state.appTheme.arabicLabel(uiText), state.fontScale.arabicLabel(uiText))
-    SettingsSectionId.PATIENT_CARDS -> listOf(
-        if (state.patientDetailsExpanded) uiText(R.string.ui_settings_section_layout_006) else uiText(R.string.ui_settings_section_layout_007),
-        if (state.patientTwoColumn) uiText(R.string.ui_settings_section_layout_008) else uiText(R.string.ui_settings_section_layout_009),
-        if (state.patientCompactDensity) uiText(R.string.ui_settings_section_layout_010) else uiText(R.string.ui_settings_section_layout_011)
-    ).joinToString(" · ")
-    SettingsSectionId.WORKFLOW -> uiText(R.string.ui_settings_section_layout_012) + (if (state.saveAndNext) uiText(R.string.ui_settings_section_layout_013) else uiText(R.string.ui_settings_section_layout_014)) +
-        uiText(R.string.ui_settings_section_layout_015) + if (state.guidedRollover) uiText(R.string.ui_settings_section_layout_013) else uiText(R.string.ui_settings_section_layout_014)
+    SettingsSectionId.WORKFLOW -> uiText(R.string.ui_settings_section_layout_012) +
+        (if (state.saveAndNext) uiText(R.string.ui_settings_section_layout_013) else uiText(R.string.ui_settings_section_layout_014))
     SettingsSectionId.REPORT -> if (state.reportAsPdf) "PDF · ${state.pdfStyle.uiLabel(uiText)}" else uiText(R.string.ui_settings_section_layout_016)
     SettingsSectionId.SYNC -> syncCenterSummary(uiText, state.patientsPending, state.lastCsvSync)
     SettingsSectionId.DOCTORS -> syncCenterSummary(uiText, state.doctorsPending, state.lastDoctorsSync)

@@ -103,16 +103,7 @@ class WardViewModel @Inject constructor(
         observeWorkflowStatus()
         loadDraft()
         monitorDayLabelBoundary()
-        viewModelScope.launch {
-            _state.update {
-                it.copy(
-                    showSyncHint = !settingsRepository.getBoolean(
-                        AppConstants.SETTING_SYNC_LONG_PRESS_HINT_SHOWN,
-                        false
-                    )
-                )
-            }
-        }
+
     }
 
     private fun observeWorkflowStatus() {
@@ -327,7 +318,6 @@ class WardViewModel @Inject constructor(
 
     fun setPriority(patient: Patient, priority: Boolean, onSuccess: () -> Unit = {}) = patientActions.setPriority(patient, priority, onSuccess)
 
-    fun dismissSyncHint() = preferences.dismissSyncHint()
 
     fun retryLastAction() {
         when (_state.value.retryAction) {

@@ -118,6 +118,7 @@ def build_window(owner, root, settings, demo):
         button(reports,'تقارير المشرفين (PDF)',lambda:owner.run(owner.report_batch))
         button(reports,'سجل التسليم — تحقق من محاولة سابقة',lambda:owner.run(owner.resolve))
     button(reports,'حفظ تقرير محلي',lambda:owner.run(lambda:owner.report(export_only=True)))
+    button(reports,'حفظ PDF مستقل لكل مشرف',lambda:owner.run(lambda:owner.report(export_only=True,separate=True)))
     owner.assignments_button=ctk.CTkButton(reports,text='توزيع الفرق (PDF)',height=48,command=lambda:owner.run(owner.export_assignments))
     patient_tools=section('بيانات المرضى',expanded=False)
     button(patient_tools,'جلب البيانات ونشرها',owner.open_data_tools)

@@ -107,10 +107,5 @@ internal class WardPreferences(
         }
     }
 
-    fun dismissSyncHint() {
-        _state.update { it.copy(showSyncHint = false) }
-        viewModelScope.launch {
-            settingsRepository.putBoolean(AppConstants.SETTING_SYNC_LONG_PRESS_HINT_SHOWN, true)
-        }
-    }
+
 }

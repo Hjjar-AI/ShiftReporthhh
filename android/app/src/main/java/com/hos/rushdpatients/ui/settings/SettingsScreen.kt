@@ -349,7 +349,6 @@ fun SettingsScreen(
                                 onUiPreferences = viewModel::setUiPreferences,
                                 onFont = viewModel::setFontScale
                             )
-                            SettingsSectionId.PATIENT_CARDS -> SettingsPatientCardsContent(state, viewModel)
                             SettingsSectionId.WORKFLOW -> SettingsWorkflowContent(state, viewModel)
                             SettingsSectionId.REPORT -> SettingsReportContent(state, viewModel, advancedPdf, { advancedPdf = !advancedPdf })
                             SettingsSectionId.SYNC -> SettingsSyncContent(

@@ -104,8 +104,8 @@ internal class ReportPdfWorkspace(
             settingsRepository.get(AppConstants.SETTING_PDF_COLOR_PRESET)
         ),
         darkMode = settingsRepository.getBoolean(AppConstants.SETTING_PDF_DARK_MODE, false),
-        ruleWeight = PdfRuleWeight.fromSetting(settingsRepository.get(AppConstants.SETTING_PDF_RULE_WEIGHT)),
-        ruleContrast = PdfRuleContrast.fromSetting(settingsRepository.get(AppConstants.SETTING_PDF_RULE_CONTRAST)),
+        ruleWeight = PdfRuleWeight.MEDIUM,
+        ruleContrast = PdfRuleContrast.MEDIUM,
         rowShading = PdfRowShading.fromSetting(settingsRepository.get(AppConstants.SETTING_PDF_ROW_SHADING)),
         patientCardStyle = PatientCardStyle.fromSetting(
             settingsRepository.get(AppConstants.SETTING_PDF_PATIENT_CARD_STYLE)

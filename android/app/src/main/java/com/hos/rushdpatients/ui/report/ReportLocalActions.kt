@@ -175,7 +175,11 @@ internal class ReportLocalActions(
         }
     }
 
-    fun exportLocally() {
+    fun exportLocally() = exportLocally(separate = false)
+
+    fun exportSupervisorPdfs() = exportLocally(separate = true)
+
+    private fun exportLocally(separate: Boolean) {
         val current = _state.value
         if (current.savingPdfOptions || current.savingDoctors || current.exportingLocalPdf || current.previewingPdf || current.sharingPdf || current.sending || current.shift == null) return
         _state.update { it.copy(exportingLocalPdf = true, error = null, doctorRegistryAction = null, retryAction = null) }
@@ -183,10 +187,6 @@ internal class ReportLocalActions(
             try {
                 val built = reportBuilder.build(shiftId)
                 val options = pdfWorkspace.loadPdfOptions()
-                val separate = settingsRepository.getBoolean(
-                    AppConstants.SETTING_PDF_SEPARATE_BY_SUPERVISOR,
-                    false
-                )
                 val count = if (separate) {
                     pdfWorkspace.saveSupervisorPdfs(built, options)
                 } else {
@@ -208,7 +208,7 @@ internal class ReportLocalActions(
                     it.copy(
                         exportingLocalPdf = false,
                         error = e.message ?: uiText(R.string.ui_report_local_actions_011),
-                        retryAction = ReportRetryAction.SAVE
+                        retryAction = if (separate) ReportRetryAction.SAVE_SUPERVISORS else ReportRetryAction.SAVE
                     )
                 }
             }

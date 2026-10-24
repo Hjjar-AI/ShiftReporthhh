@@ -3,8 +3,6 @@ package com.hos.rushdpatients.ui.settings
 import android.net.Uri
 import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.pdf.PdfColorPreset
-import com.hos.rushdpatients.pdf.PdfRuleWeight
-import com.hos.rushdpatients.pdf.PdfRuleContrast
 import com.hos.rushdpatients.pdf.PdfRowShading
 import com.hos.rushdpatients.pdf.PdfOrientation
 import com.hos.rushdpatients.pdf.PdfPaperSize
@@ -35,11 +33,8 @@ data class SettingsUiState(
     val pdfOrientation: PdfOrientation = PdfOrientation.PORTRAIT,
     val pdfPaperSize: PdfPaperSize = PdfPaperSize.A4,
     val pdfColorPreset: PdfColorPreset = PdfColorPreset.TEAL,
-    val pdfRuleWeight: PdfRuleWeight = PdfRuleWeight.MEDIUM,
-    val pdfRuleContrast: PdfRuleContrast = PdfRuleContrast.MEDIUM,
     val pdfRowShading: PdfRowShading = PdfRowShading.AUTO,
     val pdfDarkMode: Boolean = false,
-    val pdfSeparateBySupervisor: Boolean = false,
     val uiPreferences: com.hos.rushdpatients.ui.theme.UiPreferences = com.hos.rushdpatients.ui.theme.UiPreferences(),
     val appearance: AppAppearance = AppAppearance.LIGHT,
     val appTheme: AppThemePreset = AppThemePreset.VANILLA,
@@ -47,7 +42,6 @@ data class SettingsUiState(
     val patientDetailsExpanded: Boolean = false,
     val patientTwoColumn: Boolean = false,
     val patientCompactDensity: Boolean = false,
-    val guidedRollover: Boolean = false,
     val saveAndNext: Boolean = false,
     val supervisors: List<Doctor> = emptyList(),
     val savingSupervisorGroupId: String? = null,

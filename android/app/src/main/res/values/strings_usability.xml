@@ -49,4 +49,7 @@
     <string name="report_send_shared_copy">ستُنشر نسخة المرضى المراجعة كاملة، ثم يُرسل التقرير إلى الوجهات المحددة.</string>
     <string name="publication_history_title">سجل النسخ المنشورة</string>
     <string name="publication_history_error">تعذر تحميل سجل النسخ المنشورة</string>
+    <string name="report_save_supervisor_pdfs">حفظ PDF مستقل لكل مشرف</string>
+    <string name="sort_preset_name">حسب الاسم</string>
+    <string name="sort_preset_admission">مدة القبول — الأطول أولاً</string>
 </resources>

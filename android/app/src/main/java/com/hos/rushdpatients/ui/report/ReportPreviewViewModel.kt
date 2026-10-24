@@ -255,10 +255,11 @@ class ReportPreviewViewModel @Inject constructor(
         }
     }
 
-    fun setPdfAppearance(style: PdfStyle, options: PdfExportOptions) {
+    fun setPdfAppearance(style: PdfStyle, requested: PdfExportOptions) {
         val current = _state.value
         if (current.loading || current.sending || current.savingDoctors || current.previewingPdf ||
             current.exportingLocalPdf || current.sharingPdf || current.savingPdfOptions) return
+        val options = requested.copy(ruleWeight = com.hos.rushdpatients.pdf.PdfRuleWeight.MEDIUM, ruleContrast = com.hos.rushdpatients.pdf.PdfRuleContrast.MEDIUM)
         _state.update { it.copy(savingPdfOptions = true) }
         viewModelScope.launch {
             try {
@@ -268,8 +269,6 @@ class ReportPreviewViewModel @Inject constructor(
                     AppConstants.SETTING_PDF_PAPER_SIZE to options.paperSize.name,
                     AppConstants.SETTING_PDF_COLOR_PRESET to options.colorPreset.name,
                     AppConstants.SETTING_PDF_DARK_MODE to options.darkMode.toString(),
-                    AppConstants.SETTING_PDF_RULE_WEIGHT to options.ruleWeight.name,
-                    AppConstants.SETTING_PDF_RULE_CONTRAST to options.ruleContrast.name,
                     AppConstants.SETTING_PDF_ROW_SHADING to options.rowShading.name
                 ))
                 clearPdfReviews()
@@ -436,6 +435,7 @@ class ReportPreviewViewModel @Inject constructor(
             ReportRetryAction.SEND -> Unit // The screen reopens destination-specific confirmation.
             ReportRetryAction.PREVIEW -> previewPdf()
             ReportRetryAction.SAVE -> exportLocally()
+            ReportRetryAction.SAVE_SUPERVISORS -> exportSupervisorPdfs()
             ReportRetryAction.SHARE -> sharePdf()
             ReportRetryAction.ASSIGNMENTS -> exportAssignments()
             null -> Unit
@@ -445,6 +445,8 @@ class ReportPreviewViewModel @Inject constructor(
     fun exportAssignments() = localActions.exportAssignments()
 
     fun exportLocally() = localActions.exportLocally()
+
+    fun exportSupervisorPdfs() = localActions.exportSupervisorPdfs()
 
     fun onPdfViewerUnavailable() = localActions.onPdfViewerUnavailable()
 
@@ -460,20 +462,12 @@ class ReportPreviewViewModel @Inject constructor(
         withContext(Dispatchers.IO) {
             val tmp = checkedPdf(built)
             run {
-                val separate = settingsRepository.getBoolean(
-                    AppConstants.SETTING_PDF_SEPARATE_BY_SUPERVISOR,
-                    false
+                val savedUri = mediaStoreSaver.savePdf(
+                    context = context,
+                    sourceFile = tmp,
+                    displayName = reportFileName(built.summary.shiftDate)
                 )
-                if (separate) {
-                    saveSupervisorPdfs(built, loadPdfOptions())
-                } else {
-                    val savedUri = mediaStoreSaver.savePdf(
-                        context = context,
-                        sourceFile = tmp,
-                        displayName = reportFileName(built.summary.shiftDate)
-                    )
-                    checkNotNull(savedUri) { uiText(R.string.ui_report_preview_view_model_028) }
-                }
+                checkNotNull(savedUri) { uiText(R.string.ui_report_preview_view_model_028) }
 
                 val caption = Markdown.escape(uiText(R.string.ui_report_preview_view_model_029, built.summary.shiftDate, built.doctors.size))
                 reportSender.sendPdfReport(
@@ -519,11 +513,6 @@ class ReportPreviewViewModel @Inject constructor(
             supervisor = supervisor, chatId = requireNotNull(target.chatId),
             contentKey = ReportReview.supervisorFingerprint(built, target.doctorId))
     }
-
-    private suspend fun saveSupervisorPdfs(
-        built: BuiltReport,
-        options: PdfExportOptions
-    ): Int = pdfWorkspace.saveSupervisorPdfs(built, options)
 
     private fun reportFileName(date: java.time.LocalDate, suffix: String? = null): String = pdfWorkspace.reportFileName(date, suffix)
 

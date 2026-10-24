@@ -29,10 +29,7 @@ import com.hos.rushdpatients.domain.export.PendingExportStore
 import com.hos.rushdpatients.domain.export.PatientCsvExporter
 import com.hos.rushdpatients.domain.patient.PatientCardStyle
 import com.hos.rushdpatients.pdf.PdfColorPreset
-import com.hos.rushdpatients.pdf.PdfRuleWeight
-import com.hos.rushdpatients.pdf.PdfRuleContrast
 import com.hos.rushdpatients.pdf.PdfRowShading
-import com.hos.rushdpatients.pdf.PdfPresentationPreset
 import com.hos.rushdpatients.pdf.PdfOrientation
 import com.hos.rushdpatients.pdf.PdfPaperSize
 import com.hos.rushdpatients.pdf.PdfStyle
@@ -164,15 +161,9 @@ class SettingsViewModel @Inject constructor(
                         pdfColorPreset = PdfColorPreset.fromSetting(
                             settingsRepository.get(AppConstants.SETTING_PDF_COLOR_PRESET)
                         ),
-                        pdfRuleWeight = PdfRuleWeight.fromSetting(settingsRepository.get(AppConstants.SETTING_PDF_RULE_WEIGHT)),
-                        pdfRuleContrast = PdfRuleContrast.fromSetting(settingsRepository.get(AppConstants.SETTING_PDF_RULE_CONTRAST)),
                         pdfRowShading = PdfRowShading.fromSetting(settingsRepository.get(AppConstants.SETTING_PDF_ROW_SHADING)),
                         pdfDarkMode = settingsRepository.getBoolean(
                             AppConstants.SETTING_PDF_DARK_MODE,
-                            false
-                        ),
-                        pdfSeparateBySupervisor = settingsRepository.getBoolean(
-                            AppConstants.SETTING_PDF_SEPARATE_BY_SUPERVISOR,
                             false
                         ),
                         uiPreferences = com.hos.rushdpatients.ui.theme.UiPreferences.decode(settingsRepository.get(AppConstants.SETTING_UI_PREFERENCES)),
@@ -193,10 +184,6 @@ class SettingsViewModel @Inject constructor(
                         ),
                         patientCompactDensity = settingsRepository.getBoolean(
                             AppConstants.SETTING_PATIENT_COMPACT_DENSITY,
-                            false
-                        ),
-                        guidedRollover = settingsRepository.getBoolean(
-                            AppConstants.SETTING_GUIDED_ROLLOVER,
                             false
                         ),
                         biometricAvailable = bioAvailable,
@@ -273,17 +260,13 @@ class SettingsViewModel @Inject constructor(
 
     fun setPdfColorPreset(value: PdfColorPreset) = preferences.setPdfColorPreset(value)
 
-    fun setPdfRuleWeight(value: PdfRuleWeight) = preferences.setPdfRuleWeight(value)
 
-    fun setPdfRuleContrast(value: PdfRuleContrast) = preferences.setPdfRuleContrast(value)
 
     fun setPdfRowShading(value: PdfRowShading) = preferences.setPdfRowShading(value)
 
-    fun setPdfPresentationPreset(value: PdfPresentationPreset) = preferences.setPdfPresentationPreset(value)
 
     fun setPdfDarkMode(value: Boolean) = preferences.setPdfDarkMode(value)
 
-    fun setPdfSeparateBySupervisor(value: Boolean) = preferences.setPdfSeparateBySupervisor(value)
 
     fun setUiPreferences(value: com.hos.rushdpatients.ui.theme.UiPreferences) = preferences.setUiPreferences(value)
 
@@ -293,17 +276,13 @@ class SettingsViewModel @Inject constructor(
 
     fun setFontScale(value: AppFontScale) = preferences.setFontScale(value)
 
-    fun setPatientDetailsExpanded(value: Boolean) = preferences.setPatientDetailsExpanded(value)
 
-    fun setPatientTwoColumn(value: Boolean) = preferences.setPatientTwoColumn(value)
 
-    fun setPatientCompactDensity(value: Boolean) = preferences.setPatientCompactDensity(value)
 
     fun setSaveAndNext(value: Boolean) = preferences.setSaveAndNext(value)
 
     fun setReportWardName(value: String) = preferences.setReportWardName(value)
 
-    fun setGuidedRollover(value: Boolean) = preferences.setGuidedRollover(value)
 
     fun setSupervisorGroupChatId(expected: Doctor, rawValue: String) = projectOperations.setSupervisorGroupChatId(expected, rawValue)
 

@@ -21,24 +21,13 @@ import com.hos.rushdpatients.ui.theme.UiSpacing
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun AppPdfAppearanceControls(
-    weight: PdfRuleWeight, contrast: PdfRuleContrast, shading: PdfRowShading, dark: Boolean,
-    onWeight: (PdfRuleWeight) -> Unit, onContrast: (PdfRuleContrast) -> Unit,
-    onShading: (PdfRowShading) -> Unit, onPreset: (PdfPresentationPreset) -> Unit,
+    shading: PdfRowShading, dark: Boolean,
+    onShading: (PdfRowShading) -> Unit,
     enabled: Boolean = true, showShading: Boolean = true
 ) {
     val uiText = rememberUiStrings()
-    Text(uiText(R.string.ui_app_pdf_appearance_controls_001), style = MaterialTheme.typography.labelMedium)
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-        PdfPresentationPreset.entries.forEach { preset ->
-            AppFilterChip(selected = weight == preset.weight && contrast == preset.contrast && shading == preset.shading &&
-                (!preset.lightOnly || !dark), onClick = { onPreset(preset) }, enabled = enabled,
-                label = { Text(preset.uiLabel(uiText)) })
-        }
-    }
-    AppChoiceChips(PdfRuleWeight.entries.toList(), weight, onWeight, { it.uiLabel(uiText) },
-        title = uiText(R.string.ui_app_pdf_appearance_controls_002), enabled = enabled)
-    AppChoiceChips(PdfRuleContrast.entries.toList(), contrast, onContrast, { it.uiLabel(uiText) },
-        title = uiText(R.string.ui_app_pdf_appearance_controls_003), enabled = enabled)
+    val weight = PdfRuleWeight.MEDIUM
+    val contrast = PdfRuleContrast.MEDIUM
     if (showShading) AppChoiceChips(PdfRowShading.entries.toList(), shading, onShading, { it.uiLabel(uiText) },
         title = uiText(R.string.ui_app_pdf_appearance_controls_004), enabled = enabled)
     val palette = PdfPalette.resolve(PdfExportOptions(ruleWeight = weight, ruleContrast = contrast, rowShading = shading, darkMode = dark))

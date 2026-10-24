@@ -1,18 +1,11 @@
 package com.hos.rushdpatients.ui.ward
 
 import com.hos.rushdpatients.ui.components.AppSheet
-import com.hos.rushdpatients.ui.components.AppMenuItem
-import com.hos.rushdpatients.ui.components.AppMenu
 import com.hos.rushdpatients.ui.components.UiStrings
 
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
-import com.hos.rushdpatients.ui.components.AppDialogConfirmAction
-import androidx.compose.runtime.CompositionLocalProvider
-import com.hos.rushdpatients.ui.components.LocalFieldEnabled
-import com.hos.rushdpatients.ui.components.AppTextButton
-import com.hos.rushdpatients.ui.components.AppOutlinedButton
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -22,20 +15,14 @@ import com.hos.rushdpatients.ui.components.appDialogBody
 import com.hos.rushdpatients.ui.theme.UiDialog
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import com.hos.rushdpatients.ui.theme.UiSpacing
 import com.hos.rushdpatients.data.model.Shift
-import com.hos.rushdpatients.domain.sort.SortSpecCodec
 import com.hos.rushdpatients.domain.sort.SortDirection
 import com.hos.rushdpatients.domain.sort.SortField
 import com.hos.rushdpatients.domain.sort.SortLevel
@@ -73,135 +60,19 @@ internal fun PatientSortOptions(
     onApply: (SortSpec, Long, (Shift?) -> Unit) -> Unit
 ) {
     val uiText = rememberUiStrings()
-    var levels by remember { mutableStateOf(initial.levels) }
-
-    fun apply(spec: SortSpec) { onApply(spec, initialRevision) {} }
-
-    CompositionLocalProvider(LocalFieldEnabled provides !saving) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = UiSpacing.tiny),
-            verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
-        ) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
-            ) {
-                levels.forEachIndexed { index, level ->
-                    Text(uiText(R.string.ui_sort_sheet_003) + when (index) {
-                        0 -> uiText(R.string.ui_sort_sheet_004)
-                        1 -> uiText(R.string.ui_sort_sheet_005)
-                        2 -> uiText(R.string.ui_sort_sheet_006)
-                        else -> uiText(R.string.ui_sort_sheet_007)
-                    }, style = androidx.compose.material3.MaterialTheme.typography.titleSmall)
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)
-                    ) {
-                        FieldDropdown(
-                            selected = level.field,
-                            onSelected = { f ->
-                                levels = levels.toMutableList().also { it[index] = level.copy(field = f) }
-                            },
-                            modifier = Modifier.weight(1f)
-                        )
-                        DirectionDropdown(
-                            selected = level.direction,
-                            onSelected = { d ->
-                                levels = levels.toMutableList().also { it[index] = level.copy(direction = d) }
-                            },
-                            modifier = Modifier.weight(1f)
-                        )
-                        AppTextButton(onClick = {
-                            levels = levels.toMutableList().also { it.removeAt(index) }
-                        }) { Text(uiText(R.string.ui_patient_task_editor_007)) }
-                    }
-                }
-
-                if (levels.size < 4) {
-                    AppOutlinedButton(
-                        onClick = {
-                            levels = levels + SortLevel(SortField.NAME, SortDirection.ASC)
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) { Text(uiText(R.string.ui_sort_sheet_008)) }
-                }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)
-            ) {
-                AppDialogConfirmAction(text = uiText(R.string.ui_sort_sheet_009), loading = saving,
-                    onClick = { apply(SortSpec(levels)) },
-                    enabled = !saving,
-                    modifier = Modifier.weight(1f)
-                )
-                AppOutlinedButton(
-                    onClick = { apply(SortSpec.DEFAULT) },
-                    enabled = !saving,
-                    modifier = Modifier.weight(1f)
-                ) { Text(uiText(R.string.ui_sort_sheet_010)) }
-            }
-            AppTextButton(
-                onClick = { apply(SortSpec.EMPTY) },
-                enabled = !saving,
-                modifier = Modifier.fillMaxWidth()
-            ) { Text(uiText(R.string.ui_sort_sheet_011)) }
-            AppTextButton(onClick = { apply(SortSpec.WORKBOOK) }, enabled = !saving,
-                modifier = Modifier.fillMaxWidth()) { Text(uiText(R.string.ui_sort_sheet_012)) }
-        }
-    }
-}
-
-@Composable
-private fun FieldDropdown(
-    selected: SortField,
-    onSelected: (SortField) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val uiText = rememberUiStrings()
-    var expanded by remember { mutableStateOf(false) }
-    Column(modifier = modifier) {
-        AppOutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
-            Text(fieldLabel(uiText, selected))
-        }
-        AppMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            SortField.values().forEach { f ->
-                AppMenuItem(
-                    enabled = LocalFieldEnabled.current,
-                    text = { Text(fieldLabel(uiText, f)) },
-                    onClick = { onSelected(f); expanded = false }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun DirectionDropdown(
-    selected: SortDirection,
-    onSelected: (SortDirection) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val uiText = rememberUiStrings()
-    var expanded by remember { mutableStateOf(false) }
-    Column(modifier = modifier) {
-        AppOutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
-            Text(if (selected == SortDirection.ASC) uiText(R.string.ui_sort_sheet_013) else uiText(R.string.ui_sort_sheet_014))
-        }
-        AppMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            AppMenuItem(
-                    enabled = LocalFieldEnabled.current,
-                text = { Text(uiText(R.string.ui_sort_sheet_013)) },
-                onClick = { onSelected(SortDirection.ASC); expanded = false }
-            )
-            AppMenuItem(
-                    enabled = LocalFieldEnabled.current,
-                text = { Text(uiText(R.string.ui_sort_sheet_014)) },
-                onClick = { onSelected(SortDirection.DESC); expanded = false }
-            )
+    val presets = listOf(
+        R.string.ui_sort_sheet_011 to SortSpec.EMPTY,
+        R.string.sort_preset_name to SortSpec.DEFAULT,
+        R.string.sort_preset_admission to SortSpec(listOf(
+            SortLevel(SortField.DAYS_OF_ADMITTANCE, SortDirection.DESC), SortLevel(SortField.NAME))),
+        R.string.ui_sort_sheet_012 to SortSpec.WORKBOOK
+    )
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+        presets.forEach { (label, spec) ->
+            com.hos.rushdpatients.ui.components.AppFilterChip(
+                selected = initial == spec, enabled = !saving,
+                onClick = { onApply(spec, initialRevision) {} },
+                label = { Text(uiText(label)) })
         }
     }
 }

@@ -84,12 +84,8 @@ internal fun SettingsReportContent(state: SettingsUiState, viewModel: SettingsVi
         }
 
         AppPdfAppearanceControls(
-            weight = state.pdfRuleWeight, contrast = state.pdfRuleContrast,
             shading = state.pdfRowShading, dark = state.pdfDarkMode,
-            onWeight = viewModel::setPdfRuleWeight,
-            onContrast = viewModel::setPdfRuleContrast,
             onShading = viewModel::setPdfRowShading,
-            onPreset = viewModel::setPdfPresentationPreset,
             showShading = state.pdfStyle != PdfStyle.CARDS
         )
         AppToggleRow(
@@ -98,11 +94,6 @@ internal fun SettingsReportContent(state: SettingsUiState, viewModel: SettingsVi
             checked = state.pdfDarkMode,
             onCheckedChange = viewModel::setPdfDarkMode
         )
-        AppToggleRow(
-            title = uiText(R.string.ui_settings_report_section_012),
-            subtitle = uiText(R.string.ui_settings_report_section_013),
-            checked = state.pdfSeparateBySupervisor,
-            onCheckedChange = viewModel::setPdfSeparateBySupervisor
-        )
+
     }
 }
