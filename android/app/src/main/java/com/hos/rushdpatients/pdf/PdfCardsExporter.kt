@@ -19,7 +19,8 @@ class PdfCardsExporter @Inject constructor(
         residentNames: Map<String, String>,
         supervisorNames: Map<String, String>,
         options: PdfExportOptions = PdfExportOptions(),
-        outputFile: File
+        outputFile: File,
+        documentLabel: String? = null
     ): File = rowExporter.export(
         patients = patients,
         doctors = doctors,
@@ -28,6 +29,7 @@ class PdfCardsExporter @Inject constructor(
         supervisorNames = supervisorNames,
         options = options,
         elegant = true,
-        outputFile = outputFile
+        outputFile = outputFile,
+        documentLabel = documentLabel
     )
 }

@@ -22,6 +22,11 @@ def install_send_review(owner, window, area, actions, read_options, read_targets
         wraplength=640,justify='right').pack(fill='x',padx=8,pady=3)
     files_area=ctk.CTkFrame(review_area,fg_color='transparent');files_area.pack(fill='x')
     prepared={};working=[False];buttons={}
+    from tkinter import BooleanVar
+    export_pdf=BooleanVar(value=True)
+    export_choice=ctk.CTkCheckBox(review_area,text='حفظ ملف PDF على الجهاز بعد إرساله إلى تليجرام (اختياري)',
+        variable=export_pdf,height=48)
+    export_choice.pack(fill='x',padx=8,pady=4)
 
     def signature():
         return fingerprint(dict(project=owner.client.project_id,actor=owner.client._actor,
@@ -84,12 +89,14 @@ def install_send_review(owner, window, area, actions, read_options, read_targets
             require(owner.io(path.read_bytes)==prepared['payloads'][target],'تغير ملف PDF بعد المعاينة؛ أعدها')
         confirmation='هل تؤكد إرسال التقارير التي عاينتها إلى:\n'+'\n'.join(name(t) for t in prepared['targets'])
         confirmation+='\nالمناوبة: '+delivery.report_day
+        if export_pdf.get() and prepared['files']:confirmation+='\nحفظ ملف PDF على الجهاز بعد تأكيد إرساله إلى تليجرام.'
         if delivery.needs_publish:confirmation+='\nستُنشر النسخة الكاملة التي راجعتها أولاً، ثم يُرسل التقرير. فشل التسليم لا يلغي نشر البيانات.'
         if delivery.needs_publish:confirmation+='\nتأكيدك يستبدل بيانات المناوبة المنشورة بالنسخة المحلية الكاملة التي راجعتها؛ آخر نشر ناجح هو المعتمد.'
         if not messagebox.askyesno('تأكيد رفع للشبكة وإرسال تقرير',confirmation,default='no'):return
         delivery.plan.force_local=True
         require(signature()==prepared['signature'],'تغيرت البيانات بعد المراجعة؛ أعد المعاينة')
-        result.append(dict(delivery=delivery,payloads=[(t,prepared['options']['format'],prepared['payloads'][t]) for t in prepared['targets']]))
+        result.append(dict(delivery=delivery,exportPdf=export_pdf.get() and bool(prepared['files']),
+            payloads=[(t,prepared['options']['format'],prepared['payloads'][t]) for t in prepared['targets']]))
         window.destroy()
 
     def cancel():
@@ -99,6 +106,7 @@ def install_send_review(owner, window, area, actions, read_options, read_targets
         if working[0]:return
         working[0]=True
         for control in buttons.values():control.configure(state='disabled')
+        export_choice.configure(state='disabled')
         try:action()
         except BridgeError as error:messagebox.showerror('مراجعة التقرير',str(error))
         except Exception:messagebox.showerror('مراجعة التقرير','تعذر إعداد التقرير؛ تحقق من الملفات والاتصال ثم أعد المعاينة. لم يبدأ إرسال جديد من هذه النافذة.')
@@ -106,6 +114,7 @@ def install_send_review(owner, window, area, actions, read_options, read_targets
             working[0]=False
             if window.winfo_exists():
                 for control in buttons.values():control.configure(state='normal')
+                export_choice.configure(state='normal')
 
     buttons.update(dialog_actions(actions,primary=('رفع للشبكة وإرسال تقرير',lambda:invoke(send)),
         cancel=('إلغاء',cancel),secondary=[('معاينة التقرير',lambda:invoke(preview))]))

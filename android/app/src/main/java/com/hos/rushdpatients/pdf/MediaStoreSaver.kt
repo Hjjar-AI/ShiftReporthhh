@@ -94,8 +94,17 @@ class MediaStoreSaver @Inject constructor() {
             // API < 29: save to app-specific external documents dir
             val dir = context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)
                 ?: context.filesDir
-            val target = File(dir, "$subFolder/$displayName")
-            target.parentFile?.mkdirs()
+            val requested = File(dir, "$subFolder/$displayName")
+            requested.parentFile?.mkdirs()
+            // Date-based PDF names must not replace an earlier user export on older Android.
+            val target = if (mimeType == "application/pdf") {
+                var candidate = requested
+                var copyNumber = 2
+                while (!candidate.createNewFile()) {
+                    candidate = File(requested.parentFile, "${requested.nameWithoutExtension}_${copyNumber++}.pdf")
+                }
+                candidate
+            } else requested
             if (verifyContents) {
                 try {
                     sourceFile.copyTo(target, overwrite = true)

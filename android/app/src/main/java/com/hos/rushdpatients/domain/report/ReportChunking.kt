@@ -90,6 +90,9 @@ object ReportChunking {
     }
 
     /** Supports the escaped text, bold/underline and links emitted by TextReportBuilder. */
+    /** Captions use a smaller budget; continuation chunks retain valid Markdown and every name. */
+    fun captionParts(caption: String): List<String> = splitOversized(caption, 1024)
+
     private fun splitOversized(block: String, limit: Int): List<String> {
         if (block.isEmpty()) return emptyList()
         if (block.length <= limit) return listOf(block)

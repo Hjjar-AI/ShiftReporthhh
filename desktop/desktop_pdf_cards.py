@@ -51,6 +51,7 @@ class _Cards:
         self.visual = directed
         self.client, self.shift, self.patients = client, shift, patients
         self.now, self.total = now, total
+        self.local_draft = options.get('local_draft', False)
         self.colors = palette(options)
         title = self.colors['title']
         self.body = _Paint(11.5, self.colors['text'])
@@ -132,6 +133,7 @@ class _Cards:
         if not index:
             self.bottom = card_bottom - NAV_INSET - self.nav.height - 2 * NAV_PADDING - GAP
         label = ['DEMO — بيانات تجريبية'] if getattr(self.client, 'demo', False) else []
+        if self.local_draft:label.append('مسودة محلية · لم يُعتمد نشرها')
         label += ['ShiftReport', '{}/{}'.format(self.page, self.total)]
         offset = self.now.strftime('%z')
         zone = 'GMT' + offset[:3] + ':' + offset[3:]
@@ -431,7 +433,10 @@ def render_cards(client, shift, supervisor, font_path, options, now, report_day=
     patients = [p for p in shift['patients'] if supervisor is None or p.get('responsibleSupervisorId') == supervisor]
     require(patients, 'لا يوجد مرضى في التقرير المختار')
     total = _Cards(BytesIO(), client, shift, patients, options, now, 0, report_day).render()
-    path = temporary_pdf()
+    from desktop_report_labels import report_filename
+    from desktop_protocol import current_date
+    path = temporary_pdf(report_filename(report_day or current_date(client.zone,now),supervisor,client.doctors.get(supervisor,{}).get('name'),
+        draft=options.get('local_draft',False),demo=bool(getattr(client,'demo',False))))
     require(_Cards(str(path), client, shift, patients, options, now, total, report_day).render() == total,
             'تغير عدد صفحات التقرير؛ أعد التصدير')
     return path

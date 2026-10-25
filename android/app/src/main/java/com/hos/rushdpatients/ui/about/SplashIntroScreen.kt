@@ -1,6 +1,6 @@
 package com.hos.rushdpatients.ui.about
 
-import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -66,11 +66,16 @@ internal fun SplashIntroScreen(
             verticalArrangement = Arrangement.spacedBy(UiSpacing.largeSection)) {
             Column(horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(UiSpacing.screen)) {
-                Surface(modifier = splashEntrance(entered, order = 0, initialScale = 0.96f),
-                    color = Color.White, shape = MaterialTheme.shapes.extraLarge,
-                    border = BorderStroke(LocalUiStyle.current.normalBorder, colors.outlineVariant)) {
-                    Image(painterResource(R.drawable.app_emblem_transparent), contentDescription = "شعار شعبة الطب النفسي",
-                        contentScale = ContentScale.Fit, modifier = Modifier.size(emblemSize).padding(UiSpacing.screen))
+                Box(contentAlignment = Alignment.Center) {
+                    Box(Modifier.matchParentSize().then(splashEntrance(entered, order = 0, initialScale = 0.88f))
+                        .graphicsLayer { scaleX = 1.35f; scaleY = 1.35f }
+                        .background(Brush.radialGradient(listOf(colors.primary.copy(alpha = 0.15f), Color.Transparent))))
+                    Surface(modifier = splashEntrance(entered, order = 0, initialScale = 0.92f),
+                        color = Color.White, shape = MaterialTheme.shapes.extraLarge,
+                        border = BorderStroke(LocalUiStyle.current.normalBorder, colors.outlineVariant)) {
+                        Image(painterResource(R.drawable.app_emblem_transparent), contentDescription = "شعار شعبة الطب النفسي",
+                            contentScale = ContentScale.Fit, modifier = Modifier.size(emblemSize).padding(UiSpacing.screen))
+                    }
                 }
                 Text("تقرير المناوبة", style = MaterialTheme.typography.headlineMedium, color = colors.primary,
                     textAlign = TextAlign.Center, modifier = splashEntrance(entered, order = 1).semantics { heading() })
@@ -81,11 +86,11 @@ internal fun SplashIntroScreen(
             Surface(modifier = Modifier.fillMaxWidth().then(splashEntrance(entered, order = 3)), shape = MaterialTheme.shapes.large,
                 color = colors.surface, border = BorderStroke(LocalUiStyle.current.normalBorder, colors.outlineVariant)) {
                 Column {
-                    SplashCreditSection("إشراف وتطوير", listOf(introSupervisorName), 0)
+                    SplashCreditSection("إشراف وتطوير", listOf(introSupervisorName), 0, entered)
                     Divider(Modifier.padding(horizontal = UiSpacing.largeSection), color = colors.outlineVariant)
-                    SplashCreditSection("مساهمة تقنية · الأطباء", technicalContributors, 1)
+                    SplashCreditSection("مساهمة تقنية · الأطباء", technicalContributors, 1, entered)
                     Divider(Modifier.padding(horizontal = UiSpacing.largeSection), color = colors.outlineVariant)
-                    SplashCreditSection("فكرة Excel الأولية وبنية التقرير الأساسي", listOf(introOriginalAuthorName), 2)
+                    SplashCreditSection("فكرة Excel الأولية وبنية التقرير الأساسي", listOf(introOriginalAuthorName), 2, entered)
                 }
             }
         }
@@ -96,17 +101,19 @@ internal fun SplashIntroScreen(
 @Composable
 private fun splashEntrance(entered: Boolean, order: Int, initialScale: Float = 1f): Modifier {
     val reducedMotion = LocalUiPreferences.current.reducedMotion
-    val progress by animateFloatAsState(
-        targetValue = if (entered || reducedMotion) 1f else 0f,
-        animationSpec = tween(
-            durationMillis = if (reducedMotion) 0 else 600,
-            delayMillis = if (reducedMotion) 0 else order * 85,
-            easing = FastOutSlowInEasing),
-        label = "splashEntrance$order")
+    val target = if (entered || reducedMotion) 1f else 0f
+    val opacity by animateFloatAsState(targetValue = target,
+        animationSpec = tween(durationMillis = if (reducedMotion) 0 else 420,
+            delayMillis = if (reducedMotion) 0 else order * 65), label = "splashOpacity$order")
+    val progress by animateFloatAsState(targetValue = target,
+        animationSpec = tween(durationMillis = if (reducedMotion) 0 else 900,
+            delayMillis = if (reducedMotion) 0 else order * 65,
+            easing = CubicBezierEasing(0.16f, 1f, 0.3f, 1f)), label = "splashEntrance$order")
     val travel = with(LocalDensity.current) { UiSpacing.medium.toPx() }
+
     return Modifier.graphicsLayer {
         val fraction = if (reducedMotion) 1f else progress
-        alpha = fraction
+        alpha = if (reducedMotion) 1f else opacity
         translationY = travel * (1f - fraction)
         scaleX = initialScale + (1f - initialScale) * fraction
         scaleY = scaleX
@@ -114,9 +121,9 @@ private fun splashEntrance(entered: Boolean, order: Int, initialScale: Float = 1
 }
 
 @Composable
-private fun SplashCreditSection(role: String, names: List<String>, order: Int) {
+private fun SplashCreditSection(role: String, names: List<String>, order: Int, entered: Boolean) {
     val colors = MaterialTheme.colorScheme
-    Column(modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}
+    Column(modifier = Modifier.fillMaxWidth().then(splashEntrance(entered, order = order + 3)).semantics(mergeDescendants = true) {}
         .background(if (order == 0) colors.primary.copy(alpha = 0.06f) else Color.Transparent)
         .padding(uiContentPadding(PaddingValues(horizontal = UiSpacing.largeSection, vertical = UiSpacing.section))),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(uiContentGap())) {

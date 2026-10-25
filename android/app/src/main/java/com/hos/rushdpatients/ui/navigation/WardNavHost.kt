@@ -16,6 +16,7 @@ import com.hos.rushdpatients.ui.admin.AdminScreen
 import com.hos.rushdpatients.ui.about.IntroAboutScreen
 import com.hos.rushdpatients.ui.doctors.DoctorsScreen
 import com.hos.rushdpatients.ui.report.ReportPreviewScreen
+import com.hos.rushdpatients.ui.report.AssignmentsExportScreen
 import com.hos.rushdpatients.ui.settings.SettingsScreen
 import com.hos.rushdpatients.ui.settings.SettingsWorkspace
 import com.hos.rushdpatients.ui.ward.WardNavigation
@@ -38,6 +39,7 @@ fun WardNavHost(
                 navigation = WardNavigation(onOpenReport = { shiftId ->
                     navController.navigate(Routes.reportPreview(shiftId))
                 },
+                onOpenAssignments = { shiftId -> if (session.isAdmin) navController.navigate(Routes.assignments(shiftId)) },
                 onOpenAdmin = { navController.navigate(Routes.ADMIN) },
                 onOpenDoctors = { if (session.isAdmin) navController.navigate(Routes.DOCTORS) },
                 onOpenSettings = { navController.navigate(Routes.SETTINGS) },
@@ -72,6 +74,7 @@ fun WardNavHost(
                 patientFilterIds = entry.arguments?.getString("ids").orEmpty().split(',').filter(String::isNotBlank).toSet(),
                 reviewShiftId = entry.arguments?.getString("shiftId"), onBackToPreview = ::back,
                 navigation = WardNavigation(onOpenReport = { back() },
+                    onOpenAssignments = { shiftId -> if (session.isAdmin) navController.navigate(Routes.assignments(shiftId)) },
                     onOpenAdmin = { navController.navigate(Routes.ADMIN) },
                     onOpenDoctors = { if (session.isAdmin) navController.navigate(Routes.DOCTORS) },
                     onOpenSettings = { navController.navigate(Routes.SETTINGS) },
@@ -79,6 +82,15 @@ fun WardNavHost(
                     onOpenAbout = { navController.navigate(Routes.ABOUT) },
                     onOpenProject = { navController.navigate(Routes.PROJECT_SETTINGS) },
                     onOpenWorkspace = { navController.navigate(Routes.settingsWorkspace(it.name)) }))
+        }
+
+        composable(Routes.ASSIGNMENTS, arguments = listOf(
+            navArgument("shiftId") { type = NavType.StringType },
+            navArgument("assignmentsOnly") { type = NavType.BoolType; defaultValue = true }
+        )) {
+            AdminRoute(session.isAdmin, { navController.popBackStack() }) {
+                AssignmentsExportScreen(onBack = { navController.popBackStack() })
+            }
         }
 
         composable(Routes.ADMIN) {

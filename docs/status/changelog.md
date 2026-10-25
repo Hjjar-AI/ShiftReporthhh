@@ -1,17 +1,72 @@
 # Completed work
 
+## Splash before encrypted-storage loading — 25 October 2026
+
+- Show the intro immediately instead of the encrypted-storage progress message while the existing IO gate initializes storage. Repository-backed content still requires success; storage failure/retry and data preservation remain intact. A movable intro preserves animation state when storage becomes ready and saved appearance is applied.
+- Refined the entrance with a soft emblem glow/scale, quicker fades, eased settling and staggered credit sections. Reduced-motion handling, five-second launch deadline, tap skip and original logo/credits remain; no timing hint or hold interaction.
+- Source startup/animation wiring and Git whitespace checked. Owner-authorized offline `installDebug` compiled/packaged and installed these splash and assignments-PDF adjustments on PPA-LX2/Android10 (6m52s,44tasks:9executed/35up-to-date). Java21/Gradle8.7/SDK34, one worker/in-process Kotlin/2GB, Kotlin/KSP incremental disabled, autoVersion=false; host preflight passed. Logs/receipt `local/verification/splash-first-centered-assignments-install-2026-10-25/`. No tests/app launch/startup timing/animation/rendered PDF/live verification.
+
+## Assignments PDF alignment and text — 25 October 2026
+
+- Android assignments now measure/paginate before drawing and vertically center each page’s complete content block. Slightly larger body/team/resident text (10/11/9.5pt), title and supporting text apply through the shared real/demo renderer; footer/DEMO labels and final-page timestamp remain. Desktop unchanged.
+- Source pagination/drawing review and Git whitespace passed. Compiled/installed with the splash-first build above; no tests/rendered PDF or runtime verification.
+
+## Shared demo assignments and navigation — 25 October 2026
+
+- Real and demo sessions now share assignments Preview→Save UI and PDF layout. Demo exposes the same sidebar button and exports dummy names-only `Assignments_YYYYMMDD_DEMO.pdf` with DEMO on every page, without requiring shift doctors or upload. Production keeps current-admin checks around the renderer.
+- About now opens the production About/credits screen in demo. One exhaustive drawer dispatcher serves both modes; required assignments callbacks replace the hidden demo button/no-op route. Shared presentation changes flow through automatically; new state/actions still need an explicit memory adapter. Documented the shared-screen rule in the demo guide.
+- Demo preview regeneration invalidates opening state; file hashes/current dummy snapshots guard local copying and simulated delivery, with disk reads off-main. Resource XML/string references, source wiring and Git whitespace checked. Owner-authorized offline `installDebug` compiled/packaged and installed on PPA-LX2/Android10 (6m36s,44tasks:11executed/33up-to-date). Java21/Gradle8.7/SDK34, one worker/in-process Kotlin/2GB, Kotlin/KSP incremental disabled, autoVersion=false; host preflight passed. Logs/receipt `local/verification/shared-demo-install-2026-10-25/`. No tests/app launch/runtime isolation/rendered PDF/live verification.
+
+## Admin assignments local export — 25 October 2026
+
+- Moved «تصدير توزيع المرضى (PDF)» to admin side navigation directly below upload/send, opening a separate local Preview→Save screen. Removed assignments from clinical report pages/chooser and the empty-roster report-page bypass.
+- Names-only assignments save the opened bytes as `Assignments_YYYYMMDD.pdf` without DRAFT or publication/delivery requirements. Local current admin/data/account/project checks remain; desktop local export avoids fetching/uploading Telegram data and retains authenticated cached admin checks. Other live privileged actions are unchanged.
+- Production Python3.8 grammar, resource XML/string references and Git whitespace checked. Owner-authorized offline `installDebug` compiled/packaged and installed on PPA-LX2/Android10 (5m7s,44tasks:17executed/27up-to-date). Java21/Gradle8.7/SDK34, one worker/in-process Kotlin/2GB, Kotlin/KSP incremental disabled, autoVersion=false; host preflight passed. Logs/receipt `local/verification/assignments-sidebar-install-2026-10-25/`. No tests/app launch/runtime verification; desktop source-only.
+
+## Save on device after Telegram delivery — 25 October 2026
+
+- Renamed the optional save choice to «حفظ ملف PDF على ذاكرة الهاتف بعد إرساله إلى تليجرام (اختياري)», checked by default and still captured in final confirmation. Desktop uses corresponding device-storage wording/default.
+- Exact local PDF copies now run only after every selected Telegram report is confirmed delivered. Failure/uncertainty/partial delivery skips copying. Local-copy failure/cancellation preserves confirmed delivery, displays a local-save warning and never offers a send retry. Standalone Export remains draft-only.
+- Production Python3.8 grammar/default XML/string/whitespace checks passed. Owner-authorized offline assembleDebug passed (4m31s,44tasks:15executed/29up-to-date), then installDebug installed on PPA-LX2/Android10 (33s,1executed/43up-to-date). Java21/Gradle8.7/SDK34, one worker/in-process Kotlin/2GB, Kotlin/KSP incremental disabled, autoVersion=false; host preflight before both. No source fixes/version changes. Logs/APK hash `local/verification/save-after-delivery-build-2026-10-25/`. No tests/app launch/runtime/live verification; desktop remains source-only.
+
+## Draft-only Export and optional normal copies — 25 October 2026
+
+- One Android Export entry, on Preview only, labelled «تصدير مسودة». Removed standalone upload/mode controls. A compact dialog defaults to the general draft with one Preview→Save primary action, an expandable report chooser, optional one-file Share and retained supervisor-batch/unassigned/admin names-only drafts.
+- Main reviewed upload/send offers an unchecked optional normal-PDF save, included in final confirmation and applied only after confirmed publication. Removed unconditional General PDF local saving. Exact preview bytes/names and publication/delivery guards remain; local-save failure leaves publication confirmed and delivery unstarted.
+- Desktop standalone exports are likewise draft-only; general/supervisor send review owns optional normal copies. Demo preserves memory-only publication and DEMO labels.
+- Production Python3.8 grammar/default XML/string/whitespace checks passed. Owner-authorized offline assembleDebug passed (4m49s,44tasks:15executed/29up-to-date), then installDebug installed on PPA-LX2/Android10 (34s,1executed/43up-to-date). Java21/Gradle8.7/SDK34, one worker/in-process Kotlin/2GB, Kotlin/KSP incremental disabled, autoVersion=false; host preflight before both. No source fixes/version changes. Logs/APK hash `local/verification/simple-export-build-2026-10-25/`. No tests/app launch/runtime acceptance; desktop remains source-only.
+
+## Export workflow and report naming debug installation — 25 October 2026
+
+- Owner-authorized offline assembleDebug passed (5m19s,44 tasks:17 executed/27 up-to-date), then installDebug installed on PPA-LX2/Android10 (37s,1 executed/43 up-to-date). Kotlin/javac/Hilt/resources/DEX/package passed, covering official/draft export, descriptive filenames and Telegram doctor-title source.
+- Java21/Gradle8.7/SDK34, one worker/in-process Kotlin/2GB, Kotlin/KSP incremental disabled and autoVersion=false. Host activity/memory checked before both invocations. No source fixes required; versions unchanged. Logs/APK hash: `local/verification/export-names-build-2026-10-25/`.
+- No tests/app launch/export workflow/PDF visual/live Telegram runtime acceptance; desktop remains source-only.
+
+## Descriptive filenames and Telegram doctor titles — 25 October 2026
+
+- Android/desktop local exports, previews/shares and Telegram PDF uploads use the captured report day: `Report_20261025.pdf`, `Assignments_20261025.pdf`, supervisor-name/Unassigned suffixes and explicit DRAFT/DEMO markers. Internal IDs and random preview filenames no longer become public report names. Multi-file desktop saves and older Android PDF saves use numbered collision suffixes instead of replacing existing exports.
+- General/supervisor Telegram PDF captions list the reviewed shift doctors by name; supervisor scope is separate. PDF interior labels stay unchanged. Oversized titles continue as replies to the same PDF; partial title delivery retains uncertainty and blocks automatic resend. Only public PDF title metadata uses that readable continuation route; ordinary clinical encryption remains.
+- Selected production Python3.8 grammar, default XML/string references and Git whitespace checks passed. Android subsequently compiled/packaged and installed in the export-naming build above; no tests/rendered PDF/live Telegram verification. Desktop remains source-only.
+
+## Reviewed official exports and local drafts — 25 October 2026
+
+- Android/desktop official local export now guides report selection→opened previews→explicit full-ward upload confirmation→Save/Share (desktop Save). Upload does not send a report; existing final confirmation and uncertainty handling for Telegram report delivery remain.
+- Save/Share checks exact reviewed bytes, current report/assignment/team content, account/project and matching confirmed publication below UI. Approval is memory-only; repeat copies remain available for the same confirmed data during that owner lifetime. Supervisor/unassigned/admin names-only exports copy opened previews rather than rendering at Save.
+- Offline local drafts use separate previews, DRAFT filenames and an explicit draft label on every page. Demo uses memory-only simulated publication and retains every-page DEMO labels. Empty-roster Android admin names-only drafts remain available.
+- Production Python3.8 grammar, default XML/string-reference and Git whitespace checks passed. Android subsequently compiled/packaged and installed in the export-naming build above; no tests/runtime/live/PDF visual checks. Desktop remains source-only. External viewers can still copy readable previews; the application export guard is not PDF copy protection.
+
 ## Splash entrance and simpler dismissal — 25 October 2026
 
 - Staggered fade/rise for emblem, title, subtitle and credits, plus subtle emblem scale; settles within one second. Reduced motion displays contents immediately; saved entrance state prevents replay after recreation.
 - Removed countdown/timing/gesture footer and hold-to-pause behavior at owner request. Five-second launch deadline still includes loading and survives recreation; tap skips.
-- Source/call-site review and Git whitespace checks only; no build, tests or device visual/runtime checks.
+- Source/call-site review and Git whitespace checks passed. Owner-authorized offline assembleDebug passed (6m29s,44 tasks:13 executed/31 up-to-date), then installDebug installed on PPA-LX2/Android10 (41s,1 executed/43 up-to-date). One worker/in-process Kotlin/2GB heap/autoVersion=false; Kotlin/KSP incremental processing disabled to resolve stale retired-Announcements generated Hilt output. Restored read-only countdown property for debug caller compatibility; no visible countdown or hold behavior. Earlier failed logs retained beside the resolving pass in `local/verification/splash-a5-2026-10-25/`. No tests/app launch/device visual checks.
 
 ## Splash, A5 defaults and patient totals — 25 October 2026
 
 - Removed splash version; existing Help→About remains the version location. Splash credits/logo/timing unchanged.
 - Unset Android/desktop PDF preferences now choose A5 cards with linked index; saved choices and legacy A3/Letter→A4 remain. Android options/state defaults also use A5.
 - A5 index on both clients and Android report preview show a larger bold total, with psychiatric title/count inline in brackets; desktop classic summary also brackets that subtotal.
-- Source-only XML parsing, selected desktop Python grammar and Git whitespace checks passed. No build, tests, device or rendered PDF checks performed for this follow-up.
+- XML parsing, selected desktop Python grammar and Git whitespace checks passed. Android source subsequently compiled/packaged and installed in the splash follow-up above; no tests/app launch/rendered PDF checks. Desktop remains source-only.
 
 ## Direct report previews and ordered actions — 25 October 2026
 

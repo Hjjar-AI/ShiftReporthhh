@@ -7,7 +7,7 @@ from desktop_tasks import read_tasks, ordered_for_display, task_text
 
 PAPERS = {'A4': (595, 842), 'A5': (420, 595)}
 DEFAULT_OPTIONS = dict(layout='cards', paper='A5', orientation='portrait', color='teal', dark=False,
-                       separate=False, ward='', rule_weight='medium', rule_contrast='medium', row_shading='auto')
+                       separate=False, local_draft=False, ward='', rule_weight='medium', rule_contrast='medium', row_shading='auto')
 
 RULE_WEIGHTS = {'thin': .75, 'medium': 1.5, 'thick': 2.25}
 RULE_CONTRASTS = {'light': ('#CBD5E1', '#475569'), 'medium': ('#94A3B8', '#64748B'),
@@ -26,7 +26,7 @@ def normalize_options(options=None):
     require(result['layout'] in {'table','cards','paragraphs'} and result['paper'] in PAPERS and
             result['orientation'] in {'portrait','landscape'} and result['color'] in
             {'teal','blue','green','purple','pastel'}, 'خيارات PDF غير صالحة')
-    require(type(result['dark']) is bool and type(result['separate']) is bool, 'خيارات PDF غير صالحة')
+    require(type(result['dark']) is bool and type(result['separate']) is bool and type(result['local_draft']) is bool, 'خيارات PDF غير صالحة')
     require(result['rule_weight'] in RULE_WEIGHTS and result['rule_contrast'] in RULE_CONTRASTS and
             result['row_shading'] in {'auto','zebra','none'}, 'خيارات فواصل PDF غير صالحة')
     # Legacy overrides remain readable; PDFs are portrait/light with fixed separators.

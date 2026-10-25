@@ -23,7 +23,8 @@ data class SupervisorReportTarget(
 internal data class ReportDestinationReview(
     val includeGeneral: Boolean,
     val supervisors: List<SupervisorReportTarget>,
-    val generalAsPdf: Boolean
+    val generalAsPdf: Boolean,
+    val exportPdf: Boolean = false
 )
 
 enum class ReportStepOutcome(@StringRes private val arabicLabelRes: Int) {
@@ -54,6 +55,7 @@ data class ReportUiState(
     val previewingPdf: Boolean = false,
     val exportingLocalPdf: Boolean = false,
     val sharingPdf: Boolean = false,
+    val exportUploadConfirmed: Boolean = false,
     val pdfPreviewUri: Uri? = null,
     val pdfReviewUris: Map<String, String> = emptyMap(),
     val openedPdfUris: Set<String> = emptySet(),

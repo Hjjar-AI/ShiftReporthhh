@@ -125,12 +125,7 @@ private fun WardWorkspaceContent(
     patientFilterIds: Set<String>?, onBackToPreview: (() -> Unit)?
 ) {
     val onOpenReport = navigation.onOpenReport
-    val onOpenAdmin = navigation.onOpenAdmin
-    val onOpenSettings = navigation.onOpenSettings
-    val onOpenAbout = navigation.onOpenAbout
-    val onOpenProject = navigation.onOpenProject
     val onOpenDataManagement = navigation.onOpenDataManagement
-    val onOpenWorkspace = navigation.onOpenWorkspace
     val uiText = rememberUiStrings()
     val state by viewModel.state.collectAsStateWithLifecycle()
     val online by viewModel.online.collectAsStateWithLifecycle()
@@ -390,23 +385,8 @@ private fun WardWorkspaceContent(
                 isPermanentAdmin = isAdmin && state.doctors.any { it.id == currentDoctorId && it.isPermanentAdmin && !it.isDeleted },
                 online = online,
                 onAction = { action -> closeDrawer {
-                    when (action) {
-                        WardDrawerAction.REPORT -> state.shift?.id?.let(onOpenReport)
-                        WardDrawerAction.SETTINGS -> onOpenSettings()
-                        WardDrawerAction.FILES -> onOpenWorkspace(SettingsWorkspace.FILES)
-                        WardDrawerAction.BACKUP -> onOpenWorkspace(SettingsWorkspace.BACKUP)
-                        WardDrawerAction.INVITATIONS -> onOpenWorkspace(SettingsWorkspace.INVITATIONS)
-                        WardDrawerAction.DESTINATIONS -> onOpenWorkspace(SettingsWorkspace.DESTINATIONS)
-                        WardDrawerAction.RESET -> onOpenWorkspace(SettingsWorkspace.RESET)
-                        WardDrawerAction.DIAGNOSTICS -> onOpenWorkspace(SettingsWorkspace.DIAGNOSTICS)
-                        WardDrawerAction.DATA_MANAGEMENT -> onOpenDataManagement()
-                        WardDrawerAction.RECYCLE_BIN -> {
-                            showRecycleBin = true
-                        }
-                        WardDrawerAction.ADMIN -> onOpenAdmin()
-                        WardDrawerAction.PROJECT -> onOpenProject()
-                        WardDrawerAction.ABOUT -> onOpenAbout()
-                    }
+                    navigation.openDrawerAction(action, state.shift?.id, isAdmin,
+                        onRecycleBin = { showRecycleBin = true })
                 } }
             )
         }

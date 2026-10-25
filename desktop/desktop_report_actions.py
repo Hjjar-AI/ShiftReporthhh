@@ -6,7 +6,7 @@ from tkinter import filedialog
 from desktop_widgets import messagebox
 from desktop_protocol import BridgeError, require, current_date
 from desktop_model import doctor_label
-from desktop_reports import options_dialog, report_text, export_supervisor_pdfs, ReportAttempt
+from desktop_reports import options_dialog, ReportAttempt
 from desktop_batch_reports import send_supervisor_reports
 
 
@@ -14,24 +14,8 @@ BASE = Path(sys.executable).resolve().parent if getattr(sys, 'frozen', False) el
 
 
 def export_assignments(owner):
-    owner.ready()
-    actor_id=owner.io(owner.client.require_admin)['uid']
-    local=owner.store.read()
-    options=options_dialog(owner,export_only=True,assignments=True)
-    if options is None:return
-    font=owner.settings.get('PDF_FONT')
-    if font and not Path(font).is_absolute():font=str(BASE/font)
-    destination=filedialog.asksaveasfilename(title='توزيع المرضى بالأسماء فقط',defaultextension='.pdf',filetypes=[('PDF','*.pdf')])
-    if not destination:return
-    from desktop_pdf import render_assignments
-    def save():
-        path=render_assignments(owner.client,local,font_path=font,options=options)
-        require(owner.client.require_admin()['uid']==actor_id,'تغيّر المستخدم؛ أعد تصدير توزيع المرضى')
-        raw=path.read_bytes()
-        Path(destination).write_bytes(raw)
-        require(Path(destination).read_bytes()==raw,'تعذر التحقق من حفظ PDF كاملاً')
-    owner.io(save)
-    owner.status.set('حُفظ توزيع المرضى: A4 عمودي، ثلاثة جداول في كل صف وترقيم متصل.')
+    from desktop_export_review import run_export
+    return run_export(owner, assignments=True)
 
 
 def show_report_attempt(owner):
@@ -69,38 +53,13 @@ def _report(owner,export_only=False,separate=False):
         if review is None:return
         def confirm_repeat(supervisor):
             return messagebox.askyesno('نسخة إضافية','هذا التقرير سلم سابقاً إلى الوجهة نفسها. هل تؤكد إرسال نسخة إضافية؟',default='no')
-        sent=review['delivery'].send(review['payloads'],confirm_repeat)
+        from desktop_export_review import save_published_pdfs
+        save_copy=(lambda:save_published_pdfs(owner,review['delivery'],review['payloads'])) if review.get('exportPdf') else None
+        sent=review['delivery'].send(review['payloads'],confirm_repeat,after_delivery=save_copy)
         if sent:owner.notify_success('تم تسليم التقرير إلى الوجهة التي راجعتها.')
         return
-    options=options_dialog(owner,export_only=True,force_pdf=separate)
-    if options is None:return
-    local=owner.store.read(owner.client)
-    if owner.demo:require(export_only and options['format']=='pdf','في الوضع التجريبي يسمح بحفظ PDF محلي فقط')
-    supervisor=None if separate else owner.selected_supervisor()
-    font=owner.settings.get('PDF_FONT')
-    if font and not Path(font).is_absolute():font=str(BASE/font)
-    from desktop_pdf import render_report
-    if export_only:
-        report_day=current_date(owner.client.zone)
-        if options['format']=='pdf' and separate:
-            export_supervisor_pdfs(owner,local,supervisor,font,options)
-            return
-        if options['format']=='text':
-            raw=report_text(owner.client,local,supervisor,report_day).encode('utf-8')
-            extension='.txt'
-        else:
-            path=owner.io(lambda:render_report(owner.client,local,supervisor,font,options,report_day=report_day))
-            raw=owner.io(path.read_bytes);extension='.pdf'
-            from desktop_platform import open_pdf
-            owner.io(lambda:open_pdf(path))
-            require(owner.io(path.read_bytes)==raw,'تغير ملف PDF بعد المعاينة؛ أعد التصدير')
-        destination=filedialog.asksaveasfilename(title='حفظ التقرير المعاين — قد يتضمن تعديلات غير منشورة',defaultextension=extension,filetypes=[('Report','*'+extension)])
-        if destination:
-            def save_reviewed():
-                Path(destination).write_bytes(raw)
-                require(Path(destination).read_bytes()==raw,'تعذر التحقق من حفظ التقرير كاملاً')
-            owner.io(save_reviewed)
-        return
+    from desktop_export_review import run_export
+    return run_export(owner,separate=separate)
 
 
 def selected_supervisor(owner):

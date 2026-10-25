@@ -17,7 +17,9 @@ def send_supervisor_reports(owner):
     def outcome(key,status):
         outcomes[key]=status
     try:
-        delivery.send(review['payloads'],confirm_repeat,outcome)
+        from desktop_export_review import save_published_pdfs
+        save_copy=(lambda:save_published_pdfs(owner,delivery,review['payloads'])) if review.get('exportPdf') else None
+        delivery.send(review['payloads'],confirm_repeat,outcome,after_delivery=save_copy)
     except Exception:
         owner.status.set(summary()+'\nتوقف الإرسال؛ راجع سجل التسليم قبل إعادة أي وجهة.')
         messagebox.showinfo('نتائج تقارير المشرفين',summary())

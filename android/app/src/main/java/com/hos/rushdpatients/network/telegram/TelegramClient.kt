@@ -104,6 +104,17 @@ class TelegramClient @Inject constructor(
         return callAndUnwrap("sendMessage", chatId, body)
     }
 
+    /** Only public PDF title metadata; ordinary clinical messages still use encrypted sendMessage. */
+    suspend fun sendPublicReportTitle(chatId: Long, text: String, replyToMessageId: Long,
+        messageThreadId: Long? = null): TgMessage {
+        val body = FormBody.Builder().add("chat_id", chatId.toString()).add("text", text)
+            .add("parse_mode", ParseMode.MARKDOWN_V2.wire)
+            .add("reply_to_message_id", replyToMessageId.toString())
+            .add("allow_sending_without_reply", "true").add("disable_notification", "true")
+            .apply { messageThreadId?.let { add("message_thread_id", it.toString()) } }.build()
+        return callAndUnwrap("sendMessage", chatId, body)
+    }
+
     suspend fun editMessageText(
         chatId: Long,
         messageId: Long,
@@ -204,7 +215,8 @@ class TelegramClient @Inject constructor(
         parseMode: ParseMode? = null,
         replyToMessageId: Long? = null,
         disableNotification: Boolean = true,
-        messageThreadId: Long? = null
+        messageThreadId: Long? = null,
+        fileName: String? = null
     ): TgMessage {
         val encrypted = dataCipher.encryptedDocument(file)
         try {
@@ -214,7 +226,7 @@ class TelegramClient @Inject constructor(
                 .addFormDataPart("chat_id", chatId.toString())
                 .addFormDataPart(
                     "document",
-                    if (encrypted != null) "project-data.srdata" else file.name,
+                    if (encrypted != null) "project-data.srdata" else fileName ?: file.name,
                     upload.asRequestBody("application/octet-stream".toMediaTypeOrNull())
                 )
             val wireCaption = if (encrypted != null) "بيانات مشروع مشفرة" else caption

@@ -105,6 +105,15 @@ class Client:
         snapshot = self.fetch()
         return self.authorize(snapshot['doctors'])
 
+    def require_local_admin(self):
+        """Authorize a local names-only export from the authenticated cached roster."""
+        require(self._actor is not None and time.time() < self._expires, 'أثبت هويتك بتليجرام مجددا')
+        actor = self.doctors.get(self._actor)
+        require(actor is not None and actor.get('telegram_id') == self._verified_telegram,
+                'تغير حساب الطبيب؛ سجل الدخول مجددا')
+        require(is_admin(actor), 'هذا الإجراء متاح للمدير فقط')
+        return actor
+
     def require_admin(self):
         snapshot = self.fetch()
         actor = self.authorize(snapshot['doctors'])

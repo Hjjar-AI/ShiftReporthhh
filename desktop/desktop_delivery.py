@@ -29,7 +29,7 @@ class ReportDelivery:
             chat, topic = report_destination(self.owner.client, self.snapshot['doctors'], supervisor)
             self.owner.io(lambda: self.owner.store.check_report_delivery(self.reviewed['meta']['shiftId'], chat, topic))
 
-    def send(self, payloads, confirm_repeat, outcome=lambda supervisor, status: None):
+    def send(self, payloads, confirm_repeat, outcome=lambda supervisor, status: None, after_delivery=None):
         """Payloads are (supervisor, format, exact reviewed bytes/text), in send order."""
         owner = self.owner
         payloads = tuple(payloads)
@@ -91,4 +91,8 @@ class ReportDelivery:
             except Exception:
                 raise BridgeError('تم تسليم التقرير؛ تعذر حفظ إيصال المسودة. لا تعد إرسال التقرير') from None
             sent += 1
+        if after_delivery is not None and sent == len(payloads):
+            try:after_delivery()
+            except Exception:
+                raise BridgeError('تم تأكيد إرسال التقارير إلى تليجرام، لكن لم يكتمل الحفظ المحلي. لا تُعد الإرسال بسبب تعذر الحفظ') from None
         return sent

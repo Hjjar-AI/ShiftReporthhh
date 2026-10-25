@@ -28,8 +28,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.time.format.DateTimeFormatter
-import java.time.LocalDateTime
 
 internal data class ReviewedPdf(val file: File, val digest: String, val reportKey: String, val options: PdfExportOptions, val style: PdfStyle, val reviewed: BuiltReport)
 internal class PdfReviewRequiredException(uiText: UiStrings) : IllegalStateException(uiText(R.string.ui_report_pdf_workspace_003))
@@ -60,6 +58,8 @@ internal class ReportPdfWorkspace(
         reviewedPdfs.put(key, artifact)?.let { com.hos.rushdpatients.pdf.ClinicalPdfCache.delete(listOf(it.file)) }
     }
 
+    fun exportKey(route: String, draft: Boolean) = if (draft) "draft:$route" else route
+
     fun pdfKey(supervisorId: String?) = supervisorId?.let { "supervisor:$it" } ?: "general"
 
     fun pdfDigest(file: File): String {
@@ -71,11 +71,14 @@ internal class ReportPdfWorkspace(
         return digest.digest().joinToString("") { "%02x".format(it.toInt() and 255) }
     }
 
-    suspend fun checkedPdf(built: BuiltReport, supervisorId: String? = null): File = withContext(Dispatchers.IO) {
-        val artifact = reviewedPdfs[pdfKey(supervisorId)] ?: throw PdfReviewRequiredException(uiText)
+    suspend fun checkedPdf(built: BuiltReport, supervisorId: String? = null): File =
+        checkedExportPdf(built, pdfKey(supervisorId), draft = false)
+
+    suspend fun checkedExportPdf(built: BuiltReport, route: String, draft: Boolean): File = withContext(Dispatchers.IO) {
+        val artifact = reviewedPdfs[exportKey(route, draft)] ?: throw PdfReviewRequiredException(uiText)
         ReportReview.requireMatches(artifact.reviewed, built)
         if (artifact.style != PdfStyle.fromSetting(settingsRepository.get(AppConstants.SETTING_PDF_STYLE)) ||
-            artifact.reportKey != ReportReview.fingerprint(built) ||
+            artifact.reportKey != ReportReview.exportFingerprint(built) ||
             artifact.options.copy(generatedAtEpochMillis = 0) != loadPdfOptions().copy(generatedAtEpochMillis = 0) ||
             !artifact.file.isFile || pdfDigest(artifact.file) != artifact.digest) throw PdfReviewRequiredException(uiText)
         artifact.file
@@ -118,7 +121,8 @@ internal class ReportPdfWorkspace(
         supervisorNames: Map<String, String>,
         options: PdfExportOptions,
         outputFile: File,
-        reviewedStyle: PdfStyle? = null
+        reviewedStyle: PdfStyle? = null,
+        documentLabel: String? = null
     ) {
         val style = reviewedStyle ?: PdfStyle.fromSetting(
             settingsRepository.get(AppConstants.SETTING_PDF_STYLE)
@@ -131,7 +135,8 @@ internal class ReportPdfWorkspace(
                 residentNames = residentNames,
                 supervisorNames = supervisorNames,
                 options = options,
-                outputFile = outputFile
+                outputFile = outputFile,
+                documentLabel = documentLabel
             )
             PdfStyle.CARDS -> cardsPdfExporter.export(
                 patients = patients,
@@ -140,58 +145,13 @@ internal class ReportPdfWorkspace(
                 residentNames = residentNames,
                 supervisorNames = supervisorNames,
                 options = options,
-                outputFile = outputFile
+                outputFile = outputFile,
+                documentLabel = documentLabel
             )
         }
     }
 
-    suspend fun saveSupervisorPdfs(
-        built: BuiltReport,
-        options: PdfExportOptions
-    ): Int {
-        val grouped = built.patients.groupBy { it.responsibleSpecialistId }
-            .ifEmpty { mapOf<String?, List<com.hos.rushdpatients.data.model.Patient>>(null to emptyList()) }
-        var saved = 0
-        grouped.forEach { (supervisorId, patients) ->
-            val supervisor = built.registryDoctors.firstOrNull { it.id == supervisorId }
-            val tmp = File.createTempFile("rushd_supervisor_report_", ".pdf", context.cacheDir)
-            try {
-                val summary = built.summary.copy(
-                    patientCount = patients.size,
-                    psychoCount = patients.count {
-                        it.diagnosisType == DiagnosisType.PSYCHIATRIC ||
-                                it.diagnosisType == DiagnosisType.DUAL
-                    },
-                    escortCount = patients.count { it.hasCompanion },
-                    doctors = listOfNotNull(supervisor)
-                )
-                renderPdf(
-                    patients = patients,
-                    doctors = listOfNotNull(supervisor).ifEmpty { built.doctors },
-                    summary = summary,
-                    residentNames = built.doctorNames,
-                    supervisorNames = built.doctorNames,
-                    options = options,
-                    outputFile = tmp
-                )
-                val safeName = (supervisor?.fullName ?: "بدون_مشرف")
-                    .replace(Regex("[^\\p{L}\\p{N}_-]+"), "_")
-                    .take(60)
-                val displayName = reportFileName(built.summary.shiftDate, safeName)
-                checkNotNull(mediaStoreSaver.savePdf(context, tmp, displayName)) {
-                    uiText(R.string.ui_report_pdf_workspace_002, supervisor?.fullName.orEmpty())
-                }
-                saved++
-            } finally {
-                tmp.delete()
-            }
-        }
-        return saved
-    }
-
-    fun reportFileName(date: java.time.LocalDate, suffix: String? = null): String {
-        val created = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmm"))
-        val extra = suffix?.takeIf { it.isNotBlank() }?.let { "_$it" }.orEmpty()
-        return "Rushd_Report_${date}_${created}$extra.pdf"
-    }
+    fun reportFileName(date: java.time.LocalDate, route: String = "general", draft: Boolean = false,
+        supervisorName: String? = null): String =
+        com.hos.rushdpatients.domain.report.ReportFileNames.pdf(date, route, draft, supervisorName)
 }

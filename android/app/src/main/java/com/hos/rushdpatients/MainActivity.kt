@@ -9,6 +9,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import com.hos.rushdpatients.ui.about.IntroAboutScreen
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.movableContentOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -35,12 +36,14 @@ class MainActivity : FragmentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         setContent {
             val splash = com.hos.rushdpatients.ui.about.rememberLaunchSplashState()
+            // Keep one intro composition as storage becomes ready and saved appearance is applied.
+            val intro = remember(splash) { movableContentOf { LaunchIntro(splash) } }
             // Encrypted appearance preferences become readable only after this gate succeeds.
             RushdPatientsTheme(appearance = AppAppearance.SYSTEM) {
                 AppSystemBars()
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                        com.hos.rushdpatients.ui.StorageAccessGate { AppContent(splash) }
+                        com.hos.rushdpatients.ui.StorageAccessGate(loading = intro) { AppContent(splash, intro) }
                     }
                 }
             }
@@ -49,7 +52,10 @@ class MainActivity : FragmentActivity() {
 }
 
 @androidx.compose.runtime.Composable
-private fun MainActivity.AppContent(splash: com.hos.rushdpatients.ui.about.LaunchSplashState) {
+private fun MainActivity.AppContent(
+    splash: com.hos.rushdpatients.ui.about.LaunchSplashState,
+    intro: @androidx.compose.runtime.Composable () -> Unit
+) {
     val themeViewModel: ThemeViewModel = hiltViewModel()
     val themePreset by themeViewModel.preset.collectAsStateWithLifecycle()
     val appearance by themeViewModel.appearance.collectAsStateWithLifecycle()
@@ -77,7 +83,7 @@ private fun MainActivity.AppContent(splash: com.hos.rushdpatients.ui.about.Launc
                 modifier = Modifier.fillMaxSize(),
                 color = MaterialTheme.colorScheme.background
             ) {
-                if (splash.visible) LaunchIntro(splash) else WardAppRoot(activity = this@AppContent)
+                if (splash.visible) intro() else WardAppRoot(activity = this@AppContent)
             }
         }
     }

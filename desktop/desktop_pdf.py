@@ -5,6 +5,7 @@ import atexit
 import shutil
 from pathlib import Path
 import tempfile
+from desktop_report_labels import report_filename
 import arabic_reshaper
 from bidi.algorithm import get_display
 from reportlab.lib.colors import HexColor, white
@@ -95,10 +96,10 @@ def register_font(font_path=None):
     pdfmetrics.registerFont(TTFont('ArabicBold', str(bold if bold != font and bold.is_file() else font)))
 
 
-def temporary_pdf():
+def temporary_pdf(display_name='report.pdf'):
     directory = Path(tempfile.mkdtemp(prefix='ShiftReportPreview_'))
     atexit.register(shutil.rmtree, str(directory), ignore_errors=True)
-    return directory / 'report.pdf'
+    return directory / display_name
 
 
 class EndTimestamp(Flowable):
@@ -200,22 +201,24 @@ def _render_report(client, shift, supervisor, font_path, options, now, report_da
     timestamp=text(created_at(now),8.5)
     timestamp.wrap(width,100000)
     story.append(EndTimestamp(timestamp))
-    path=temporary_pdf()
+    path=temporary_pdf(report_filename(report_day,supervisor,client.doctors.get(supervisor,{}).get('name'),
+        draft=options['local_draft'],demo=bool(getattr(client,'demo',False))))
     document=SimpleDocTemplate(str(path),pagesize=page_size,leftMargin=margin,rightMargin=margin,
                               topMargin=18,bottomMargin=35+timestamp.height+END_TIMESTAMP_GAP,
                               title='DEMO — ShiftReport' if getattr(client,'demo',False) else 'ShiftReport',author='ShiftReport')
     def page_background(canvas,doc):
         canvas.setFillColor(HexColor(colors['page']))
         canvas.rect(0,0,page_size[0],page_size[1],fill=1,stroke=0)
-        footer=text('{}{} · صفحة {}'.format('DEMO — ' if getattr(client,'demo',False) else '',report_day,doc.page),8)
+        footer=text('{}{}{} · صفحة {}'.format('DEMO — ' if getattr(client,'demo',False) else '',
+            'مسودة محلية · لم يُعتمد نشرها · ' if options['local_draft'] else '',report_day,doc.page),8)
         footer.wrap(width,30);footer.drawOn(canvas,margin,10)
     document.build(story,onFirstPage=page_background,onLaterPages=page_background)
     return path
 
 
-def render_assignments(client,shift,font_path=None,options=None):
+def render_assignments(client,shift,font_path=None,options=None,report_day=None):
     """Admin-only A4 grid: right-to-left team placement and right-side numbering."""
-    actor_id=client.require_admin()['uid']
+    actor_id=client.require_local_admin()['uid']
     from reportlab.pdfgen import canvas as pdfcanvas
     from desktop_pdf_content import normalize_options,palette,context_lines,assignment_groups,created_at
     options=normalize_options(options);colors=palette(options)
@@ -230,7 +233,7 @@ def render_assignments(client,shift,font_path=None,options=None):
     gap,top=12,20
     def text(value,size=9,color=None,align='right',bold=False):return RTLText(value,size,color=HexColor(color or colors['text']),align=align,bold=bold)
     from desktop_protocol import current_date
-    report_day=current_date(client.zone)
+    report_day=report_day or current_date(client.zone)
     context_title=text('توزيع المرضى حسب المشرف',18,align='center',bold=True)
     context_title.wrap(3*table_width+2*column_gap,100000)
     timestamp=text(created_at(datetime.now(ZoneInfo(client.zone))),8.5)
@@ -282,7 +285,7 @@ def render_assignments(client,shift,font_path=None,options=None):
             require(end>offset,'اسم المريض أو أسماء الفريق أطول من مساحة جدول A4؛ راجع الأسماء قبل التصدير')
             bands.append([(team_table(group,rows[offset:end],header+heights[offset+2:end+2]),used) for group,rows in padded])
             offset=end
-    path=temporary_pdf()
+    path=temporary_pdf(report_filename(report_day,assignments=True,draft=options['local_draft'],demo=bool(getattr(client,'demo',False))))
     canvas=pdfcanvas.Canvas(str(path),pagesize=(width,height))
     canvas.setTitle('ShiftReport — توزيع المرضى بالأسماء فقط')
     page=0
@@ -294,7 +297,8 @@ def render_assignments(client,shift,font_path=None,options=None):
         context_title.drawOn(canvas,margin,height-top-context_title.height)
         legend.drawOn(canvas,margin,height-top-context_title.height-legend.height)
         canvas.setFont('Arabic',8);canvas.setFillColor(HexColor(colors['text']))
-        canvas.drawCentredString(width/2,10,('DEMO — ' if getattr(client,'demo',False) else '')+str(page))
+        canvas.drawCentredString(width/2,10,visual(('DEMO — ' if getattr(client,'demo',False) else '')+
+            ('مسودة محلية · لم يُعتمد نشرها · ' if options['local_draft'] else '')+str(page)))
     new_page();y=table_top
     for row in bands:
         row_height=max(h for _,h in row)
@@ -305,6 +309,6 @@ def render_assignments(client,shift,font_path=None,options=None):
             table.drawOn(canvas,band_left+band_width-table_width-column*(table_width+column_gap),y-table_height)
         y-=row_height+gap
     timestamp.drawOn(canvas,margin,y+gap-END_TIMESTAMP_GAP-timestamp.height)
-    require(client.require_admin()['uid']==actor_id,'تغيّر المستخدم؛ أعد تصدير توزيع المرضى')
+    require(client.require_local_admin()['uid']==actor_id,'تغيّر المستخدم؛ أعد تصدير توزيع المرضى')
     canvas.showPage();canvas.save()
     return path

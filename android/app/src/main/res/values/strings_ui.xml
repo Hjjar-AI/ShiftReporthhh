@@ -1023,7 +1023,7 @@
     <string name="report_delivered_and_published" formatted="false">"تم إرسال التقرير ونشر أحدث بيانات المرضى"</string>
     <string name="report_delivery_last_operation" formatted="false">"آخر عملية ناجحة: إرسال التقرير ونشر بيانات المرضى"</string>
     <string name="report_pdf_save_failed" formatted="false">"تعذر حفظ ملف PDF"</string>
-    <string name="report_pdf_caption">"تقرير المناوبة: %1$s · %2$s أطباء؛ الأسماء داخل الملف"</string>
+    <string name="report_pdf_caption">"تقرير المناوبة: %1$s · أطباء المناوبة: %2$s"</string>
     <string name="report_supervisor_missing" formatted="false">"المشرف غير موجود"</string>
     <string name="ui_report_pdf_workspace_001" formatted="false">"لا يوجد مرضى لهذا المشرف"</string>
     <string name="ui_report_pdf_workspace_002">"تعذر حفظ ملف PDF للمشرف %1$s"</string>
@@ -1297,4 +1297,33 @@
     <string name="demo_doctor_duplicate">الاسم موجود مسبقاً في القائمة التجريبية.</string>
     <string name="demo_doctor_in_use">الطبيب مستخدم في التعيينات أو الحساب التجريبي الحالي؛ انقل التعيينات أولاً.</string>
     <string name="demo_undo_fetch">التراجع عن الجلب التجريبي</string>
+    <string name="report_export_invalid_route" formatted="false">"نطاق التصدير غير متاح؛ أعد فتح التقرير"</string>
+    <string name="report_local_draft_label" formatted="false">"مسودة محلية · لم يُعتمد نشرها"</string>
+    <string name="report_export_select" formatted="false">"اختر تقريراً واحداً على الأقل"</string>
+    <string name="report_draft_exported" formatted="false">"تم تصدير المسودة المحلية المعاينة؛ لم تُرفع بيانات ولم يُرسل تقرير"</string>
+    <string name="report_official_exported" formatted="false">"تم تصدير PDF المعاين بعد تأكيد رفع بياناته"</string>
+    <string name="report_export_changed" formatted="false">"تغيّرت البيانات أو الحساب أو المشروع؛ حدّث التقرير ثم أعد المعاينة والرفع قبل التصدير"</string>
+    <string name="report_export_upload_required" formatted="false">"عاين الملفات المختارة، ثم أكّد رفع بياناتها قبل حفظ أو مشاركة PDF الرسمي"</string>
+    <string name="report_export_offline" formatted="false">"رفع البيانات يتطلب اتصالاً. يمكنك تصدير مسودة محلية معلّمة بعد معاينتها"</string>
+    <string name="report_export_uploaded" formatted="false">"تم تأكيد رفع بيانات هذه النسخة؛ يمكنك حفظ أو مشاركة الملفات المعاينة"</string>
+    <string name="report_export_unassigned" formatted="false">"المرضى دون مشرف"</string>
+    <string name="report_export_draft_option" formatted="false">"مسودة محلية — دون رفع البيانات"</string>
+    <string name="report_export_draft_help" formatted="false">"تظهر عبارة «مسودة محلية» في كل صفحة. عاين المسودة نفسها قبل حفظها أو مشاركتها"</string>
+    <string name="report_export_official_help" formatted="false">"معاينة ← رفع بيانات المناوبة ← حفظ أو مشاركة PDF. لا يُرسل التقرير إلى تليجرام من هنا"</string>
+    <string name="report_export_preview_again" formatted="false">"تم فتح المعاينة · معاينة مجدداً"</string>
+    <string name="report_export_preview" formatted="false">"معاينة PDF"</string>
+    <string name="report_export_upload" formatted="false">"رفع البيانات فقط"</string>
+    <string name="report_export_save_draft" formatted="false">"حفظ المسودة المعاينة"</string>
+    <string name="report_export_share_draft" formatted="false">"مشاركة المسودة المعاينة"</string>
+    <string name="report_export_upload_confirm" formatted="false">"هل تؤكد رفع نسخة المناوبة الكاملة التي راجعتها، بما فيها المرضى والحذف والترتيب وأطباء المناوبة؟ آخر نشر ناجح هو المعتمد. قد يُرفع سجل الأطباء المراجع أولاً إذا كنت مديراً. لن يُرسل ملف التقرير إلى تليجرام. فشل حفظ PDF لاحقاً لا يلغي نشر البيانات."</string>
+    <string name="report_pdf_supervisor_scope">"مرضى المشرف: %1$s"</string>
+    <string name="report_optional_normal_export">"حفظ ملف PDF على ذاكرة الهاتف بعد إرساله إلى تليجرام (اختياري)"</string>
+    <string name="report_export_draft_action">"تصدير مسودة"</string>
+    <string name="report_draft_change_report">"تغيير التقرير"</string>
+    <string name="report_draft_supervisor_batch">"تقارير المرضى حسب المشرف"</string>
+    <string name="report_draft_preview_destination">"معاينة المسودة: %1$s"</string>
+    <string name="report_delivered_local_save_failed" formatted="false">"تم تأكيد إرسال التقرير إلى تليجرام، لكن لم يكتمل حفظ PDF على الهاتف. لا تُعد الإرسال بسبب تعذر الحفظ المحلي."</string>
+    <string name="assignments_export_title">تصدير توزيع المرضى (PDF)</string>
+    <string name="assignments_export_help">ملف بأسماء المرضى وتوزيعهم على الفرق، يُحفظ على الهاتف فقط. لا يحتاج إلى رفع البيانات أو إرسال تقرير إلى تليجرام.</string>
+    <string name="assignments_export_preview">معاينة توزيع المرضى</string>
 </resources>

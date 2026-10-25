@@ -112,13 +112,15 @@ def build_window(owner, root, settings, demo):
     owner.supervisor=ctk.CTkComboBox(reports,values=['التقرير العام'],state='readonly',justify='right',height=48)
     owner.supervisor.pack(fill='x',padx=8,pady=4)
     if not demo:
-        button(reports,'رفع للشبكة وإرسال تقرير',lambda:owner.run(owner.report))
+        owner.report_publish_button=button(reports,'رفع للشبكة وإرسال تقرير',lambda:owner.run(owner.report))
+        owner.assignments_button=ctk.CTkButton(reports,text='تصدير توزيع المرضى (PDF)',height=48,command=lambda:owner.run(owner.export_assignments))
         button(reports,'تقارير المشرفين (PDF)',lambda:owner.run(owner.report_batch))
         button(reports,'سجل التسليم — تحقق من محاولة سابقة',lambda:owner.run(owner.resolve))
     exports=section('تصدير',expanded=False,parent=reports)
     button(exports,'معاينة تقرير وحفظه',lambda:owner.run(lambda:owner.report(export_only=True)))
     button(exports,'حفظ PDF مستقل لكل مشرف',lambda:owner.run(lambda:owner.report(export_only=True,separate=True)))
-    owner.assignments_button=ctk.CTkButton(exports,text='توزيع الفرق (PDF)',height=48,command=lambda:owner.run(owner.export_assignments))
+    if demo:
+        owner.assignments_button=ctk.CTkButton(exports,text='تصدير توزيع المرضى (PDF)',height=48,command=lambda:owner.run(owner.export_assignments))
     patient_tools=section('بيانات المرضى',expanded=False)
     button(patient_tools,'جلب البيانات ونشرها',owner.open_data_tools)
     button(patient_tools,'المناوبة والمسودات',lambda:owner.open_tool_window(owner.local_data_window))

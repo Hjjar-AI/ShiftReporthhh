@@ -24,11 +24,14 @@ internal interface ReportController {
     fun retryLastAction(onReviewSend: () -> Unit)
     fun fetchDoctorsForReport()
     fun resolveDelivery(record: ReportDeliveryRecord, resolution: DeliveryResolution)
+    fun previewExportPdf(route: String, draft: Boolean)
+    fun saveExportPdfs(routes: Set<String>, draft: Boolean)
+    fun shareExportPdf(route: String, draft: Boolean)
     fun exportLocally()
     fun sharePdf()
     fun exportSupervisorPdfs()
     fun exportAssignments()
-    fun sendSelectedReports(includeGeneral: Boolean, supervisorIds: Set<String>)
+    fun sendSelectedReports(includeGeneral: Boolean, supervisorIds: Set<String>, exportPdf: Boolean = false)
 }
 
 internal class LiveReportController(private val viewModel: ReportPreviewViewModel) : ReportController {
@@ -46,9 +49,12 @@ internal class LiveReportController(private val viewModel: ReportPreviewViewMode
     override fun retryLastAction(onReviewSend: () -> Unit) { viewModel.retryLastAction(onReviewSend) }
     override fun fetchDoctorsForReport() { viewModel.fetchDoctorsForReport() }
     override fun resolveDelivery(record: ReportDeliveryRecord, resolution: DeliveryResolution) { viewModel.resolveDelivery(record, resolution) }
+    override fun previewExportPdf(route: String, draft: Boolean) { viewModel.previewExportPdf(route, draft) }
+    override fun saveExportPdfs(routes: Set<String>, draft: Boolean) { viewModel.saveExportPdfs(routes, draft) }
+    override fun shareExportPdf(route: String, draft: Boolean) { viewModel.shareExportPdf(route, draft) }
     override fun exportLocally() { viewModel.exportLocally() }
     override fun sharePdf() { viewModel.sharePdf() }
     override fun exportSupervisorPdfs() { viewModel.exportSupervisorPdfs() }
     override fun exportAssignments() { viewModel.exportAssignments() }
-    override fun sendSelectedReports(includeGeneral: Boolean, supervisorIds: Set<String>) { viewModel.sendSelectedReports(includeGeneral, supervisorIds) }
+    override fun sendSelectedReports(includeGeneral: Boolean, supervisorIds: Set<String>, exportPdf: Boolean) { viewModel.sendSelectedReports(includeGeneral, supervisorIds, exportPdf) }
 }

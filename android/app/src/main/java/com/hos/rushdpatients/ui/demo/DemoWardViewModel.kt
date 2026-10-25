@@ -66,6 +66,7 @@ class DemoWardViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val repository: InMemoryDemoWardRepository,
     pdfExporter: PdfReportExporter,
+    assignmentRenderer: com.hos.rushdpatients.pdf.PdfAssignmentRenderer,
     mediaStoreSaver: com.hos.rushdpatients.pdf.MediaStoreSaver,
     textReportBuilder: com.hos.rushdpatients.domain.report.TextReportBuilder
 ) : ViewModel() {
@@ -75,7 +76,7 @@ class DemoWardViewModel @Inject constructor(
     private val dayLabel = MutableStateFlow(com.hos.rushdpatients.util.ShiftDate.current())
     private val offline = MutableStateFlow(false)
     internal val report = DemoReportController(context, uiText, viewModelScope, repository,
-        pdfExporter, mediaStoreSaver, textReportBuilder, ::selectDoctors)
+        pdfExporter, assignmentRenderer, mediaStoreSaver, textReportBuilder, ::selectDoctors)
     internal val doctors = DemoDoctorsController(repository, viewModelScope, uiText)
     internal val busy get() = report.busy && !report.state.value.loading
     private var pendingPublication: DemoWardState? = null

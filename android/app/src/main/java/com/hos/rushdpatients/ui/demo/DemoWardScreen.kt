@@ -18,6 +18,8 @@ import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.*
 import com.hos.rushdpatients.ui.doctors.DoctorsWorkspace
 import com.hos.rushdpatients.ui.report.ReportWorkspace
+import com.hos.rushdpatients.ui.report.AssignmentsExportWorkspace
+import com.hos.rushdpatients.ui.about.IntroAboutScreen
 import com.hos.rushdpatients.ui.theme.*
 import com.hos.rushdpatients.ui.ward.*
 
@@ -49,31 +51,26 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
         Density(baseDensity.density, (baseDensity.fontScale * font.multiplier).coerceIn(.92f, 2f))
     }
     fun openReport() { viewModel.report.load(); tab = DemoDestination.REPORT }
-    @Composable
-    fun DemoMenu(close: (after: () -> Unit) -> Unit) {
-        DemoDrawer(state, ward, busy, onAction = { action -> close {
-            when (action) {
-                WardDrawerAction.REPORT -> openReport()
-                WardDrawerAction.SETTINGS -> tab = DemoDestination.SETTINGS
-                WardDrawerAction.ADMIN -> tab = DemoDestination.TEAM
-                WardDrawerAction.RECYCLE_BIN -> showRecycle = true
-                WardDrawerAction.DATA_MANAGEMENT -> viewModel.controller.bringLatestData()
-                else -> viewModel.message(uiText(R.string.ui_demo_local_only))
-            }
-        } }, onUndoFetch = if (viewModel.canUndoFetch) ({ viewModel.undoFetch() }) else null, onActor = { close { showActor = true } },
-            onReset = { close { showReset = true } }, onExit = { close { showExit = true } })
-    }
     val navigation = WardNavigation(
         onOpenReport = { openReport() },
+        onOpenAssignments = { viewModel.report.load(); tab = DemoDestination.ASSIGNMENTS },
         onOpenAdmin = { tab = DemoDestination.TEAM },
         onOpenDoctors = { tab = DemoDestination.TEAM },
         onOpenSettings = { tab = DemoDestination.SETTINGS },
-        onOpenAbout = { viewModel.message(uiText(R.string.ui_demo_local_only)) },
+        onOpenAbout = { tab = DemoDestination.ABOUT },
         onOpenProject = { viewModel.message(uiText(R.string.ui_demo_local_only)) },
         onOpenDataManagement = { viewModel.controller.bringLatestData() },
-        onOpenWorkspace = { tab = DemoDestination.SETTINGS }
+        onOpenWorkspace = { viewModel.message(uiText(R.string.ui_demo_local_only)) }
     )
-    BackHandler(enabled = !busy && viewModel.editor.dialog == null && tab != DemoDestination.REPORT) {
+    @Composable
+    fun DemoMenu(close: (after: () -> Unit) -> Unit) {
+        DemoDrawer(state, ward, busy, onAction = { action -> close {
+            navigation.openDrawerAction(action, state.shiftId, isAdmin = true,
+                onRecycleBin = { showRecycle = true })
+        } }, onUndoFetch = if (viewModel.canUndoFetch) ({ viewModel.undoFetch() }) else null, onActor = { close { showActor = true } },
+            onReset = { close { showReset = true } }, onExit = { close { showExit = true } })
+    }
+    BackHandler(enabled = !busy && viewModel.editor.dialog == null && tab != DemoDestination.REPORT && tab != DemoDestination.ASSIGNMENTS) {
         if (main && tab == DemoDestination.PATIENTS) {
             if (reviewPatientIds != null) { reviewPatientIds = null; openReport() } else showExit = true
         } else tab = DemoDestination.PATIENTS
@@ -93,7 +90,7 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
     }
     LaunchedEffect(tab, state.shiftId) {
         // Recreated demo sessions never retain a stale report or clinical state from saved navigation.
-        if (tab == DemoDestination.REPORT && report.shift?.id != state.shiftId) viewModel.report.load()
+        if (tab in setOf(DemoDestination.REPORT, DemoDestination.ASSIGNMENTS) && report.shift?.id != state.shiftId) viewModel.report.load()
     }
     RushdPatientsTheme(preset = accent, appearance = appearance, uiPreferences = uiPreferences) {
         AppSystemBars()
@@ -114,6 +111,11 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
                         onOpenDoctors = { tab = DemoDestination.TEAM }, viewModel = viewModel.report,
                         onReviewPatients = { _, ids -> reviewPatientIds = ids; tab = DemoDestination.PATIENTS })
                 }
+                tab == DemoDestination.ASSIGNMENTS -> pages.SaveableStateProvider("assignments-${state.shiftId}") {
+                    AssignmentsExportWorkspace(onBack = { tab = DemoDestination.PATIENTS }, controller = viewModel.report)
+                }
+                tab == DemoDestination.ABOUT -> IntroAboutScreen(splash = false,
+                    onBack = { tab = DemoDestination.PATIENTS })
                 tab == DemoDestination.TEAM -> pages.SaveableStateProvider("doctors-${state.shiftId}") {
                     DoctorsWorkspace(onBack = { tab = DemoDestination.PATIENTS }, viewModel = viewModel.doctors)
                 }

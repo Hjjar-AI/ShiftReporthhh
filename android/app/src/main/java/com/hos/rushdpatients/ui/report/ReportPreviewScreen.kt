@@ -101,6 +101,7 @@ internal fun ReportWorkspace(
     var step by rememberSaveable { mutableStateOf(ReportFlowStep.DOCTORS) }
     val context = LocalContext.current
     var generalSelected by rememberSaveable { mutableStateOf(true) }
+    var exportPdf by rememberSaveable { mutableStateOf(true) }
     var showRosterDetails by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     var showTextPreview by remember { mutableStateOf(false) }
     var reviewedText by remember { mutableStateOf<String?>(null) }
@@ -241,7 +242,7 @@ internal fun ReportWorkspace(
                         else -> LoadingButton(text = UiAction.SEND_REPORT.label(uiText), loading = state.sending,
                             modifier = Modifier.fillMaxWidth(), enabled = sendDisabledReason == null,
                             onClick = {
-                                pendingDelivery = ReportDestinationReview(generalSelected, selectedTargets.toList(), state.reportAsPdf)
+                                pendingDelivery = ReportDestinationReview(generalSelected, selectedTargets.toList(), state.reportAsPdf, exportPdf && pdfSelected)
                             })
                     }
                     AppTextButton(onClick = ::previousStep, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
@@ -484,38 +485,22 @@ internal fun ReportWorkspace(
                     Text(uiText(R.string.ui_report_preview_screen_066),
                         style = MaterialTheme.typography.bodySmall)
                 }
-                Box(Modifier.fillMaxWidth()) {
-                    AppOutlinedButton(onClick = { showExportMenu = true }, enabled = !busy,
-                        modifier = Modifier.fillMaxWidth()) { Text(uiText(R.string.report_export_menu)) }
-                    com.hos.rushdpatients.ui.components.AppMenu(expanded = showExportMenu,
-                        onDismissRequest = { showExportMenu = false }) {
-                        val reviewedPdfReady = state.pdfReviewUris["general"]?.let { it in state.openedPdfUris } == true
-                        com.hos.rushdpatients.ui.components.AppMenuItem(
-                            text = { Text(uiText(R.string.report_save_reviewed_pdf)) },
-                            enabled = !busy && reviewedPdfReady,
-                            onClick = { showExportMenu = false; viewModel.exportLocally() })
-                        com.hos.rushdpatients.ui.components.AppMenuItem(
-                            text = { Text(uiText(R.string.report_share_reviewed_pdf)) },
-                            enabled = !busy && reviewedPdfReady,
-                            onClick = { showExportMenu = false; viewModel.sharePdf() })
-                        com.hos.rushdpatients.ui.components.AppMenuItem(
-                            text = { Text(uiText(R.string.report_save_supervisor_pdfs)) },
-                            enabled = !busy && state.summary != null && state.patients.isNotEmpty(),
-                            onClick = { showExportMenu = false; viewModel.exportSupervisorPdfs() })
-                        if (state.isAdmin) com.hos.rushdpatients.ui.components.AppMenuItem(
-                            text = { Text(uiText(R.string.ui_report_preview_screen_074)) },
-                            enabled = !busy && state.shift != null,
-                            onClick = { showExportMenu = false; viewModel.exportAssignments() })
-                    }
+                if (step == ReportFlowStep.PREVIEW) {
+                    if (pdfSelected && state.summary != null) AppCheckRow(
+                        label = uiText(R.string.report_optional_normal_export), checked = exportPdf,
+                        enabled = !busy, onCheckedChange = { exportPdf = it })
+                    AppOutlinedButton(onClick = { showExportMenu = true },
+                        enabled = !busy && state.summary != null,
+                        modifier = Modifier.fillMaxWidth()) { Text(uiText(R.string.report_export_draft_action)) }
                 }
-                if (!state.pdfReviewUris.containsKey("general")) Text(uiText(R.string.report_export_preview_hint),
-                    style = MaterialTheme.typography.bodySmall)
                 AppTextButton(onClick = { showDeliveryLog = true }, enabled = !busy,
                     modifier = Modifier.fillMaxWidth()) { Text(uiText(R.string.ui_report_preview_screen_076)) }
 
             }
         }
     }
+
+    if (showExportMenu) ReportExportDialog(state, viewModel, onDismiss = { showExportMenu = false })
 
     if (showTextPreview) {
         AppAlertDialog(onDismissRequest = { showTextPreview = false }, title = { Text(uiText(R.string.ui_report_preview_screen_077)) },
@@ -560,7 +545,8 @@ internal fun ReportWorkspace(
     pendingDelivery?.let { review ->
         val targetsUnchanged = review.supervisors == selectedTargets &&
             review.supervisors.all { it in state.supervisorTargets } &&
-            review.includeGeneral == generalSelected && review.generalAsPdf == state.reportAsPdf
+            review.includeGeneral == generalSelected && review.generalAsPdf == state.reportAsPdf &&
+            review.exportPdf == (exportPdf && pdfSelected)
         val destinations = buildList {
             if (review.includeGeneral) add(uiText(R.string.ui_report_preview_screen_097))
             review.supervisors.forEach { add(uiText(R.string.ui_report_preview_screen_095, it.doctorName, uiNumber(it.patientCount))) }
@@ -572,7 +558,7 @@ internal fun ReportWorkspace(
         val reportPatientIds = state.patients.filter {
             review.includeGeneral || it.responsibleSpecialistId in confirmedSupervisorIds
         }.mapTo(linkedSetOf()) { it.id }
-        ReportSendConfirmation(destinations = destinations, format = format,
+        ReportSendConfirmation(destinations = destinations, format = format, exportPdf = review.exportPdf,
             warningCount = state.readinessIssues.flatMap { it.patientIds }.toSet().intersect(reportPatientIds).size,
             patientCount = reportPatientIds.size,
             enabled = sendDisabledReason == null && targetsUnchanged && destinations.isNotEmpty(),
@@ -580,7 +566,7 @@ internal fun ReportWorkspace(
             onConfirm = {
                 pendingDelivery = null
                 viewModel.sendSelectedReports(review.includeGeneral,
-                    review.supervisors.mapTo(linkedSetOf()) { it.doctorId })
+                    review.supervisors.mapTo(linkedSetOf()) { it.doctorId }, review.exportPdf)
             }, onDismiss = { pendingDelivery = null })
     }
 }

@@ -33,8 +33,9 @@ def render(owner):
         owner.admin_button.configure(state='disabled' if owner.busy else 'normal')
         owner.join_export_button.pack(fill='x',padx=8,pady=4)
         owner.join_export_button.configure(state='disabled' if owner.busy else 'normal')
-        owner.assignments_button.pack(fill='x',padx=8,pady=4)
-        owner.assignments_button.configure(state='disabled' if owner.busy else 'normal')
+        if not owner.demo:
+            owner.assignments_button.pack(fill='x',padx=8,pady=4,after=owner.report_publish_button)
+            owner.assignments_button.configure(state='disabled' if owner.busy else 'normal')
     else:
         owner.admin_sidebar.pack_forget()
         owner.team_window.withdraw()

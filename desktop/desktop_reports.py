@@ -176,45 +176,9 @@ def report_text(client, shift, supervisor=None, report_day=None):
 
 
 def export_supervisor_pdfs(owner, shift, supervisor, font, options):
-    """Prepare every PDF before writing a new set; never overwrite an existing file."""
-    from datetime import datetime
-    from pathlib import Path
-    import re
-    import uuid
-    from desktop_protocol import current_date, ZoneInfo
-    from tkinter import filedialog
-    from desktop_pdf import render_report
-    folder = filedialog.askdirectory(title='مجلد حفظ ملفات المشرفين')
-    if not folder:return
-    report_day=current_date(owner.client.zone)
-    def prepare_and_save():
-        groups = {}
-        for patient in shift['patients']:
-            key = patient.get('responsibleSupervisorId') or None
-            if supervisor is None or key == supervisor:groups.setdefault(key, []).append(patient)
-        require(groups, 'لا يوجد مرضى في التقرير المختار')
-        stamp = datetime.now(ZoneInfo(owner.client.zone)).strftime('%Y%m%d_%H%M%S')+'_'+uuid.uuid4().hex[:8]
-        files = []
-        for index,(key,patients) in enumerate(groups.items(),1):
-            subset = copy.deepcopy(shift);subset['patients']=copy.deepcopy(patients)
-            if key:subset['meta']['doctors']=key
-            name = owner.client.doctors.get(key,{}).get('name','مشرف محفوظ' if key else 'بدون مشرف')
-            safe = re.sub(r'[^\w-]+','_',name,flags=re.UNICODE)[:60]
-            path = render_report(owner.client,subset,font_path=font,options=options,report_day=report_day)
-            target = Path(folder)/('Rushd_Report_{}_{}_{}_{}.pdf'.format(report_day,stamp,index,safe))
-            files.append((target,path.read_bytes()))
-        created = []
-        try:
-            for path,raw in files:
-                with path.open('xb') as stream:
-                    created.append(path);stream.write(raw)
-                require(path.read_bytes()==raw,'تعذر التحقق من حفظ PDF كاملاً')
-        except Exception:
-            for path in created:path.unlink(missing_ok=True)
-            raise
-        return len(created)
-    count = owner.io(prepare_and_save)
-    owner.status.set('حُفظ {} ملف PDF للمشرفين محلياً.'.format(count))
+    # Keep callers on the same preview/publication guard as the main export action.
+    from desktop_export_review import run_export
+    return run_export(owner,separate=True)
 
 
 def text_chunks(text, limit=3500):

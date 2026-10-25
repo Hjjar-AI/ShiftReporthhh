@@ -49,7 +49,7 @@ import com.hos.rushdpatients.ui.theme.UiOpacity
 import com.hos.rushdpatients.ui.theme.UiSpacing
 
 internal enum class WardDrawerAction {
-    REPORT, SETTINGS, DATA_MANAGEMENT,
+    REPORT, ASSIGNMENTS, SETTINGS, DATA_MANAGEMENT,
     RECYCLE_BIN, ADMIN, PROJECT, ABOUT,
     FILES, BACKUP, INVITATIONS, DESTINATIONS, RESET, DIAGNOSTICS
 }
@@ -119,6 +119,12 @@ internal fun WardDrawer(
                         onClick = { onAction(WardDrawerAction.REPORT) }, enabled = state.shift != null,
                         modifier = Modifier.fillMaxWidth()) {
                         com.hos.rushdpatients.ui.components.AppActionLabel(UiAction.SEND_REPORT)
+                    }
+
+                    if (isAdmin) com.hos.rushdpatients.ui.components.AppOutlinedButton(
+                        onClick = { onAction(WardDrawerAction.ASSIGNMENTS) }, enabled = state.shift != null,
+                        modifier = Modifier.fillMaxWidth()) {
+                        Text(uiText(R.string.assignments_export_title))
                     }
 
                     WardDrawerRow(uiText(R.string.ui_ward_drawer_013), AppIcons.Sync) { onAction(WardDrawerAction.DATA_MANAGEMENT) }

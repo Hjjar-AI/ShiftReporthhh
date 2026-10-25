@@ -101,21 +101,25 @@ class ReportSender @Inject constructor(
         caption: String?,
         actor: Doctor?,
         contentKey: String,
-        legacyContentKey: String? = null
+        legacyContentKey: String? = null,
+        fileName: String? = null
     ): SendResult = withContext(Dispatchers.IO) {
         require(pdfFile.isFile && pdfFile.length() > 0) { context.getString(R.string.report_preview_file_missing) }
         deliveryLedger.deliver(shift.id, topics.chatId, contentKey, "PDF", context.getString(R.string.report_general_route_label), actor?.id, legacyContentKey = legacyContentKey) { receipt ->
+            val titleParts = com.hos.rushdpatients.domain.report.ReportChunking.captionParts(caption.orEmpty())
             val msg = uncertainDelivery { telegram.sendDocument(
                 chatId = topics.chatId,
                 file = pdfFile,
-                caption = caption,
+                fileName = fileName,
+                caption = titleParts.firstOrNull(),
                 parseMode = if (caption.isNullOrBlank()) null else ParseMode.MARKDOWN_V2,
                 replyToMessageId = null,
                 disableNotification = true,
                 messageThreadId = topics.threadId(Topic.REPORTS)
             ) }
 
-            confirmBestEffort(receipt, listOf(msg.messageId))
+            val ids = completePdfTitle(topics.chatId, msg.messageId, titleParts.drop(1), topics.threadId(Topic.REPORTS))
+            confirmBestEffort(receipt, ids)
             val sentAt = Instant.now()
             recordDeliveryBestEffort(
                 shift = shift,
@@ -126,7 +130,7 @@ class ReportSender @Inject constructor(
                 detail = "pdf; size=${pdfFile.length()} bytes"
             )
 
-            SendResult(listOf(msg.messageId), msg.messageId, sentAt)
+            SendResult(ids, msg.messageId, sentAt)
         }
     }
 
@@ -138,25 +142,45 @@ class ReportSender @Inject constructor(
         supervisor: Doctor,
         chatId: Long,
         contentKey: String,
-        legacyContentKey: String? = null
+        legacyContentKey: String? = null,
+        fileName: String? = null
     ): SendResult = withContext(Dispatchers.IO) {
         require(chatId < 0L) { context.getString(R.string.report_supervisor_chat_invalid) }
         require(pdfFile.isFile && pdfFile.length() > 0) { context.getString(R.string.report_preview_file_missing) }
         deliveryLedger.deliver(shift.id, chatId, contentKey, "PDF", supervisor.fullName, actor?.id, legacyContentKey = legacyContentKey) { receipt ->
+            val titleParts = com.hos.rushdpatients.domain.report.ReportChunking.captionParts(caption.orEmpty())
             val msg = uncertainDelivery { telegram.sendDocument(
                 chatId = chatId,
                 file = pdfFile,
-                caption = caption,
+                fileName = fileName,
+                caption = titleParts.firstOrNull(),
                 parseMode = if (caption.isNullOrBlank()) null else ParseMode.MARKDOWN_V2,
                 replyToMessageId = null,
                 disableNotification = true,
                 messageThreadId = null
             ) }
-            confirmBestEffort(receipt, listOf(msg.messageId))
+            val ids = completePdfTitle(chatId, msg.messageId, titleParts.drop(1), null)
+            confirmBestEffort(receipt, ids)
             val sentAt = Instant.now()
             recordAuditBestEffort(actor, "supervisor-pdf; supervisor=${supervisor.id}; shift=${shift.id}; size=${pdfFile.length()} bytes")
-            SendResult(listOf(msg.messageId), msg.messageId, sentAt)
+            SendResult(ids, msg.messageId, sentAt)
         }
+    }
+
+    private suspend fun completePdfTitle(chatId: Long, pdfId: Long, remaining: List<String>,
+        topicId: Long?): List<Long> {
+        val ids = mutableListOf(pdfId)
+        try {
+            remaining.forEach { title ->
+                val message = telegram.sendPublicReportTitle(chatId, title, pdfId, topicId)
+                ids += message.messageId
+            }
+        } catch (e: CancellationException) { throw e }
+        catch (e: Exception) {
+            // The PDF already reached Telegram; a title failure must never permit automatic resending.
+            throw ReportDeliveryUncertainException(e)
+        }
+        return ids
     }
 
     private suspend fun confirmBestEffort(receipt: ReportDeliveryRecord, ids: List<Long>) {

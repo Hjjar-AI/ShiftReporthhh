@@ -46,7 +46,8 @@ class ReportBuilder @Inject constructor(
         buildSnapshot(shiftId, requireRoster = true, reportDate = reportDate)
 
     /** Names-only local export does not require the clinical report's shift roster. */
-    suspend fun buildAssignments(shiftId: String): BuiltReport = buildSnapshot(shiftId, requireRoster = false)
+    suspend fun buildAssignments(shiftId: String, reportDate: java.time.LocalDate = ShiftDate.current()): BuiltReport =
+        buildSnapshot(shiftId, requireRoster = false, reportDate = reportDate)
 
     private suspend fun buildSnapshot(shiftId: String, requireRoster: Boolean,
         reportDate: java.time.LocalDate = ShiftDate.current()): BuiltReport = withContext(dispatchers.io) {

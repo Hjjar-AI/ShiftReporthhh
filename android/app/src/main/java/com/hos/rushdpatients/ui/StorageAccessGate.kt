@@ -28,7 +28,10 @@ internal interface StorageAccessEntryPoint {
 
 /** Resolve encrypted storage before any repository-backed ViewModel is constructed. */
 @Composable
-internal fun StorageAccessGate(content: @Composable () -> Unit) {
+internal fun StorageAccessGate(
+    loading: @Composable () -> Unit,
+    content: @Composable () -> Unit
+) {
     val uiText = rememberUiStrings()
     val context = LocalContext.current.applicationContext
     var attempt by remember { mutableIntStateOf(0) }
@@ -56,7 +59,8 @@ internal fun StorageAccessGate(content: @Composable () -> Unit) {
             Text(uiText(R.string.ui_storage_access_gate_002))
             AppButton(onClick = { attempt++ }) { Text(uiText(R.string.ui_retry)) }
         }
-        else -> AppCenteredContent { AppLoadingState(uiText(R.string.ui_storage_access_gate_004)) }
+        // Show the intro immediately while IO continues; tapping never bypasses this gate.
+        else -> loading()
     }
 }
 

@@ -69,6 +69,17 @@ object ReportReview {
         return digest.digest().joinToString("") { "%02x".format(it.toInt() and 255) }
     }
 
+    /** Export approval also covers assignment-day highlighting, without changing delivery receipt keys. */
+    fun exportFingerprint(report: BuiltReport): String = digestFields(buildList {
+        add(fingerprint(report))
+        report.patients.forEach { add(it.assignmentChangedOn?.toString().orEmpty()) }
+        // Names-only exports also render empty supervisor teams and their resident membership.
+        report.registryDoctors.sortedBy { it.id }.forEach { doctor ->
+            add(doctor.id); add(doctor.fullName); add(doctor.clinicalRole.name)
+            add(doctor.teamSupervisorId.orEmpty()); add(doctor.isDeleted.toString())
+        }
+    })
+
     private fun sameContent(a: BuiltReport, b: BuiltReport): Boolean = fingerprint(a) == fingerprint(b)
 
     fun legacySupervisorFingerprint(report: BuiltReport, supervisorId: String): String =

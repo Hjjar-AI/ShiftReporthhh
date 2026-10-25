@@ -84,18 +84,24 @@ class ReportPreviewViewModel @Inject constructor(
     private val deliveryLedger: ReportDeliveryLedger
 ) : ViewModel() {
 
+    private val assignmentsOnly = savedStateHandle.get<Boolean>("assignmentsOnly") == true
     private val shiftId: String = savedStateHandle.get<String>("shiftId").orEmpty()
 
     private val _state = MutableStateFlow(ReportUiState(loading = false))
     val state: StateFlow<ReportUiState> = _state.asStateFlow()
+    private var confirmedExportKey: String? = null
+    private var confirmedExportActor: String? = null
+    private var confirmedExportTelegram: Long? = null
+    private var confirmedExportProject: com.hos.rushdpatients.config.ProjectConfig? = null
+    private var reviewedProject: com.hos.rushdpatients.config.ProjectConfig? = null
     private var reviewedReport: BuiltReport? = null
     private var reviewedActor: com.hos.rushdpatients.domain.auth.Session? = null
     private val pdfWorkspace = ReportPdfWorkspace(uiText, context, settingsRepository, projectConfigStore,
         classicPdfExporter, cardsPdfExporter, mediaStoreSaver)
 
-    private val localActions = ReportLocalActions(uiText, _state, viewModelScope, shiftId,
-        context, reportBuilder, settingsRepository, assignmentPdfExporter, mediaStoreSaver,
-        adminAuthorizer, pdfWorkspace, { reviewedReport })
+    private val localActions = ReportLocalActions(uiText, _state, viewModelScope,
+        context, settingsRepository, assignmentPdfExporter, mediaStoreSaver,
+        adminAuthorizer, pdfWorkspace, { reviewedReport }, ::validateExport)
 
     init {
         viewModelScope.launch {
@@ -130,7 +136,7 @@ class ReportPreviewViewModel @Inject constructor(
         if (_state.value.isBusy) return
         clearPdfReviews()
         reviewedReport = null
-        _state.update { it.copy(loading = true, summary = null, error = null, reviewNotice = reviewNotice) }
+        _state.update { it.copy(loading = true, summary = null, error = null, reviewNotice = reviewNotice, exportUploadConfirmed = false) }
         viewModelScope.launch {
             try {
                 check(shiftId.isNotBlank()) { uiText(R.string.report_shift_id_missing) }
@@ -143,8 +149,13 @@ class ReportPreviewViewModel @Inject constructor(
                 _state.update { it.copy(shift = shift, availableDoctors = available,
                     doctors = available.filter { doctor -> doctor.id in shift.doctorIds },
                     error = null) }
-                if (_state.value.doctors.isEmpty()) {
-                    _state.update { it.copy(loading = false, previewMarkdown = "", error = null, doctorRegistryAction = null) }
+                if (assignmentsOnly || _state.value.doctors.isEmpty()) {
+                    val assignments = reportBuilder.buildAssignments(shiftId)
+                    reviewedReport = assignments
+                    reviewedActor = sessionManager.current()
+                    reviewedProject = projectConfigStore.current()
+                    _state.update { it.copy(loading = false, patients = assignments.patients, supervisorTargets = emptyList(),
+                        previewMarkdown = "", error = null, doctorRegistryAction = null) }
                     return@launch
                 }
                 val built = reportBuilder.build(shiftId)
@@ -159,6 +170,7 @@ class ReportPreviewViewModel @Inject constructor(
                 }
                 reviewedReport = built
                 reviewedActor = sessionManager.current()
+                reviewedProject = projectConfigStore.current()
                 _state.update {
                     it.copy(
                         loading = false,
@@ -178,7 +190,10 @@ class ReportPreviewViewModel @Inject constructor(
                                 it.fullName + " · " + it.clinicalRole.arabicLabel
                             }
                         },
-                        reportAsPdf = asPdf
+                        reportAsPdf = asPdf,
+                        exportUploadConfirmed = confirmedExportKey == ReportReview.exportFingerprint(built) &&
+                            confirmedExportActor == reviewedActor?.doctorId && confirmedExportTelegram == reviewedActor?.telegramId &&
+                            confirmedExportProject == reviewedProject
                     )
                 }
             } catch (e: CancellationException) {
@@ -285,12 +300,44 @@ class ReportPreviewViewModel @Inject constructor(
         val actor = activeSendingActor()
         val reviewer = reviewedActor
         require(reviewer != null && actor.id == reviewer.doctorId && actor.telegramId == reviewer.telegramId) { "تغير حساب المراجع؛ افتح التقرير بالحساب الذي راجعه" }
+        val publicationProject = projectConfigStore.current()
+        check(publicationProject == reviewedProject) { uiText(R.string.report_export_changed) }
+        confirmedExportKey = null
+        _state.update { it.copy(exportUploadConfirmed = false) }
         val publication = syncService.prepareCsvPublication(shiftId, reviewed)
         _state.update { it.copy(publicationOutcome = ReportStepOutcome.IN_PROGRESS) }
         val uploaded = syncService.uploadReviewedCsv(publication).getOrThrow()
         _state.update { it.copy(publicationWarning = if (uploaded.localBookkeepingFailed) uiText(R.string.sync_publication_bookkeeping_warning) else null) }
-        _state.update { it.copy(publicationOutcome = ReportStepOutcome.CONFIRMED) }
+        confirmedExportKey = ReportReview.exportFingerprint(reviewed)
+        confirmedExportActor = actor.id
+        confirmedExportTelegram = actor.telegramId
+        confirmedExportProject = publicationProject
+        _state.update { it.copy(publicationOutcome = ReportStepOutcome.CONFIRMED, exportUploadConfirmed = true) }
     }
+
+    /** A publication outcome alone never authorizes a different report, user or project. */
+    private suspend fun validateExport(built: BuiltReport, draft: Boolean) {
+        val actor = activeSendingActor()
+        val valid = reviewedActor?.doctorId == actor.id && reviewedActor?.telegramId == actor.telegramId &&
+            reviewedProject == projectConfigStore.current() &&
+            ReportReview.exportFingerprint(built) == ReportReview.exportFingerprint(
+                reportBuilder.buildAssignments(shiftId, reportDate = built.summary.shiftDate))
+        if (!valid) {
+            _state.update { it.copy(exportUploadConfirmed = false) }
+            error(uiText(R.string.report_export_changed))
+        }
+        if (!draft) {
+            val published = confirmedExportKey == ReportReview.exportFingerprint(built) &&
+                confirmedExportActor == actor.id && confirmedExportTelegram == actor.telegramId &&
+                confirmedExportProject == projectConfigStore.current()
+            _state.update { it.copy(exportUploadConfirmed = published) }
+            check(published) { uiText(R.string.report_export_upload_required) }
+        }
+    }
+
+    fun previewExportPdf(route: String, draft: Boolean) = localActions.previewExportPdf(route, draft)
+    fun saveExportPdfs(routes: Set<String>, draft: Boolean) = localActions.saveExportPdfs(routes, draft)
+    fun shareExportPdf(route: String, draft: Boolean) = localActions.shareExportPdf(route, draft)
 
     private suspend fun activeSendingActor(): Doctor {
         val session = sessionManager.current() ?: error(uiText(R.string.report_login_required))
@@ -342,7 +389,7 @@ class ReportPreviewViewModel @Inject constructor(
 
     fun send() = sendSelectedReports(true, emptySet())
 
-    fun sendSelectedReports(includeGeneral: Boolean, supervisorIds: Set<String>) {
+    fun sendSelectedReports(includeGeneral: Boolean, supervisorIds: Set<String>, exportPdf: Boolean = false) {
         val current = _state.value
         val reviewed = reviewedReport ?: return
         if (current.isBusy || current.shift == null) return
@@ -359,6 +406,7 @@ class ReportPreviewViewModel @Inject constructor(
             publicationOutcome = ReportStepOutcome.NOT_STARTED, deliveryOutcome = ReportStepOutcome.NOT_STARTED) }
         viewModelScope.launch {
             var delivered = 0
+            var deliveryConfirmed = false
             try {
                 // Check every selected route/artifact before publishing or sending any copy.
                 if (includeGeneral) {
@@ -389,8 +437,9 @@ class ReportPreviewViewModel @Inject constructor(
                     sendSupervisorPdf(built, target, actor)
                     delivered++
                 }
+                deliveryConfirmed = true
                 _state.update {
-                    it.copy(sending = false, deliveryOutcome = ReportStepOutcome.CONFIRMED,
+                    it.copy(sending = exportPdf, deliveryOutcome = ReportStepOutcome.CONFIRMED,
                         snackbar = uiText(R.string.ui_report_destinations_delivered, delivered),
                         lastOperation = uiText(R.string.ui_report_destinations_delivered, delivered), retryAction = null)
                 }
@@ -402,6 +451,17 @@ class ReportPreviewViewModel @Inject constructor(
                 throw e
             } catch (e: Exception) {
                 recordSendFailure(e, delivered)
+            }
+            // Local-copy failure cannot change a confirmed delivery into a send retry.
+            if (deliveryConfirmed && exportPdf) {
+                try {
+                    savePublishedPdfs(reviewed, includeGeneral && current.reportAsPdf, selected.map { it.doctorId })
+                } catch (e: CancellationException) {
+                    _state.update { it.copy(error = uiText(R.string.report_delivered_local_save_failed), retryAction = null) }
+                    throw e
+                } catch (_: Exception) {
+                    _state.update { it.copy(error = uiText(R.string.report_delivered_local_save_failed), retryAction = null) }
+                } finally { _state.update { it.copy(sending = false) } }
             }
         }
     }
@@ -446,26 +506,31 @@ class ReportPreviewViewModel @Inject constructor(
         )
     }
 
-    private suspend fun sendPdf(built: BuiltReport, actor: Doctor?) {
+    private suspend fun savePublishedPdfs(built: BuiltReport, includeGeneral: Boolean, supervisors: List<String>) {
         withContext(Dispatchers.IO) {
-            val tmp = checkedPdf(built)
-            run {
-                val savedUri = mediaStoreSaver.savePdf(
-                    context = context,
-                    sourceFile = tmp,
-                    displayName = reportFileName(built.summary.shiftDate)
-                )
-                checkNotNull(savedUri) { uiText(R.string.report_pdf_save_failed) }
-
-                val caption = Markdown.escape(uiText(R.string.report_pdf_caption, built.summary.shiftDate, built.doctors.size))
-                reportSender.sendPdfReport(
-                    shift = built.shift,
-                    pdfFile = tmp,
-                    caption = caption,
-                    actor = actor, contentKey = ReportReview.fingerprint(built), legacyContentKey = ReportReview.legacyFingerprint(built)
-                )
+            val files = buildList {
+                if (includeGeneral) add(checkedPdf(built) to reportFileName(built.summary.shiftDate))
+                supervisors.forEach { id ->
+                    val name = built.registryDoctors.firstOrNull { it.id == id }?.fullName
+                    add(checkedPdf(built, id) to pdfWorkspace.reportFileName(built.summary.shiftDate,
+                        "supervisor:$id", supervisorName = name))
+                }
+            }
+            files.forEach { (file, name) ->
+                checkNotNull(mediaStoreSaver.savePdf(context, file, name, verifyContents = true)) {
+                    uiText(R.string.report_pdf_save_failed)
+                }
             }
         }
+    }
+
+    private suspend fun sendPdf(built: BuiltReport, actor: Doctor?) {
+        val tmp = checkedPdf(built)
+        val caption = Markdown.escape(uiText(R.string.report_pdf_caption, built.summary.shiftDate,
+            built.doctors.joinToString(" / ") { it.fullName }))
+        reportSender.sendPdfReport(shift = built.shift, pdfFile = tmp,
+            fileName = reportFileName(built.summary.shiftDate), caption = caption, actor = actor,
+            contentKey = ReportReview.fingerprint(built), legacyContentKey = ReportReview.legacyFingerprint(built))
     }
 
     fun dismissSnackbar() = _state.update { it.copy(snackbar = null) }
@@ -497,12 +562,16 @@ class ReportPreviewViewModel @Inject constructor(
             ?: error(uiText(R.string.report_supervisor_missing))
         val reviewedFile = checkedPdf(built, target.doctorId)
         reportSender.sendSupervisorPdfReport(shift = built.shift, pdfFile = reviewedFile,
-            caption = textReportBuilder.buildTitle(built.shift.copy(date = built.summary.shiftDate), listOf(supervisor)), actor = actor,
+            caption = Markdown.escape(uiText(R.string.report_pdf_caption, built.summary.shiftDate,
+                built.doctors.joinToString(" / ") { it.fullName }) + "\n" +
+                uiText(R.string.report_pdf_supervisor_scope, supervisor.fullName)), actor = actor,
+            fileName = pdfWorkspace.reportFileName(built.summary.shiftDate, "supervisor:${supervisor.id}",
+                supervisorName = supervisor.fullName),
             supervisor = supervisor, chatId = requireNotNull(target.chatId),
             contentKey = ReportReview.supervisorFingerprint(built, target.doctorId),
             legacyContentKey = ReportReview.legacySupervisorFingerprint(built, target.doctorId))
     }
 
-    private fun reportFileName(date: java.time.LocalDate, suffix: String? = null): String = pdfWorkspace.reportFileName(date, suffix)
+    private fun reportFileName(date: java.time.LocalDate): String = pdfWorkspace.reportFileName(date)
 
 }
