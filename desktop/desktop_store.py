@@ -129,28 +129,6 @@ class Workspace:
         """Match Android: a complete download must not discard saved pending work."""
         require(not self.has_pending_changes(), 'توجد تعديلات محلية غير منشورة؛ راجعها وانشرها قبل جلب نسخة كاملة')
 
-    def start_shift(self, client, shift, expected, recovery_path=None):
-        """Replace the view only after preserving explicitly acknowledged pending work."""
-        from desktop_protocol import current_date, fingerprint
-        require(not self.locked and self.project==client.project_id, 'الجلسة مقفلة أو تغير المشروع')
-        def check():
-            local=self.state.get('draft')
-            require(fingerprint(local)==expected, 'تغيرت المسودة أثناء بدء المناوبة؛ أعد العملية')
-            require(local is None or local['meta']['shiftDate']!=shift['meta']['shiftDate'] or not local['patients'],
-                    'مناوبة اليوم المحلية تحتوي مرضى؛ لن تُستبدل بنسخ السابقة')
-        check()
-        if self.has_pending_changes():
-            require(recovery_path, 'احفظ التعديلات غير المنشورة في ملف استرداد مستقل قبل بدء المناوبة')
-            destination=Path(recovery_path)
-            require(destination.resolve()!=self.path.with_suffix('.previous.srdraft').resolve(),
-                    'اختر ملف استرداد مستقلاً عن نسخة الاسترداد التلقائية')
-            self.export(destination)
-            # Reopen and authenticate the saved file before replacing the local view.
-            saved=self.decode(destination.read_bytes())
-            require(fingerprint(saved['draft'])==expected, 'تعذر التحقق من ملف الاسترداد؛ بقيت المناوبة الحالية محفوظة')
-        check()
-        self.write(client,shift)
-
     def save_draft(self, shift):
         require(not self.locked, 'الجلسة مقفلة')
         self.commit(draft=copy.deepcopy(shift))

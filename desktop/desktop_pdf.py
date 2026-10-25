@@ -149,14 +149,13 @@ def _render_report(client, shift, supervisor, font_path, options, now):
         from desktop_pdf_cards import render_cards
         return render_cards(client, shift, supervisor, font_path, options, now)
     page_size = PAPERS[options['paper']]
-    if options['orientation']=='landscape':page_size=page_size[::-1]
     margin = 8.5
     width = page_size[0]-2*margin
     register_font(font_path)
     patients=[p for p in shift['patients'] if supervisor is None or p.get('responsibleSupervisorId')==supervisor]
     require(patients,'لا يوجد مرضى في التقرير المختار')
     text_color=HexColor(colors['text'])
-    heading_color=text_color if options['dark'] else HexColor(colors['title'])
+    heading_color=HexColor(colors['title'])
     def text(value,size=11,color=None,**kwargs):return RTLText(value,size,color=color or text_color,**kwargs)
     context=context_lines(client,shift,options,now)
     roster=' / '.join(client.doctors.get(key,{}).get('name','طبيب محفوظ') for key in shift['meta'].get('doctors','').split(',') if key)

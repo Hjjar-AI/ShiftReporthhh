@@ -4,7 +4,6 @@ import android.net.Uri
 import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.pdf.PdfColorPreset
 import com.hos.rushdpatients.pdf.PdfRowShading
-import com.hos.rushdpatients.pdf.PdfOrientation
 import com.hos.rushdpatients.pdf.PdfPaperSize
 import com.hos.rushdpatients.pdf.PdfStyle
 import com.hos.rushdpatients.domain.patient.PatientCardStyle
@@ -30,11 +29,9 @@ data class SettingsUiState(
     val reportWardName: String = "",
     val pdfStyle: PdfStyle = PdfStyle.CLASSIC,
     val pdfPatientCardStyle: PatientCardStyle = PatientCardStyle.BADGE_HEADER,
-    val pdfOrientation: PdfOrientation = PdfOrientation.PORTRAIT,
     val pdfPaperSize: PdfPaperSize = PdfPaperSize.A4,
     val pdfColorPreset: PdfColorPreset = PdfColorPreset.TEAL,
     val pdfRowShading: PdfRowShading = PdfRowShading.AUTO,
-    val pdfDarkMode: Boolean = false,
     val uiPreferences: com.hos.rushdpatients.ui.theme.UiPreferences = com.hos.rushdpatients.ui.theme.UiPreferences(),
     val appearance: AppAppearance = AppAppearance.LIGHT,
     val appTheme: AppThemePreset = AppThemePreset.VANILLA,
@@ -42,7 +39,6 @@ data class SettingsUiState(
     val patientDetailsExpanded: Boolean = false,
     val patientTwoColumn: Boolean = false,
     val patientCompactDensity: Boolean = false,
-    val saveAndNext: Boolean = false,
     val supervisors: List<Doctor> = emptyList(),
     val savingSupervisorGroupId: String? = null,
     val biometricAvailable: Boolean = false,

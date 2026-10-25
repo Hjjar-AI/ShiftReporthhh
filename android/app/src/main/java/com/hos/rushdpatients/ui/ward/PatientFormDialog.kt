@@ -87,12 +87,9 @@ internal fun PatientFormDialog(
     var badgeDraftPriority by formState::badgeDraftPriority
     var diagnosisType by formState::diagnosisType
     var initialDiagnosis by formState::initialDiagnosis
-    var treatmentItems by formState::treatmentItems
-    var treatmentDraft by formState::treatmentDraft
-    var followUpItems by formState::followUpItems
-    var followUpDraft by formState::followUpDraft
-    var labItems by formState::labItems
-    var labDraft by formState::labDraft
+    var treatmentText by formState::treatmentText
+    var followUpText by formState::followUpText
+    var labText by formState::labText
     var residentId by formState::residentId
     var specialistId by formState::specialistId
     val today = LocalDate.now()
@@ -116,12 +113,14 @@ internal fun PatientFormDialog(
     val formScrollState = rememberScrollState()
     val scrollFormTo = com.hos.rushdpatients.ui.components.rememberUiScrollTo(formScrollState)
     val formScope = rememberCoroutineScope()
-    // Compare the complete editable form, including text not yet added to clinical lists.
+    val taskEntry = formState.taskEntry
+    val resolvedTasks = tasks + listOfNotNull(taskEntry?.takeIf { it.description.isNotBlank() })
+    // Compare the complete editable form, including the inline new task.
     val formValues = listOf(
         admittanceNumber, admittanceDate, gender, name, birthYearText, ageText,
-        hasCompanion, diagnosisType, initialDiagnosis, treatmentItems, treatmentDraft,
-        followUpItems, followUpDraft, labItems, labDraft, residentId, specialistId,
-        badges, tasks, badgeDraftText, badgeDraftPriority, isPriority
+        hasCompanion, diagnosisType, initialDiagnosis, treatmentText,
+        followUpText, labText, residentId, specialistId,
+        badges, resolvedTasks, badgeDraftText, badgeDraftPriority, isPriority
     )
     val savedValues = remember(savedBaseline) {
         listOf(
@@ -129,8 +128,8 @@ internal fun PatientFormDialog(
             savedBaseline?.gender ?: Gender.fromCode(""), savedBaseline?.name.orEmpty(),
             savedBaseline?.birthDate?.year?.toString().orEmpty(), savedBaseline?.age?.toString().orEmpty(),
             savedBaseline?.hasCompanion ?: false, savedBaseline?.diagnosisType ?: DiagnosisType.fromCode(""),
-            savedBaseline?.initialDiagnosis.orEmpty(), parseFieldItems(savedBaseline?.treatmentPlan), "",
-            parseFieldItems(savedBaseline?.followUp), "", parseFieldItems(savedBaseline?.labs), "",
+            savedBaseline?.initialDiagnosis.orEmpty(), savedBaseline?.treatmentPlan.orEmpty(),
+            savedBaseline?.followUp.orEmpty(), savedBaseline?.labs.orEmpty(),
             savedBaseline?.responsibleResidentId, savedBaseline?.responsibleSpecialistId,
             savedBaseline?.badges.orEmpty(), savedBaseline?.tasks.orEmpty(), "", null,
             savedBaseline?.isPriority ?: false
@@ -202,15 +201,15 @@ internal fun PatientFormDialog(
     }
 
     val optionalFieldsContent: @Composable () -> Unit = {
-        PatientOptionalFields(formState, doctors, saving, autoStyle,
+        PatientOptionalFields(formState, saving, autoStyle,
             entryOptionsSummary = entryOptionsSummary, entryOptions = entryOptions)
     }
 
     LaunchedEffect(
         admittanceNumber, admittanceDate, gender, name, birthYearText, ageText,
-        hasCompanion, diagnosisType, initialDiagnosis, treatmentItems, treatmentDraft,
-        followUpItems, followUpDraft, labItems, labDraft, residentId, specialistId,
-        badges, badgeDraftText, badgeDraftPriority, isPriority, tasks
+        hasCompanion, diagnosisType, initialDiagnosis, treatmentText,
+        followUpText, labText, residentId, specialistId,
+        badges, badgeDraftText, badgeDraftPriority, isPriority, tasks, taskEntry
     ) {
         run {
             onDraftChanged(
@@ -224,15 +223,15 @@ internal fun PatientFormDialog(
                     hasCompanion = hasCompanion,
                     diagnosisType = diagnosisType.code,
                     initialDiagnosis = initialDiagnosis,
-                    treatmentItems = treatmentItems,
-                    treatmentDraft = treatmentDraft,
-                    followUpItems = followUpItems,
-                    followUpDraft = followUpDraft,
-                    labItems = labItems,
-                    labDraft = labDraft,
+                    treatmentItems = emptyList(),
+                    treatmentDraft = treatmentText,
+                    followUpItems = emptyList(),
+                    followUpDraft = followUpText,
+                    labItems = emptyList(),
+                    labDraft = labText,
                     residentId = residentId,
                     specialistId = specialistId,
-                    tasks = tasks,
+                    tasks = resolvedTasks,
                     badges = badges.map { PatientBadgeDraft(it.text, it.priority?.code) },
                     badgeDraftText = badgeDraftText,
                     badgeDraftPriority = badgeDraftPriority?.code,
@@ -323,94 +322,27 @@ internal fun PatientFormDialog(
                     }
                     PatientFormSection {
                         AppSectionHeader(uiText(R.string.ui_patient_form_dialog_010))
-                        MultiValueEditor(
-                            label = uiText(R.string.ui_patient_form_dialog_011),
-                            items = treatmentItems,
-                            draft = treatmentDraft,
-                            onDraftChange = { treatmentDraft = it },
-                            onReplaceAll = { treatmentItems = parseFieldItems(it); treatmentDraft = "" },
-                            onEditItem = { index, value ->
-                                treatmentItems = treatmentItems.toMutableList().also { it[index] = value }
-                            },
-                            onMove = { from, to ->
-                                treatmentItems = reorder(treatmentItems, from, to)
-                            },
-                            onAdd = {
-                                val value = treatmentDraft.trim()
-                                if (value.isNotEmpty()) {
-                                    treatmentItems = treatmentItems + value
-                                    treatmentDraft = ""
-                                }
-                            },
-                            onRemove = { index ->
-                                treatmentItems = treatmentItems.filterIndexed { i, _ -> i != index }
-                            },
-                            onAddSeparator = { treatmentItems = treatmentItems + FIELD_SEPARATOR },
-                            onAddDate = null,
-                            textStyle = autoStyle,
+                        MultilineField(
+                            value = treatmentText, onValueChange = { treatmentText = it },
+                            label = uiText(R.string.ui_patient_form_dialog_011), textStyle = autoStyle,
                             isError = validationMessages.any { it.field == PatientFormField.TREATMENT },
                             errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.TREATMENT }?.message,
                             modifier = Modifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.TREATMENT))
                         )
                     }
                     PatientFormSection {
-                        MultiValueEditor(
-                            label = uiText(R.string.ui_patient_form_dialog_012),
-                            items = followUpItems,
-                            draft = followUpDraft,
-                            onDraftChange = { followUpDraft = it },
-                            onReplaceAll = { followUpItems = parseFieldItems(it); followUpDraft = "" },
-                            onEditItem = { index, value ->
-                                followUpItems = followUpItems.toMutableList().also { it[index] = value }
-                            },
-                            onMove = { from, to ->
-                                followUpItems = reorder(followUpItems, from, to)
-                            },
-                            onAdd = {
-                                followUpDraft.trim().takeIf { it.isNotEmpty() }?.let {
-                                    followUpItems = followUpItems + it
-                                    followUpDraft = ""
-                                }
-                            },
-                            onRemove = { index ->
-                                followUpItems = followUpItems.filterIndexed { i, _ -> i != index }
-                            },
-                            onAddSeparator = { followUpItems = followUpItems + FIELD_SEPARATOR },
-                            onAddDate = null,
-                            textStyle = autoStyle,
+                        MultilineField(
+                            value = followUpText, onValueChange = { followUpText = it },
+                            label = uiText(R.string.ui_patient_form_dialog_012), textStyle = autoStyle,
                             isError = validationMessages.any { it.field == PatientFormField.FOLLOW_UP },
                             errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.FOLLOW_UP }?.message,
                             modifier = Modifier.bringIntoViewRequester(fieldRequests.getValue(PatientFormField.FOLLOW_UP))
                         )
                     }
                     PatientFormSection {
-                        MultiValueEditor(
-                            label = uiText(R.string.ui_labs),
-                            items = labItems,
-                            draft = labDraft,
-                            onDraftChange = { labDraft = it },
-                            onReplaceAll = { labItems = parseFieldItems(it); labDraft = "" },
-                            onEditItem = { index, value ->
-                                labItems = labItems.toMutableList().also { it[index] = value }
-                            },
-                            onMove = { from, to ->
-                                labItems = reorder(labItems, from, to)
-                            },
-                            onAdd = {
-                                labDraft.trim().takeIf { it.isNotEmpty() }?.let {
-                                    labItems = labItems + it
-                                    labDraft = ""
-                                }
-                            },
-                            onRemove = { index ->
-                                labItems = labItems.filterIndexed { i, _ -> i != index }
-                            },
-                            onAddSeparator = { labItems = labItems + FIELD_SEPARATOR },
-                            onAddDate = { date ->
-                                labItems = labItems + dateMarkerFrom(date)
-                            },
-                            textStyle = autoStyle,
-                            isError = false
+                        MultilineField(
+                            value = labText, onValueChange = { labText = it },
+                            label = uiText(R.string.ui_labs), textStyle = autoStyle
                         )
                     }
                     PatientFormSection {
@@ -424,23 +356,9 @@ internal fun PatientFormDialog(
             },
             confirmButton = {
                 val submit: (Boolean) -> Unit = submit@{ advance ->
-                    val pendingTreatment = treatmentDraft.trim().takeIf { it.isNotEmpty() }
-                    val resolvedTreatments = treatmentItems + listOfNotNull(pendingTreatment)
-                    val treatmentPlan = resolvedTreatments
-                        .filter { it == FIELD_SEPARATOR || it.isNotBlank() }
-                        .joinToString("\n")
-
-                    val pendingFollowUp = followUpDraft.trim().takeIf { it.isNotEmpty() }
-                    val resolvedFollowUp = followUpItems + listOfNotNull(pendingFollowUp)
-                    val followUp = resolvedFollowUp
-                        .filter { it == FIELD_SEPARATOR || it.isNotBlank() }
-                        .joinToString("\n")
-
-                    val pendingLab = labDraft.trim().takeIf { it.isNotEmpty() }
-                    val resolvedLabs = labItems + listOfNotNull(pendingLab)
-                    val labs = resolvedLabs
-                        .filter { it == FIELD_SEPARATOR || it.isNotBlank() }
-                        .joinToString("\n")
+                    val treatmentPlan = treatmentText
+                    val followUp = followUpText
+                    val labs = labText
 
                     val errors = validatePatientForm(uiText, admittanceDate, today,
                         ageText, birthYear, currentYear, age, residentId, specialistId)
@@ -459,7 +377,7 @@ internal fun PatientFormDialog(
 
                     val patient = patientForSubmission(initial, admittanceNumber, admittanceDate,
                         gender, name, resolvedBirthDate, hasCompanion, diagnosisType, initialDiagnosis,
-                        treatmentPlan, followUp, labs, residentId, specialistId, resolvedBadges, tasks, isPriority)
+                        treatmentPlan, followUp, labs, residentId, specialistId, resolvedBadges, resolvedTasks, isPriority)
                     if (advance) onConfirmAndNext?.invoke(patient) else onConfirm(patient)
                 }
                 Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {

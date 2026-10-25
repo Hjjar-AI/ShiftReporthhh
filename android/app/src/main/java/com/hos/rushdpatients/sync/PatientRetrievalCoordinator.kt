@@ -57,11 +57,7 @@ internal class PatientRetrievalCoordinator(
 ) {
 
     suspend fun fetchLatestCsv(replaceLocal: Boolean = false, allowOlder: Boolean = false): Result<CsvFetchResult> = patientSyncMutex.withLock {
-        fetchCsv(previous = false, replaceLocal = replaceLocal, allowOlder = allowOlder)
-    }
-
-    suspend fun fetchPreviousCsv(): Result<CsvFetchResult> = patientSyncMutex.withLock {
-        fetchCsv(previous = true)
+        fetchCsv(replaceLocal = replaceLocal, allowOlder = allowOlder)
     }
 
     suspend fun describeLocalChanges(shiftId: String): HandoverChangeSummary =
@@ -80,10 +76,10 @@ internal class PatientRetrievalCoordinator(
             )
         }
 
-    private suspend fun fetchCsv(previous: Boolean, replaceLocal: Boolean = false, allowOlder: Boolean = false): Result<CsvFetchResult> =
+    private suspend fun fetchCsv(replaceLocal: Boolean = false, allowOlder: Boolean = false): Result<CsvFetchResult> =
         withContext(dispatchers.io) {
             try {
-                if (!previous && !replaceLocal) {
+                if (!replaceLocal) {
                     if (settingsRepository.getBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, false)) {
                         throw LocalPatientChangesPendingException()
                     }
@@ -91,59 +87,49 @@ internal class PatientRetrievalCoordinator(
                 val state = remoteState.readState()
                     ?: return@withContext Result.failure(IllegalStateException("لا يوجد ملف منشور بعد"))
                 if (allowOlder) doctorSync.requirePublishedAdmin(state)
-                val snapshot = if (previous) {
-                    state.previousCsvSnapshot()
-                } else {
-                    state.currentCsvSnapshot()
-                }
+                val snapshot = state.currentCsvSnapshot()
                 if (snapshot == null) {
-                    val message = if (previous) {
-                        "لا توجد نسخة سابقة محفوظة"
-                    } else {
-                        "لا يوجد ملف منشور بعد"
-                    }
+                    val message = "لا يوجد ملف منشور بعد"
                     return@withContext Result.failure(IllegalStateException(message))
                 }
-                if (!previous) {
-                    val lastKnownMessageId = maxOf(syncStateRepository.lastMessageId(SyncChannel.CSV) ?: 0L,
-                        settingsRepository.getLong("csv_known_message_high_water", 0L))
-                    if (!allowOlder && snapshot.messageId < lastKnownMessageId) throw OlderRemoteSnapshotException()
+                val lastKnownMessageId = maxOf(syncStateRepository.lastMessageId(SyncChannel.CSV) ?: 0L,
+                    settingsRepository.getLong("csv_known_message_high_water", 0L))
+                if (!allowOlder && snapshot.messageId < lastKnownMessageId) throw OlderRemoteSnapshotException()
+
+
+                val guardedShift = shiftRepository.getLatest()
+                val guardedPatients = guardedShift
+                    ?.let { patientRepository.getForShift(it.id) }
+                    .orEmpty()
+
+                val remote = telegram.getFile(snapshot.fileId)
+                val path = remote.filePath
+                    ?: return@withContext Result.failure(IllegalStateException("تعذر الحصول على مسار الملف"))
+
+                val local = File.createTempFile("remote_shift_", ".csv", context.cacheDir)
+                val parsedShifts = try {
+                    telegram.downloadFile(path, local)
+                    CsvBundleCodec.decode(local.readText(Charsets.UTF_8)).take(1)
+                } finally {
+                    local.delete()
                 }
 
-            val guardedShift = if (previous) null else shiftRepository.getLatest()
-            val guardedPatients = guardedShift
-                ?.let { patientRepository.getForShift(it.id) }
-                .orEmpty()
-
-            val remote = telegram.getFile(snapshot.fileId)
-            val path = remote.filePath
-                ?: return@withContext Result.failure(IllegalStateException("تعذر الحصول على مسار الملف"))
-
-            val local = File.createTempFile("remote_shift_", ".csv", context.cacheDir)
-            val parsedShifts = try {
-                telegram.downloadFile(path, local)
-                CsvBundleCodec.decode(local.readText(Charsets.UTF_8))
-            } finally {
-                local.delete()
-            }
-
-            val activeDoctors = doctorRepository.getAll()
-            val doctorsById = buildMap {
-                activeDoctors.forEach { doctor ->
-                    put(doctor.id, doctor)
-                    doctor.extraOptions.asSequence()
-                        .filter { it.startsWith("syncAlias:") }
-                        .map { it.removePrefix("syncAlias:") }
-                        .filter { it.isNotBlank() }
-                        .forEach { alias -> put(alias, doctor) }
+                val activeDoctors = doctorRepository.getAll()
+                val doctorsById = buildMap {
+                    activeDoctors.forEach { doctor ->
+                        put(doctor.id, doctor)
+                        doctor.extraOptions.asSequence()
+                            .filter { it.startsWith("syncAlias:") }
+                            .map { it.removePrefix("syncAlias:") }
+                            .filter { it.isNotBlank() }
+                            .forEach { alias -> put(alias, doctor) }
+                    }
                 }
-            }
-            val prepared = parsedShifts.map { parsed ->
-                prepareShift(parsed, activeDoctors, doctorsById)
-            }
-            val overrideActor = if (allowOlder) doctorSync.requirePublishedAdmin(requireNotNull(remoteState.readState())) else null
-            val applied = database.withTransaction {
-                if (!previous) {
+                val prepared = parsedShifts.map { parsed ->
+                    prepareShift(parsed, activeDoctors, doctorsById)
+                }
+                val overrideActor = if (allowOlder) doctorSync.requirePublishedAdmin(requireNotNull(remoteState.readState())) else null
+                val applied = database.withTransaction {
                     val currentShift = shiftRepository.getLatest()
                     val currentPatients = currentShift
                         ?.let { patientRepository.getForShift(it.id) }
@@ -158,44 +144,41 @@ internal class PatientRetrievalCoordinator(
                     ) {
                         "تغيرت البيانات المحلية أثناء التنزيل؛ أعد المزامنة لنشر التعديلات بأمان"
                     }
-                }
-                val beforeDownload = prepared.map { item ->
-                    shiftRepository.getByDate(item.parsed.shiftDate)?.let { shift ->
-                        ShiftCsvSnapshot(shift, patientRepository.getForShift(shift.id))
+
+                    val beforeDownload = prepared.map { item ->
+                        shiftRepository.getByDate(item.parsed.shiftDate)?.let { shift ->
+                            ShiftCsvSnapshot(shift, patientRepository.getForShift(shift.id))
+                        }
                     }
-                }
-                val downloaded = prepared.map { preparedShift ->
-                    applyPreparedShift(preparedShift).also { appliedShift ->
-                        // Restoring an older bundle must not redefine the last known current publication.
-                        if (!previous) {
+                    val downloaded = prepared.map { preparedShift ->
+                        applyPreparedShift(preparedShift).also { appliedShift ->
                             settingsRepository.put(AppConstants.SETTING_KNOWN_SHIFT_SNAPSHOT_PREFIX + appliedShift.shift.id,
                                 CsvCodec.encode(appliedShift.shift, appliedShift.patients))
                             settingsRepository.put(AppConstants.SETTING_PATIENT_PUBLISHED_AT_PREFIX + appliedShift.shift.id,
                                 snapshot.updatedAt.toString())
-                        }
-                        shiftRepository.updateCsvMessageId(appliedShift.shift.id, snapshot.messageId)
-                        settingsRepository.put(AppConstants.SETTING_PATIENT_DOWNLOAD_AT_PREFIX + appliedShift.shift.id,
-                            java.time.Instant.now().toEpochMilli().toString())
-                        settingsRepository.put(AppConstants.SETTING_PATIENT_DOWNLOAD_MESSAGE_PREFIX + appliedShift.shift.id,
-                            snapshot.messageId.toString())
-                    }
-                }
-                downloadUndo.record(beforeDownload, downloaded.map { it.shift.id })
-                val pending = shiftRepository.getRecent(12).any { localShift ->
-                    val rows = patientRepository.getForShift(localShift.id)
-                    val baseline = settingsRepository.get(AppConstants.SETTING_KNOWN_SHIFT_SNAPSHOT_PREFIX + localShift.id)
-                    if (baseline == null) (rows.isNotEmpty() || localShift.doctorIds.isNotEmpty())
-                    else KnownShiftSnapshot.compare(localShift, rows, baseline) == KnownShiftState.CHANGED
-                }
-                settingsRepository.putBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, pending)
-                downloaded
-            }
-            settingsRepository.pruneShiftSyncCache(shiftRepository.getRecent(12).map { it.id }.toSet() + applied.map { it.shift.id })
-            val latest = applied.first()
-            val inserted = applied.sumOf { it.inserted }
-            val updated = applied.sumOf { it.updated }
 
-            if (!previous) {
+                            shiftRepository.updateCsvMessageId(appliedShift.shift.id, snapshot.messageId)
+                            settingsRepository.put(AppConstants.SETTING_PATIENT_DOWNLOAD_AT_PREFIX + appliedShift.shift.id,
+                                java.time.Instant.now().toEpochMilli().toString())
+                            settingsRepository.put(AppConstants.SETTING_PATIENT_DOWNLOAD_MESSAGE_PREFIX + appliedShift.shift.id,
+                                snapshot.messageId.toString())
+                        }
+                    }
+                    downloadUndo.record(beforeDownload, downloaded.map { it.shift.id })
+                    val pending = shiftRepository.getRecent(12).any { localShift ->
+                        val rows = patientRepository.getForShift(localShift.id)
+                        val baseline = settingsRepository.get(AppConstants.SETTING_KNOWN_SHIFT_SNAPSHOT_PREFIX + localShift.id)
+                        if (baseline == null) (rows.isNotEmpty() || localShift.doctorIds.isNotEmpty())
+                        else KnownShiftSnapshot.compare(localShift, rows, baseline) == KnownShiftState.CHANGED
+                    }
+                    settingsRepository.putBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, pending)
+                    downloaded
+                }
+                settingsRepository.pruneShiftSyncCache(shiftRepository.getRecent(12).map { it.id }.toSet() + applied.map { it.shift.id })
+                val latest = applied.first()
+                val inserted = applied.sumOf { it.inserted }
+                val updated = applied.sumOf { it.updated }
+
                 // A one-time older-copy override must not erase the protection's high watermark.
                 settingsRepository.putLong("csv_known_message_high_water", maxOf(snapshot.messageId,
                     syncStateRepository.lastMessageId(SyncChannel.CSV) ?: 0L,
@@ -206,14 +189,14 @@ internal class PatientRetrievalCoordinator(
                     messageId = snapshot.messageId,
                     fileId = snapshot.fileId
                 )
-            }
-            auditRepository.record(
-                actorDoctorId = overrideActor?.id,
-                actorName = overrideActor?.fullName,
-                action = AppConstants.AUDIT_CSV_DOWNLOADED,
-                detail = "shifts=${applied.size} latest=${latest.shift.date} " +
-                    "source=${if (previous) "previous" else "latest"} forcedOlder=$allowOlder inserted=$inserted updated=$updated"
-            )
+
+                auditRepository.record(
+                    actorDoctorId = overrideActor?.id,
+                    actorName = overrideActor?.fullName,
+                    action = AppConstants.AUDIT_CSV_DOWNLOADED,
+                    detail = "shifts=${applied.size} latest=${latest.shift.date} " +
+                        "source=latest forcedOlder=$allowOlder inserted=$inserted updated=$updated"
+                )
 
                 Result.success(CsvFetchResult(latest.shift.id, inserted, updated))
             } catch (e: CancellationException) {

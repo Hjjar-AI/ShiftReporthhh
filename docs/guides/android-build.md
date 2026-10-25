@@ -36,15 +36,7 @@ Shared-root writability does not imply access to another account’s daemon regi
 
 ### Optional read-only dependency snapshot
 
-For two accounts, prefer private writable user homes with a published read-only
-snapshot. This is an **optional setup**, not the launcher's current automatic mode.
-Gradle's standard `GRADLE_RO_DEP_CACHE` points to the parent of `modules-2`; ShiftReport
-has no `gradle.readOnlyCache` local-property alias. [Official cache guidance](https://docs.gradle.org/current/userguide/dependency_caching.html).
-
-A maintainer prepares a shared parent outside private homes, accessible to the trusted
-group. From a quiescent compatible cache, copy artifacts **and metadata**, excluding
-locks/GC state; Gradle 8.7 uses `metadata-2.106`. Coordinate writers without stopping
-unrelated builds. Example publisher recipe; adapt paths/group and use a fresh name:
+Optional multi-account setup, not launcher default: private writable homes plus read-only snapshot. `GRADLE_RO_DEP_CACHE` points above `modules-2`; no `gradle.readOnlyCache` alias. Copy quiescent compatible artifacts **and metadata** (`metadata-2.106` for8.7), excluding locks/GC. Trusted group/outside private homes, fresh destination; coordinate without stopping others. [Cache guidance](https://docs.gradle.org/current/userguide/dependency_caching.html).
 
 ```bash
 # Parent must already be writable by the publisher and traversable by android-dev.
@@ -71,9 +63,7 @@ staging.rename(target)
 PY
 ```
 
-Publish only when copying/access setup succeeds; retain failed staging for diagnosis.
-Check inherited ACLs so only trusted users can read and consumers cannot write.
-In **each account's login**, select and inspect the snapshot before starting Studio:
+Publish after successful copy/access setup; retain failed staging. ACLs: trusted readers, no consumer writes. In each account's fresh login before Studio:
 
 ```bash
 export GRADLE_USER_HOME="$HOME/.gradle-shiftreport"

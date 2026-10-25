@@ -11,7 +11,7 @@ from desktop_tasks import task_text
 from desktop_model import LABELS, GENDER, YES, DIAGNOSIS, BADGE_PRIORITY, badges_decode, badges_encode, validate_patient
 from desktop_form_controls import button, dialog_actions, section_heading, entry, combo, modal, guarded
 from desktop_doctor_picker import doctor_picker
-from desktop_task_editor import edit_task
+from desktop_task_editor import inline_tasks
 
 
 def edit_patient(owner, source, is_new=False, allow_next=False):
@@ -101,28 +101,7 @@ def edit_patient(owner, source, is_new=False, allow_next=False):
         position.bind('<KeyRelease>',update_insertion_title,add='+')
         position.bind('<FocusOut>',update_insertion_title,add='+')
     task_area = areas['المهام']; badge_area = areas['الشارات']
-    def refresh_tasks():
-        for child in task_area.winfo_children(): child.destroy()
-        button(task_area, 'إضافة مهمة', lambda: open_task(None))
-        ctk.CTkLabel(task_area, text='الإتمام ينسب إلى الطبيب المسجل محلياً عند حفظ المريض؛ النشر يحفظ الهوية والوقت', wraplength=440).pack(padx=10,pady=4)
-        for index, task in enumerate(tasks):
-            frame = ctk.CTkFrame(task_area); frame.pack(fill='x', padx=6, pady=4)
-            ctk.CTkLabel(frame, text=task_text(task, owner.client.doctors, owner.client.zone),
-                         anchor='e', justify='right', wraplength=440).pack(fill='x',padx=8)
-            button(frame, 'تحرير المهمة / الموعد / المسؤول', lambda i=index: open_task(i))
-            button(frame, 'حذف المهمة', lambda i=index: delete_task(i))
-    def open_task(index):
-        value = tasks[index] if index is not None else {'id':str(uuid.uuid4()), 'description':'', 'ownerDoctorId':None, 'ownerName':None,
-                 'priority':'NORMAL', 'done':False, 'dueAtEpochMillis':None, 'dueShiftDate':None,
-                 'completedByDoctorId':None, 'completedByName':None, 'completedAtEpochMillis':None}
-        def save_task(task):
-            if index is None: tasks.append(task)
-            else: tasks[index] = task
-            refresh_tasks()
-        edit_task(owner,window,value,save_task)
-    def delete_task(index):
-        if messagebox.askyesno('حذف مهمة','هل تؤكد حذف هذه المهمة من المسودة؟',default='no',parent=window):
-            tasks.pop(index); refresh_tasks()
+    read_task_draft = inline_tasks(owner, task_area, tasks)
     def refresh_badges():
         for child in badge_area.winfo_children(): child.destroy()
         for index,(text,level) in enumerate(badges):
@@ -138,7 +117,7 @@ def edit_patient(owner, source, is_new=False, allow_next=False):
     def remove_badge(index):
         if messagebox.askyesno('حذف شارة','هل تؤكد حذف الشارة؟',default='no',parent=window):
             badges.pop(index); refresh_badges()
-    refresh_tasks(); refresh_badges()
+    refresh_badges()
     saving = [False]
     draft_timer = [None]
     last_form = [None]
@@ -147,7 +126,7 @@ def edit_patient(owner, source, is_new=False, allow_next=False):
         for key,widget in widgets.items():
             result[key] = widget.get('1.0','end-1c') if key in ['initialDiagnosis','treatmentPlan','followUp','labs'] else widget.get().strip()
         for key,getter in getters.items(): result[key] = getter()
-        result['tasksJson'] = packed(tasks)
+        result['tasksJson'] = packed(read_task_draft())
         result['warningDetails'] = badges_encode(badges)
         result['warningFlags'] = '|'.join(level for _,level in badges if level!='none')
         return result

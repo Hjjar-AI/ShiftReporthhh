@@ -63,8 +63,6 @@ class SyncService @Inject constructor(
     suspend fun fetchLatestCsv(replaceLocal: Boolean = false, allowOlder: Boolean = false): Result<CsvFetchResult> =
         retrieval.fetchLatestCsv(replaceLocal, allowOlder)
 
-    suspend fun fetchPreviousCsv(): Result<CsvFetchResult> = retrieval.fetchPreviousCsv()
-
     suspend fun describeLocalChanges(shiftId: String): HandoverChangeSummary = retrieval.describeLocalChanges(shiftId)
 
     suspend fun prepareCsvPublication(shiftId: String, forceLocal: Boolean = false, reviewed: com.hos.rushdpatients.domain.report.BuiltReport? = null): CsvPublicationReview = publication.prepareCsvPublication(shiftId, forceLocal, reviewed)

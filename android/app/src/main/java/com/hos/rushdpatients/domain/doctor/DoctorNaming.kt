@@ -24,13 +24,8 @@ object DoctorNaming {
     fun defaultAdminTitle(doctor: Doctor): String =
         ADMIN_TITLE + feminize(doctor)
 
-    /**
-     * Custom title if set, otherwise the default shift-doctor title.
-     */
-    fun displayTitle(doctor: Doctor): String {
-        val custom = doctor.customTitle
-        return if (custom.isNullOrBlank()) defaultShiftTitle(doctor) else custom
-    }
+    /** Imported custom-title columns remain compatible storage only. */
+    fun displayTitle(doctor: Doctor): String = defaultShiftTitle(doctor)
 
     /**
      * Build "د. First Last" from first and last name parts.

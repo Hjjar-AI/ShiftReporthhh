@@ -1,18 +1,14 @@
 """Data actions; the Window remains the single workspace/state owner."""
 from __future__ import annotations
 import copy
-from datetime import datetime
 from pathlib import Path
 import time
 from tkinter import filedialog
 from desktop_widgets import messagebox, simpledialog, set_readonly_text
-import uuid
 import desktop_widgets as ctk
-from desktop_protocol import BridgeError, ZoneInfo, current_date, doctor_pointer, fingerprint, pointer, require
-from desktop_model import carry_forward
+from desktop_protocol import BridgeError, fingerprint, require
 from desktop_forms import dialog_actions, modal
 from desktop_reports import publication_review
-from desktop_sort import ordered
 from desktop_cards import PatientCards
 from desktop_backup import restore_dialog
 
@@ -22,13 +18,9 @@ def download(owner):
     owner.store.require_downloadable()
     snapshot=owner.io(owner.client.fetch); owner.io(lambda:owner.client.authorize(snapshot['doctors']))
     shifts=sorted(snapshot['bundle'],key=lambda s:s['meta']['shiftDate'],reverse=True)
-    today=current_date(owner.client.zone)
-    if not any(s['meta']['shiftDate']==today for s in shifts):
-        shifts.insert(0,{'meta':{'schemaVersion':'7','shiftDate':today,'shiftId':str(uuid.uuid4()),'doctors':''},'patients':[]})
-    choice=owner.choose('المناوبة المطلوبة',[s['meta']['shiftDate']+' — '+('مناوبة اليوم فارغة' if s['meta']['shiftDate']==today and not s['patients'] else str(len(s['patients']))+' مريض') for s in shifts])
-    if choice is None:return
+    require(shifts,'لا توجد بيانات مرضى منشورة')
     if owner.store.state['draft'] is not None and not messagebox.askyesno('جلب نسخة كاملة','هل تستبدل العرض المحلي بالنسخة المنشورة الكاملة؟ تحفظ نسخة استرداد مشفرة. التعديلات المحلية المحفوظة يجب نشرها أولاً.',default='no'):return
-    selected=copy.deepcopy(shifts[choice])
+    selected=copy.deepcopy(shifts[0])
     previous=owner.client.baseline
     owner.client.baseline=snapshot
     try:
@@ -37,60 +29,6 @@ def download(owner):
         owner.client.baseline=previous; raise
     owner.client.doctors=snapshot['doctors']; owner.set_doctors(); owner.plan=None
     owner.status.set('جلبت '+selected['meta']['shiftDate']+' — تحفظ التعديلات محليا حتى مراجعتها ونشرها.')
-
-
-def start_shift(owner):
-    owner.ready()
-    expected=fingerprint(owner.store.state.get('draft'))
-    snapshot=owner.io(owner.client.fetch)
-    owner.io(lambda:owner.client.authorize(snapshot['doctors']))
-    today=current_date(owner.client.zone)
-    require(not any(s['meta']['shiftDate']==today and s['patients'] for s in snapshot['bundle']),
-            'مناوبة اليوم المنشورة تحتوي مرضى؛ اجلبها بدلاً من نسخ السابقة')
-    local=owner.store.state['draft']
-    require(local is None or local['meta']['shiftDate']!=today or not local['patients'],
-            'مناوبة اليوم المحلية تحتوي مرضى؛ لن تُستبدل بنسخ السابقة')
-    previous=[s for s in snapshot['bundle'] if s['meta']['shiftDate']<today]
-    require(previous,'لا توجد مناوبة سابقة لنسخها')
-    source=max(previous,key=lambda s:s['meta']['shiftDate'])
-    checked_at=datetime.now(ZoneInfo(owner.client.zone)).strftime('%Y-%m-%d %H:%M %Z')
-    source_info='المصدر: مناوبة '+source['meta']['shiftDate']+' من حزمة تليجرام.\nتم جلب الحزمة لهذه العملية في '+checked_at+'\nعدد المرضى: '+str(len(source['patients']))
-    require(source['patients'],'المناوبة السابقة فارغة؛ لا يوجد مرضى لنسخهم')
-    keep=owner.choose('بدء مناوبة جديدة — نسخ جميع المرضى والمهام غير المكتملة من '+source['meta']['shiftDate'],
-                     ['نسخ الكل وإزالة مسؤوليات الأطباء ومالكي المهام','نسخ الكل والاحتفاظ بالمسؤوليات'])
-    if keep is None:return
-    if not messagebox.askyesno('تأكيد بدء مناوبة جديدة',
-            source_info+'\nستُنشأ سجلات جديدة لجميع مرضى المناوبة السابقة مع المهام غير المكتملة فقط.\nهذا ليس جلباً لبيانات اليوم. تحفظ محلياً ثم تراجع وتنشر.\nهل تتابع؟',default='no'):return
-    recovery_path=None
-    if owner.store.has_pending_changes():
-        if not messagebox.askyesno('تعديلات محلية غير منشورة',
-                'توجد تعديلات محلية لم تُنشر. لن تُنقل إلى المناوبة الجديدة المنسوخة من تليجرام.\n'
-                'يجب حفظها في ملف استرداد مشفر مستقل قبل المتابعة. إلغاء يحافظ على العرض الحالي.\n'
-                'هل تريد حفظ ملف الاسترداد والمتابعة؟',default='no'):return
-        recovery_path=filedialog.asksaveasfilename(title='حفظ التعديلات غير المنشورة قبل بدء المناوبة — اختر ملفاً جديداً',
-                defaultextension='.srdraft',filetypes=[('Desktop recovery','*.srdraft')])
-        if not recovery_path:return
-    selected=carry_forward(source,owner.client.zone,bool(keep))
-    actor=owner.io(lambda:owner.client.authorize(snapshot['doctors']))
-    existing=next((s for s in snapshot['bundle'] if s['meta']['shiftDate']==today),None)
-    if existing:selected['meta']=copy.deepcopy(existing['meta'])
-    elif local and local['meta']['shiftDate']==today:selected['meta']=copy.deepcopy(local['meta'])
-    selected['meta']['sortSpec']='{"levels":[]}'
-    ordered(selected,snapshot['doctors'],owner.client.zone)
-    latest=owner.io(owner.client.fetch)
-    owner.io(lambda:owner.client.authorize(latest['doctors']))
-    require(pointer(latest['state'])==pointer(snapshot['state']) and
-            doctor_pointer(latest['state'])==doctor_pointer(snapshot['state']),
-            'وصلت نسخة جديدة أثناء التأكيد؛ أعد بدء المناوبة')
-    at=str(int(time.time()*1000))
-    for row in selected['patients']:
-        row.update(lastEditedByDoctorId='',lastEditedBy='',updatedAt='0',revision='1')
-    old=owner.client.baseline;owner.client.baseline=snapshot
-    try:owner.io(lambda:owner.store.start_shift(owner.client,selected,expected,recovery_path))
-    except Exception:
-        owner.client.baseline=old;raise
-    owner.client.doctors=snapshot['doctors'];owner.set_doctors();owner.plan=None;owner.raw_draft=None
-    owner.status.set('نُسخت المناوبة كاملة محلياً؛ حدد أطباء المناوبة ثم راجع وانشر. المهام المكتملة بقيت في السابقة.')
 
 
 def undo_download(owner):
@@ -203,11 +141,5 @@ def resolve(owner):
             messagebox.showinfo('تأكيد النشر','سجل الفهرس المثبت يؤكد نشر هذه النسخة؛ لا تكررها.');return
     confirmation=messagebox.askyesnocancel('تحقق يدوي','الحسم للمرسل أو لمدير نشط ويتطلب التحقق من الهوية عبر تليجرام.\nافحص العملية المختارة على تليجرام أولا. في النشر تحقق من الفهرس والمرضى، وليس مجرد وجود ملف في موضوع CSV. غيابها عن السجل الحالي ليس إثبات عدم وصولها.\nنعم: تؤكد أنها لم تصل وتسمح بمحاولتها.\nلا: وصلت أو لا تريد تكرارها.\nإلغاء: إبقاء الحظر.',default='cancel')
     if confirmation is None:return
-    if row[0]=='announcement' and not confirmation:
-        value=simpledialog.askstring('رسالة الإعلان','أدخل معرّف رسالة الإعلان الذي تحققت منه في تليجرام. لا تُستبدل إحالة أحدث.',parent=owner.root)
-        if value is None:return
-        require(value.strip().isdecimal() and int(value)>0,'أدخل معرّف رسالة موجباً')
-        from desktop_announcements import Announcements
-        owner.io(lambda:Announcements(owner.client,owner.store).resolve_received(index,int(value)))
-    else:owner.io(lambda:owner.store.resolve_unknown(index,confirmation,owner.client))
+    owner.io(lambda:owner.store.resolve_unknown(index,confirmation,owner.client))
 

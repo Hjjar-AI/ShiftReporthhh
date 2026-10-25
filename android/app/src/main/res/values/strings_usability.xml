@@ -52,4 +52,19 @@
     <string name="report_save_supervisor_pdfs">حفظ PDF مستقل لكل مشرف</string>
     <string name="sort_preset_name">حسب الاسم</string>
     <string name="sort_preset_admission">مدة القبول — الأطول أولاً</string>
+    <string name="report_export_menu">تصدير</string>
+    <string name="report_save_reviewed_pdf">حفظ PDF التقرير العام المعاين</string>
+    <string name="report_share_reviewed_pdf">مشاركة PDF التقرير العام المعاين</string>
+    <string name="report_export_preview_hint">لحفظ التقرير العام أو مشاركته، اختر PDF وافتح معاينته أولاً. ملفات المشرفين وتوزيع الأسماء متاحة من «تصدير».</string>
+    <string name="settings_advanced_admin">إدارة متقدمة</string>
+    <string name="task_remove_named">حذف المهمة: %1$s</string>
+    <string name="ui_back_to_top">العودة إلى أعلى القائمة</string>
+    <string name="ui_progress_prepare_publication">جار تجهيز مراجعة النشر…</string>
+    <string name="ui_progress_publish_patients">جار رفع البيانات المراجعة للشبكة…</string>
+    <string name="ui_progress_fetch_patients">جار جلب قائمة المرضى والأطباء…</string>
+    <string name="ui_progress_undo_fetch">جار استعادة البيانات السابقة للجلب…</string>
+    <string name="ui_progress_export_csv">جار تصدير بيانات القائمة…</string>
+    <string name="ui_progress_prepare_preview">جار تجهيز معاينة التقرير…</string>
+    <string name="ui_ward_refresh_retained">تعذر تحديث العرض: %1$s\nالبيانات المعروضة محفوظة سابقاً. أعد المحاولة قبل التعديل.</string>
+    <string name="ui_ward_refresh_before_edit">أعد تحميل بيانات المناوبة قبل التعديل.</string>
 </resources>

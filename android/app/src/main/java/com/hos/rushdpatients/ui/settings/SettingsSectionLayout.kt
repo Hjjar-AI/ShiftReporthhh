@@ -48,7 +48,8 @@ internal fun SettingsSection(
     content: @Composable ColumnScope.() -> Unit
 ) {
     AppCard(modifier = Modifier.fillMaxWidth().onGloballyPositioned { onPositioned(it.positionInParent().y.roundToInt()) }) {
-        Column(Modifier.fillMaxWidth().padding(UiPadding.card), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
+        Column(Modifier.fillMaxWidth().padding(com.hos.rushdpatients.ui.theme.uiContentPadding()),
+            verticalArrangement = Arrangement.spacedBy(com.hos.rushdpatients.ui.theme.uiContentGap())) {
             if (showHeader) com.hos.rushdpatients.ui.components.AppSectionHeader(title = title,
                 expanded = if (onToggle == null) null else expanded, onToggle = onToggle, summary = if (expanded) null else summary)
             if (expanded) {
@@ -123,7 +124,6 @@ internal enum class SettingsSectionId(
     val adminOnly: Boolean = false
 ) {
     APPEARANCE(R.string.ui_demo_secondary_screens_014, SettingsWorkspace.APPEARANCE),
-    WORKFLOW(R.string.ui_settings_section_layout_029, SettingsWorkspace.APPEARANCE),
     REPORT(R.string.ui_settings_section_layout_030, SettingsWorkspace.REPORTS),
     SYNC(R.string.ui_sync_center_patients, SettingsWorkspace.DATA),
     DOCTORS(R.string.ui_sync_center_doctors, SettingsWorkspace.DATA),
@@ -132,7 +132,7 @@ internal enum class SettingsSectionId(
     CONNECTION(R.string.ui_ward_drawer_019, SettingsWorkspace.PROJECT),
     INVITATIONS(R.string.ui_ward_drawer_022, SettingsWorkspace.PROJECT, true),
     DESTINATIONS(R.string.ui_ward_drawer_021, SettingsWorkspace.PROJECT, true),
-    RESET(R.string.ui_ward_drawer_025, SettingsWorkspace.DATA, true),
+    RESET(R.string.settings_advanced_admin, SettingsWorkspace.DATA, true),
     SECURITY(R.string.ui_settings_section_layout_032, SettingsWorkspace.SECURITY),
     STORAGE(R.string.ui_settings_section_layout_033, SettingsWorkspace.DIAGNOSTICS);
 
@@ -141,8 +141,6 @@ internal enum class SettingsSectionId(
 
 internal fun SettingsSectionId.summary(uiText: UiStrings, state: SettingsUiState): String = when (this) {
     SettingsSectionId.APPEARANCE -> uiText(R.string.ui_settings_section_layout_005, state.appearance.arabicLabel(uiText), state.appTheme.arabicLabel(uiText), state.fontScale.arabicLabel(uiText))
-    SettingsSectionId.WORKFLOW -> uiText(R.string.ui_settings_section_layout_012) +
-        (if (state.saveAndNext) uiText(R.string.ui_settings_section_layout_013) else uiText(R.string.ui_settings_section_layout_014))
     SettingsSectionId.REPORT -> if (state.reportAsPdf) "PDF · ${state.pdfStyle.uiLabel(uiText)}" else uiText(R.string.ui_settings_section_layout_016)
     SettingsSectionId.SYNC -> syncCenterSummary(uiText, state.patientsPending, state.lastCsvSync)
     SettingsSectionId.DOCTORS -> syncCenterSummary(uiText, state.doctorsPending, state.lastDoctorsSync)

@@ -5,7 +5,7 @@ from desktop_model import patient_name, DIAGNOSIS, GENDER, badges_decode
 from desktop_protocol import require
 from desktop_tasks import read_tasks, ordered_for_display, task_text
 
-PAPERS = {'A4': (595, 842), 'Letter': (612, 792), 'A5': (420, 595), 'A3': (842, 1191)}
+PAPERS = {'A4': (595, 842), 'A5': (420, 595)}
 DEFAULT_OPTIONS = dict(layout='table', paper='A4', orientation='portrait', color='teal', dark=False,
                        separate=False, ward='', rule_weight='medium', rule_contrast='medium', row_shading='auto')
 
@@ -21,6 +21,7 @@ PRESENTATION_PRESETS = {
 
 def normalize_options(options=None):
     result = dict(DEFAULT_OPTIONS, **(options or {}))
+    if result['paper'] in {'A3','Letter'}:result['paper']='A4'
     if result['layout']=='workbook':result['layout']='table'
     require(result['layout'] in {'table','cards','paragraphs'} and result['paper'] in PAPERS and
             result['orientation'] in {'portrait','landscape'} and result['color'] in
@@ -28,8 +29,8 @@ def normalize_options(options=None):
     require(type(result['dark']) is bool and type(result['separate']) is bool, 'خيارات PDF غير صالحة')
     require(result['rule_weight'] in RULE_WEIGHTS and result['rule_contrast'] in RULE_CONTRASTS and
             result['row_shading'] in {'auto','zebra','none'}, 'خيارات فواصل PDF غير صالحة')
-    # Legacy options remain readable; separator appearance and split-export preference are retired.
-    result.update(rule_weight='medium', rule_contrast='medium', separate=False)
+    # Legacy overrides remain readable; PDFs are portrait/light with fixed separators.
+    result.update(rule_weight='medium', rule_contrast='medium', separate=False, orientation='portrait', dark=False)
     return result
 
 
@@ -61,15 +62,11 @@ def row_backgrounds(patients, colors):
 def palette(options):
     # Same colors and group sequence as Android PdfPalette.resolve.
     options=normalize_options(options)
-    rules=dict(rule=RULE_CONTRASTS[options['rule_contrast']][int(options['dark'])],
+    rules=dict(rule=RULE_CONTRASTS[options['rule_contrast']][0],
                rule_width=RULE_WEIGHTS[options['rule_weight']],shading=options['row_shading'])
     title, header = {'teal':('#0D5663','#146474'), 'blue':('#123F70','#174A7E'),
                      'green':('#214D39','#285943'), 'purple':('#493269','#563D7C'),
                      'pastel':('#8F2450','#4E568F')}[options['color']]
-    if options['dark']:
-        return dict(title=title, header=header, summary='#272C31', page='#202428', text='#F7F9FA',
-                    border='#475569', zebra='#2B3137', cream='#272C31',
-                    groups=['#304850','#344A40','#4A4632','#4D3936','#3D3E52'], **rules)
     groups = ['#CFE8F0','#D8EEE2','#F0F0D2','#FAE3DC','#E0E2F4']
     if options['color'] == 'pastel':
         groups = ['#FFADAD','#FFD6A5','#FDFFB6','#CAFFBF','#9BF6FF','#A0C4FF','#BDB2FF','#FFC6FF','#FFFFFC']

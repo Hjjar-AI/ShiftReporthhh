@@ -107,7 +107,9 @@ fun SettingsScreen(
     val canManageProject = isAdmin && state.isAdmin
     val context = LocalContext.current
     val snackbar = remember { SnackbarHostState() }
-    val settingsScroll = rememberScrollState()
+    val settingsScroll = rememberSaveable(workspace.canonical(), saver = androidx.compose.foundation.ScrollState.Saver) {
+        androidx.compose.foundation.ScrollState(0)
+    }
     val scrollToSection = com.hos.rushdpatients.ui.components.rememberUiScrollTo(settingsScroll)
     val sectionOffsets = remember { mutableStateMapOf<String, Int>() }
     var searchVisible by rememberSaveable(workspace) { mutableStateOf(false) }
@@ -181,7 +183,8 @@ fun SettingsScreen(
     var pendingImportUri by remember { mutableStateOf<Uri?>(null) }
     var pendingRestorePassword by remember { mutableStateOf("") }
     var confirmBackupRestore by remember { mutableStateOf(false) }
-    var advancedPdf by rememberSaveable { mutableStateOf(false) }
+    var advancedAdministration by rememberSaveable(workspace.canonical()) { mutableStateOf(false) }
+    var advancedPdf by rememberSaveable(workspace.canonical()) { mutableStateOf(false) }
     var provisioningDialog by remember(canManageProject) { mutableStateOf(false) }
     var provisioningPassphrase by remember(canManageProject) { mutableStateOf("") }
 
@@ -335,10 +338,10 @@ fun SettingsScreen(
                 sections.forEach { section ->
                     SettingsSection(
                         title = section.title(uiText),
-                        showHeader = sections.size > 1,
+                        showHeader = sections.size > 1 || section == SettingsSectionId.RESET,
                         summary = section.summary(uiText, state),
-                        expanded = true,
-                        onToggle = null,
+                        expanded = section != SettingsSectionId.RESET || advancedAdministration,
+                        onToggle = if (section == SettingsSectionId.RESET) ({ advancedAdministration = !advancedAdministration }) else null,
                         onPositioned = { sectionOffsets[section.title(uiText)] = it }
                     ) {
                         when (section) {
@@ -349,7 +352,6 @@ fun SettingsScreen(
                                 onUiPreferences = viewModel::setUiPreferences,
                                 onFont = viewModel::setFontScale
                             )
-                            SettingsSectionId.WORKFLOW -> SettingsWorkflowContent(state, viewModel)
                             SettingsSectionId.REPORT -> SettingsReportContent(state, viewModel, advancedPdf, { advancedPdf = !advancedPdf })
                             SettingsSectionId.SYNC -> SettingsSyncContent(
                                 state, viewModel, showRecovery, { showRecovery = !showRecovery },
@@ -389,8 +391,8 @@ fun SettingsScreen(
         if (searchVisible) SettingsSearchPanel(searchableSections,
             onOpen = { destination ->
                 searchVisible = false
-                if (destination == workspace) settingsScope.launch { scrollToSection(0) }
-                else onOpenWorkspace(destination)
+                // Closing search on the current workspace must retain the reading position.
+                if (destination.canonical() != selectedWorkspace) onOpenWorkspace(destination)
             }, modifier = Modifier.fillMaxSize())
         }
     }

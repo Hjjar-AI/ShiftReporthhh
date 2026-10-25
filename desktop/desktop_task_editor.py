@@ -1,39 +1,58 @@
-"""Task editor; shared draft and callbacks remain caller-owned."""
+"""Inline checklist values stay inside the patient form until its Save."""
 from __future__ import annotations
 import copy
-from datetime import datetime
 import tkinter as tk
+import uuid
 import desktop_widgets as ctk
-from desktop_protocol import ZoneInfo
-from desktop_model import TASK_PRIORITY
-from desktop_form_controls import dialog_actions, section_heading, discard_guard, entry, combo, guarded
-from desktop_doctor_picker import doctor_picker
+from desktop_form_controls import button, entry
 
 
-def edit_task(owner, parent, task, save):
-    window = ctk.CTkToplevel(parent); window.title('المهمة')
-    window.geometry('660x{}'.format(min(650,max(430,owner.root.winfo_screenheight()-100))))
-    window.minsize(580,430)
-    window.transient(parent); window.grab_set()
-    controls = ctk.CTkFrame(window); controls.pack(side='bottom', fill='x')
-    area = ctk.CTkScrollableFrame(window); area.pack(fill='both', expand=True)
-    description = entry(area, 'وصف المهمة', task.get('description', ''), True)
-    done = combo(area, 'مكتملة', {False:'لا', True:'نعم'}, bool(task.get('done')))
-    ctk.CTkLabel(area,text='اعتماد المهمة يضيفها إلى المسودة؛ اضغط حفظ في صفحة المريض لحفظها.',anchor='e',justify='right',wraplength=540).pack(fill='x',padx=10,pady=4)
-    def draft_values():
-        return (description.get('1.0','end-1c'), done())
-    initial_values=draft_values()
-    cancel=discard_guard(window,lambda:draft_values()!=initial_values,
-        'لم تُعتمد تعديلات المهمة في مسودة المريض. هل تريد تجاهلها؟')
-    def commit():
-        result = copy.deepcopy(task)
-        result.update(description=description.get('1.0','end-1c').strip(), done=done())
-        if not result['done']:
-            result.update(completedByDoctorId=None, completedByName=None, completedAtEpochMillis=None)
-        from desktop_tasks import validate as validate_tasks
-        validate_tasks([result], require_completion=False)
-        save(result); window.destroy(); parent.grab_set()
-    dialog_actions(controls,primary=('اعتماد المهمة في المسودة',guarded(commit)),cancel=('إلغاء',cancel))
-    owner.root.wait_window(window)
-    if parent.winfo_exists(): parent.grab_set()
+def inline_tasks(owner, parent, tasks):
+    rows = ctk.CTkFrame(parent); rows.pack(fill='x')
+    new_text = entry(parent, 'مهمة جديدة', '', True)
+    widgets = {}
+    new_id = [str(uuid.uuid4())]
 
+    def collect_existing():
+        for task in tasks:
+            text, done = widgets[task['id']]
+            completed = bool(done.get())
+            if completed != bool(task.get('done')):
+                task.update(completedByDoctorId=None, completedByName=None, completedAtEpochMillis=None)
+            task.update(description=text.get('1.0', 'end-1c'), done=completed)
+
+    def read():
+        collect_existing()
+        result = copy.deepcopy(tasks)
+        description = new_text.get('1.0', 'end-1c')
+        if description.strip():
+            result.append(dict(id=new_id[0], description=description, done=False))
+        return result
+
+    def remove(task_id):
+        collect_existing()
+        tasks[:] = [task for task in tasks if task['id'] != task_id]
+        refresh()
+
+    def refresh():
+        for child in rows.winfo_children():child.destroy()
+        widgets.clear()
+        for task in tasks:
+            frame = ctk.CTkFrame(rows); frame.pack(fill='x', padx=6, pady=4)
+            done = tk.BooleanVar(value=bool(task.get('done')))
+            ctk.CTkCheckBox(frame, text='مكتملة', variable=done).pack(anchor='e', padx=10, pady=4)
+            text = entry(frame, 'وصف المهمة', task.get('description', ''), True)
+            widgets[task['id']] = (text, done)
+            button(frame, 'حذف المهمة', lambda key=task['id']:remove(key))
+
+    def add():
+        if not new_text.get('1.0', 'end-1c').strip():return
+        tasks[:] = read()
+        new_text.delete('1.0', 'end')
+        new_id[0] = str(uuid.uuid4())
+        refresh()
+
+    button(parent, 'إضافة مهمة', add)
+    ctk.CTkLabel(parent, text='تُحفظ المهام مع حفظ المريض.', anchor='e').pack(fill='x', padx=10, pady=4)
+    refresh()
+    return read

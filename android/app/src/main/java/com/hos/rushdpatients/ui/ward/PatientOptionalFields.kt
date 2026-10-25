@@ -18,7 +18,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
 import com.hos.rushdpatients.R
-import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.data.model.PatientBadge
 import com.hos.rushdpatients.data.model.PatientBadgePriority
 import com.hos.rushdpatients.ui.components.AppFilterChip
@@ -38,7 +37,7 @@ import com.hos.rushdpatients.ui.theme.patientBadgeColors
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun PatientOptionalFields(
-    formState: PatientFormState, doctors: List<Doctor>, saving: Boolean, autoStyle: TextStyle,
+    formState: PatientFormState, saving: Boolean, autoStyle: TextStyle,
     modifier: Modifier = Modifier, entryOptionsSummary: String? = null,
     entryOptions: @Composable () -> Unit = {}
 ) {
@@ -60,7 +59,7 @@ internal fun PatientOptionalFields(
         modifier = modifier
     )
     if (formState.extrasExpanded) {
-        PatientTaskEditor(tasks, doctors, !saving, formState = formState) { tasks = it }
+        PatientTaskEditor(tasks, !saving, formState = formState) { tasks = it }
         AppDivider()
         AppSectionHeader(uiText(R.string.ui_patient_form_dialog_021))
         AppToggleRow(title = uiText(R.string.ui_patient_form_dialog_022), checked = isPriority,

@@ -51,14 +51,13 @@ class _Cards:
         self.now, self.total = now, total
         self.now_ms = int(now.timestamp() * 1000)
         self.colors = palette(options)
-        self.dark = options['dark']
-        title = self.colors['text'] if options['dark'] else self.colors['title']
+        title = self.colors['title']
         self.body = _Paint(11.5, self.colors['text'])
         self.heading = _Paint(12, title, True)
         self.name = _Paint(15, '#FFFFFF', True)
         self.nav = _Paint(12, self.colors['text'], True)
         self.footer = _Paint(8.5, self.colors['text'])
-        self.urgent = _Paint(12, '#FFB4AB' if options['dark'] else '#8B1E1E', True)
+        self.urgent = _Paint(12, '#8B1E1E', True)
         self.canvas = pdfcanvas.Canvas(target, pagesize=(WIDTH, HEIGHT))
         self.canvas.setTitle('DEMO — ShiftReport' if getattr(client, 'demo', False) else 'ShiftReport')
         self.canvas.setAuthor('ShiftReport')
@@ -205,7 +204,7 @@ class _Cards:
                     chunk = lines[offset:offset + take]
                     if chunk:
                         foreground = self.urgent.color if high else self.body.color
-                        background = ('#4D2525' if self.dark else '#FDE8E8') if high else self.colors['summary']
+                        background = '#FDE8E8' if high else self.colors['summary']
                         self.canvas.setFillColor(HexColor(background))
                         self.canvas.setStrokeColor(HexColor(foreground if high else self.colors['border']))
                         self.canvas.setLineWidth(.5)

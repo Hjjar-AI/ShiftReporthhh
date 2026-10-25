@@ -369,9 +369,6 @@ class Window:
     def download(self):
         return desktop_data_actions.download(self)
 
-    def start_shift(self):
-        return desktop_data_actions.start_shift(self)
-
     def undo_download(self):
         return desktop_data_actions.undo_download(self)
 

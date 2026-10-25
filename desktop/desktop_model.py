@@ -9,7 +9,7 @@ import time
 import uuid
 from desktop_protocol import COLUMNS, EDITABLE, ZoneInfo, current_date, packed, require
 from desktop_tasks import (TASK_PRIORITY, read_tasks, counts, validate as validate_tasks,
-                           carry_forward as carry_tasks, ordered_for_display, task_text)
+                           ordered_for_display, task_text)
 
 GENDER = {'M': 'ذكر', 'F': 'أنثى'}
 YES = {'Y': 'نعم', 'N': 'لا'}
@@ -75,19 +75,6 @@ def validate_patient(row, doctors, zone):
         require(not value or value in doctors and doctors[value]['clinicalRole'] == role, 'اختر طبيبا نشطا بالدور الصحيح')
     tasks = read_tasks(row)
     validate_tasks(tasks, require_completion=False)
-
-
-def carry_forward(source, zone, keep):
-    shift = {'meta': {'schemaVersion': '7', 'shiftDate': current_date(zone), 'shiftId': str(uuid.uuid4()), 'doctors': ''}, 'patients': []}
-    for source_row in source['patients']:
-        row = copy.deepcopy(source_row)
-        row.update(externalId=str(uuid.uuid4()), revision='0', lastEditedBy='', lastEditedByDoctorId='', updatedAt='')
-        tasks = carry_tasks(read_tasks(row), clear_owners=not keep)
-        if not keep:
-            row.update(responsibleResidentId='', responsibleSupervisorId='')
-        row['tasksJson'] = packed(tasks)
-        shift['patients'].append(row)
-    return shift
 
 
 def patient_text(row, doctors, zone, clinical_only=False):

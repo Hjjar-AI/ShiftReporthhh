@@ -43,11 +43,6 @@ internal class WardPreferences(
                 }
         }
         viewModelScope.launch {
-            settingsRepository.observe(AppConstants.SETTING_SAVE_AND_NEXT).collect { stored ->
-                _state.update { it.copy(saveAndNext = stored?.toBooleanStrictOrNull() ?: false) }
-            }
-        }
-        viewModelScope.launch {
             settingsRepository.observe(AppConstants.SETTING_GROUP_BY_MODE)
                 .collect { stored ->
                     val mode = GroupByMode.fromSetting(stored)
@@ -71,13 +66,6 @@ internal class WardPreferences(
         _state.update { it.copy(patientDetailsExpanded = expanded) }
         viewModelScope.launch {
             settingsRepository.putBoolean(AppConstants.SETTING_PATIENT_DETAILS_EXPANDED, expanded)
-        }
-    }
-
-    fun setSaveAndNext(enabled: Boolean) {
-        _state.update { it.copy(saveAndNext = enabled) }
-        viewModelScope.launch {
-            settingsRepository.putBoolean(AppConstants.SETTING_SAVE_AND_NEXT, enabled)
         }
     }
 

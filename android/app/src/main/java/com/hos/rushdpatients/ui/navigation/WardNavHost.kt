@@ -14,7 +14,6 @@ import com.hos.rushdpatients.domain.auth.Session
 import com.hos.rushdpatients.migration.VbaImportScreen
 import com.hos.rushdpatients.ui.admin.AdminScreen
 import com.hos.rushdpatients.ui.about.IntroAboutScreen
-import com.hos.rushdpatients.ui.announcement.AnnouncementScreen
 import com.hos.rushdpatients.ui.doctors.DoctorsScreen
 import com.hos.rushdpatients.ui.report.ReportPreviewScreen
 import com.hos.rushdpatients.ui.settings.SettingsScreen
@@ -45,8 +44,7 @@ fun WardNavHost(
                 onOpenDataManagement = { navController.navigate(Routes.DATA_MANAGEMENT) },
                 onOpenAbout = { navController.navigate(Routes.ABOUT) },
                 onOpenProject = { navController.navigate(Routes.PROJECT_SETTINGS) },
-                onOpenWorkspace = { navController.navigate(Routes.settingsWorkspace(it.name)) },
-                onOpenAnnouncement = { navController.navigate(Routes.ANNOUNCEMENT) })
+                onOpenWorkspace = { navController.navigate(Routes.settingsWorkspace(it.name)) })
             )
         }
 
@@ -80,8 +78,7 @@ fun WardNavHost(
                     onOpenDataManagement = { navController.navigate(Routes.DATA_MANAGEMENT) },
                     onOpenAbout = { navController.navigate(Routes.ABOUT) },
                     onOpenProject = { navController.navigate(Routes.PROJECT_SETTINGS) },
-                    onOpenWorkspace = { navController.navigate(Routes.settingsWorkspace(it.name)) },
-                    onOpenAnnouncement = { navController.navigate(Routes.ANNOUNCEMENT) }))
+                    onOpenWorkspace = { navController.navigate(Routes.settingsWorkspace(it.name)) }))
         }
 
         composable(Routes.ADMIN) {
@@ -93,11 +90,6 @@ fun WardNavHost(
         composable(Routes.DOCTORS) {
             AdminRoute(session.isAdmin, { navController.popBackStack() }) {
                 DoctorsScreen(onBack = { navController.popBackStack() })
-            }
-        }
-        composable(Routes.ANNOUNCEMENT) {
-            AdminRoute(session.isAdmin, { navController.popBackStack() }) {
-                AnnouncementScreen(onBack = { navController.popBackStack() })
             }
         }
 

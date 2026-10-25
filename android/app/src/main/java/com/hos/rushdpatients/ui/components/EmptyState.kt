@@ -1,6 +1,9 @@
 package com.hos.rushdpatients.ui.components
 
 import com.hos.rushdpatients.ui.theme.UiSpacing
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material3.Surface
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
@@ -33,12 +36,19 @@ fun EmptyState(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(UiSpacing.section),
+            .padding(horizontal = UiSpacing.section, vertical = UiSpacing.pageSection),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
+        verticalArrangement = Arrangement.spacedBy(UiSpacing.section)
     ) {
-        icon?.let { Icon(it, contentDescription = null, modifier = Modifier.size(UiSize.emptyStateIcon),
-            tint = MaterialTheme.colorScheme.primary) }
+        icon?.let {
+            Surface(shape = MaterialTheme.shapes.extraLarge,
+                color = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer) {
+                Box(Modifier.padding(UiSpacing.largeSection), contentAlignment = Alignment.Center) {
+                    Icon(it, contentDescription = null, modifier = Modifier.size(UiSize.emptyStateIcon))
+                }
+            }
+        }
         Text(
             text = title,
             modifier = Modifier.semantics { heading() },
@@ -48,6 +58,7 @@ fun EmptyState(
         subtitle?.let {
             Text(
                 text = it,
+                modifier = Modifier.widthIn(max = com.hos.rushdpatients.ui.theme.UiLayout.emptyWardMaxWidth),
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant

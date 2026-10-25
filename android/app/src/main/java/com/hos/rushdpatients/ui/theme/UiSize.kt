@@ -8,7 +8,6 @@ object UiSize {
     val splashEmblem = 240.dp
     val aboutEmblemCompact = 128.dp
     val aboutEmblem = 180.dp
-    val announcementEditor = 200.dp
     val statusEdge = 4.dp
     val patientOrdinal = 32.dp
     val fieldMinHeight = UiSpacing.touchTarget

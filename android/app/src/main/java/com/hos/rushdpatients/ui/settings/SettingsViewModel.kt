@@ -30,7 +30,6 @@ import com.hos.rushdpatients.domain.export.PatientCsvExporter
 import com.hos.rushdpatients.domain.patient.PatientCardStyle
 import com.hos.rushdpatients.pdf.PdfColorPreset
 import com.hos.rushdpatients.pdf.PdfRowShading
-import com.hos.rushdpatients.pdf.PdfOrientation
 import com.hos.rushdpatients.pdf.PdfPaperSize
 import com.hos.rushdpatients.pdf.PdfStyle
 import com.hos.rushdpatients.sync.EmptyStartCoordinator
@@ -145,15 +144,11 @@ class SettingsViewModel @Inject constructor(
                         },
                         reportAsPdf = settingsRepository.isReportAsPdf(),
                         reportWardName = settingsRepository.get(AppConstants.SETTING_REPORT_WARD_NAME).orEmpty(),
-                        saveAndNext = settingsRepository.getBoolean(AppConstants.SETTING_SAVE_AND_NEXT, false),
                         pdfStyle = PdfStyle.fromSetting(
                             settingsRepository.get(AppConstants.SETTING_PDF_STYLE)
                         ),
                         pdfPatientCardStyle = PatientCardStyle.fromSetting(
                             settingsRepository.get(AppConstants.SETTING_PDF_PATIENT_CARD_STYLE)
-                        ),
-                        pdfOrientation = PdfOrientation.fromSetting(
-                            settingsRepository.get(AppConstants.SETTING_PDF_ORIENTATION)
                         ),
                         pdfPaperSize = PdfPaperSize.fromSetting(
                             settingsRepository.get(AppConstants.SETTING_PDF_PAPER_SIZE)
@@ -162,10 +157,6 @@ class SettingsViewModel @Inject constructor(
                             settingsRepository.get(AppConstants.SETTING_PDF_COLOR_PRESET)
                         ),
                         pdfRowShading = PdfRowShading.fromSetting(settingsRepository.get(AppConstants.SETTING_PDF_ROW_SHADING)),
-                        pdfDarkMode = settingsRepository.getBoolean(
-                            AppConstants.SETTING_PDF_DARK_MODE,
-                            false
-                        ),
                         uiPreferences = com.hos.rushdpatients.ui.theme.UiPreferences.decode(settingsRepository.get(AppConstants.SETTING_UI_PREFERENCES)),
                         appearance = AppAppearance.fromSetting(settingsRepository.get(AppConstants.SETTING_APP_APPEARANCE)),
                         appTheme = AppThemePreset.fromSetting(
@@ -254,7 +245,6 @@ class SettingsViewModel @Inject constructor(
 
     fun setPdfPatientCardStyle(value: PatientCardStyle) = preferences.setPdfPatientCardStyle(value)
 
-    fun setPdfOrientation(value: PdfOrientation) = preferences.setPdfOrientation(value)
 
     fun setPdfPaperSize(value: PdfPaperSize) = preferences.setPdfPaperSize(value)
 
@@ -265,7 +255,6 @@ class SettingsViewModel @Inject constructor(
     fun setPdfRowShading(value: PdfRowShading) = preferences.setPdfRowShading(value)
 
 
-    fun setPdfDarkMode(value: Boolean) = preferences.setPdfDarkMode(value)
 
 
     fun setUiPreferences(value: com.hos.rushdpatients.ui.theme.UiPreferences) = preferences.setUiPreferences(value)
@@ -279,7 +268,6 @@ class SettingsViewModel @Inject constructor(
 
 
 
-    fun setSaveAndNext(value: Boolean) = preferences.setSaveAndNext(value)
 
     fun setReportWardName(value: String) = preferences.setReportWardName(value)
 

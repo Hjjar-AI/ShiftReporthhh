@@ -32,9 +32,9 @@ Join export: current verified live registry admin, only connection/topics/key in
 
 ## Download and draft
 
-Resolve/decrypt/validate index/registry/bundle before replacement; encrypted pre-download backup and explicit shift choice. Preserve patient/doctor/task IDs,revisions,sort/roster/app-only fields; no connection secrets in drafts. CSV row order is stored order; filters never remove unpublished rows. Order conflicts need review.
+Resolve/decrypt/validate index/registry/bundle before replacement; encrypted pre-download backup; Fetch selects the newest list from older multi-list containers. New publications contain the current ward alone. Preserve patient/doctor/task IDs,revisions,sort/roster/app-only fields; no connection secrets in drafts. CSV row order is stored order; filters never remove unpublished rows. Desktop draft/order changes invalidate its publication review.
 
-Current08:30 IANA-zone shift editable. Android permits previous-shift publication/delivery until10:30; desktop retains its current-shift gate. Active roster uncapped. Plain task checklist with verified completion actor/time; legacy owner/deadline/priority fields still read/persist without affecting current clients. Reviewed carry-forward; notes never become tasks.
+08:30 labels the work day only; no date-based edit/publication/send deadline or shift copy-forward. Keep the current ward across days. Older CSV containers remain readable; dated-list browsing/copying is retired. Fetch Undo and reviewed admin republishing of the previous publication remain.
 
 ## Publication
 
@@ -49,7 +49,7 @@ Last-successful-write-wins, not atomic transactions. No automatic retry; Android
 
 `desktop_doctors.py`: ten-column team-aware registry; previous nine-column header reads as unassigned membership. Bind action/proposal/actor/draft/both pointers; protect permanent admins/ranks/clinical references. UNKNOWN before upload; live admin/pointers rechecked before index update, exact registry/pointer verified after. Preserve patient baseline/unrelated index fields; same last-write-wins limits.
 
-Encrypted recycle records retain full content/position/previous completion evidence. Restore checks shift/expected draft/duplicate ID and needs full publication review. Recovery travels in `.srdraft`; receipts stay local. Save stamps editor/completion through authenticated PIN/Telegram identity; publication preserves saved/published evidence and rejects unstamped completions, never attributes them to publisher. Admin-only audit excluded from portable drafts; report preferences private. Announcements use authenticated text encryption; UNKNOWN blocks retry, expected-reference repair preserves newer references.
+Encrypted recycle records retain full content/position/previous completion evidence. Restore checks shift/expected draft/duplicate ID and needs full publication review. Recovery travels in `.srdraft`; receipts stay local. Clinical saves create no new editor/completion/audit stamps; legacy fields remain compatible. Audit excluded from portable drafts; report preferences private. Announcements retired; old topic/index fields remain inert.
 
 ## Desktop local access, CSV and demo
 
@@ -61,14 +61,14 @@ Doctor spreadsheet schema1; patient export single CSV7. Reviewed admin import re
 
 Review full replacement and exact report before final confirmation; publish pending changes through guarded path, then deliver. Unchanged content reuses publication/receipt; cancel publishes nothing. Delivery failure cannot undo publication; standalone publish remains.
 
-ReportLab full clinical/tasks/completions/badges/roster/context; omit routine/unassigned/last-edit labels. Classic7-column/paragraph/A5, palettes/dark/paper/orientation and separate local supervisor files including unassigned. Names-only A4: verified live admin below GUI/renderer/save,3×56.7mm tables/row, independent resident row/empty teams/unassigned group, global numbering/continuations. Exact PDF opening/options/hash/destination and current snapshot/registry/draft rechecked. Text: encrypted document or UTF-16-bounded plain messages, one UNKNOWN before first part; partial failure stays uncertain, no silent retry/rollback.
+ReportLab full clinical/tasks/badges/roster/context; omit routine/unassigned/last-edit labels. Classic7-column/paragraph/A5, palettes/shading/A4-A5 portrait-light/Medium separators and explicit local supervisor files including unassigned. Names-only A4: verified live admin below GUI/renderer/save,3×56.7mm tables/row, independent resident row/empty teams/unassigned group, global numbering/continuations. Exact PDF opening/options/hash/destination and current snapshot/registry/draft rechecked. Text: encrypted document or UTF-16-bounded plain messages, one UNKNOWN before first part; partial failure stays uncertain, no silent retry/rollback.
 
 General destination Reports; supervisor live registry group. Telegram `ok`/message identity required. UNKNOWN keyed across shift/chat/topic regardless of format/publication; unlabelled older receipts conservatively block destination. Live same-project sender/admin resolves; extra confirmed copy requires approval. Confirmed network send remains sent if local bookkeeping fails. Device-local receipts never populate Android audit or establish non-delivery elsewhere.
 
-`desktop_delivery.ReportDelivery` owns draft/destination/publication reuse/durable receipts for single/batch reports; caller owns preview/confirmation. `desktop_tasks` supplies shared validation/count/deadline/rollover; validation alone does not establish completion trust.
+`desktop_delivery.ReportDelivery` owns draft/destination/publication reuse/durable receipts for single/batch reports; caller owns preview/confirmation. `desktop_tasks` supplies checklist validation/count/display; legacy task metadata is compatible storage only.
 
 ## Evidence
 
-Details follow captured visible stable IDs; activity reads recheck current admin; readonly copy updates logical text.
+Details follow captured visible stable IDs; readonly copy returns logical text.
 
 Android-compatible `.rpb`: same project/selected shift ID/date, valid registry references, expected-draft check/review/confirmation; retains receipts/imported completion attribution. `.srdraft` remains separate workspace recovery. Android pending saved changes require publish-then-fetch/recoverable replacement/cancel; desktop retains its guarded replacement flow. Current-format backup/join/cipher fixtures passed both directions; live GUI workflows unverified. [Results](../status/current-state.md#verification-and-limits) · [Remaining](../status/testing-handoff.md).

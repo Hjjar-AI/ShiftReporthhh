@@ -92,10 +92,7 @@ def publish(owner, plan, before_upload):
     owner.authorize(current['doctors'])
     require((plan.force_local or pointer(current['state']) == plan.baseline_pointer) and doctor_pointer(current['state']) == plan.registry_pointer,
             'وصلت بيانات أحدث بعد المراجعة؛ أعد المراجعة')
-    others = [s for s in current['bundle'] if s['meta']['shiftId'] != plan.shift['meta']['shiftId'] and s['meta']['shiftDate'] != plan.shift['meta']['shiftDate']]
-    other_ids = {p['externalId'] for s in others for p in s['patients']}
-    require(not any(p['externalId'] in other_ids for p in plan.shift['patients']), 'معرف مريض مستخدم في مناوبة أخرى؛ أعد المراجعة')
-    bundle = sorted([plan.shift] + others, key=lambda s: s['meta']['shiftDate'], reverse=True)[:3]
+    bundle = [plan.shift]
     raw = encode_bundle(bundle)
     before_upload()  # Persist an UNKNOWN receipt before a potentially ambiguous send.
     uploaded = owner.telegram.upload(raw, 'ShiftReport.csv', owner.config.get('csvTopicId'), 'نسخة المناوبات من سطح المكتب')

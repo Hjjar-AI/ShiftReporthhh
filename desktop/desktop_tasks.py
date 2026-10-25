@@ -63,13 +63,6 @@ def task_text(task, doctors, zone, now=None, include_unassigned=True, include_ro
     return status_label(task, now) + ': ' + task['description'] + (' · ' + details if details else '')
 
 
-def carry_forward(tasks, clear_owners=False):
-    result = copy.deepcopy(pending(tasks))
-    if clear_owners:
-        for task in result: task.update(ownerDoctorId=None, ownerName=None)
-    return result
-
-
 def validate(tasks, require_completion=True):
     from desktop_protocol import require
     require(isinstance(tasks, list) and all(isinstance(task, dict) for task in tasks), 'قائمة مهام غير صالحة')

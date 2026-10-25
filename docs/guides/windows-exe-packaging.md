@@ -1,8 +1,6 @@
 # Package the desktop client as a Windows EXE
 
-This guide packages `desktop/desktop_gui.py` and its dependencies with PyInstaller. Run these commands **on Windows**, in **Command Prompt (`cmd.exe`)**. The `^` line continuations below are for Command Prompt, not PowerShell.
-
-The recommended result is a folder containing `ShiftReport.exe` and its support files. Recipients do not need Python installed. This is a portable application bundle; it does not create an installer, desktop shortcut or signed release.
+Windows **cmd.exe** recipes (`^` continuation, not PowerShell), entry `desktop_gui.py`. Prefer a complete portable folder bundle; recipients need no Python. No installer/shortcut/signature is produced.
 
 Related: [desktop usage](../../desktop/README.md), [desktop troubleshooting](desktop-troubleshooting.md), [current verification limits](../status/current-state.md#verification-and-limits).
 
@@ -82,7 +80,7 @@ Paste the complete cmd block; `^` must end its line without trailing spaces. Pre
 
 ## 5. Check the packaged application
 
-Run demo; check Arabic/RTL/search/wrapping, full patient/task editing, Save/Cancel, expansion, dialogs/settings, PDF layouts/continuations/date/DEMO and the target PDF reader. Test shortcuts/other working directories and a clean Windows account/computer without Python. Then launch normally: absent adjacent `.env`, choose protected join/password. Live delivery requires an explicitly chosen project/destination plus preview/confirmation; demo launch proves neither onboarding nor Telegram.
+Run demo on each target OS/architecture and a clean account without Python: Arabic/RTL, editing/Save/Cancel, settings, PDF pagination/DEMO/viewer, shortcuts and other working directories. Normal launch: protected join/password or adjacent configuration. Live sends require designated project/review/confirmation; demo proves neither onboarding nor Telegram.
 
 ```bat
 "%SR_BUILD_ROOT%\dist\ShiftReport\ShiftReport.exe" --demo
@@ -135,7 +133,7 @@ Leave `PDF_FONT` unset for bundled Tajawal; an override is external/EXE-relative
 
 ## 9. Update a previously distributed bundle
 
-Close app → reviewed encrypted backup → package complete current source in the chosen environment → repeat demo/target checks → replace the **complete** app folder. Preserve external private configuration and `%LOCALAPPDATA%\ShiftReportDesktop`/custom workspace. Record source, Python/bitness, Windows and dependency/tool versions below; exclude secrets/clinical captures.
+Update: close→encrypted backup→package current source→target checks→replace whole app folder. Preserve private config/workspace. Record source/Python/bitness/Windows/dependencies, no secrets:
 
 ```bat
 "%SR_BUILD_PY%" -m pip freeze > "%SR_BUILD_ROOT%\packaging-environment.txt"

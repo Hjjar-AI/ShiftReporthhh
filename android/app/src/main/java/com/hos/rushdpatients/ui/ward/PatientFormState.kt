@@ -13,7 +13,7 @@ import java.time.LocalDate
 /** Editable clinical values only. Retained in memory by the ward ViewModel, never in a Bundle. */
 internal class PatientFormState(initial: Patient?, draft: PatientDraft?) {
     var extrasExpanded by mutableStateOf(initial != null)
-    var taskDraft by mutableStateOf<TaskDraftState?>(null)
+    var taskEntry by mutableStateOf<com.hos.rushdpatients.data.model.PatientTask?>(null)
     var tasks by mutableStateOf(initial?.tasks ?: draft?.tasks.orEmpty())
     var admittanceNumber by mutableStateOf(initial?.admittanceNumber ?: draft?.admittanceNumber.orEmpty())
     var admittanceDate by mutableStateOf<LocalDate?>(when {
@@ -34,12 +34,9 @@ internal class PatientFormState(initial: Patient?, draft: PatientDraft?) {
     var badgeDraftPriority by mutableStateOf(draft?.badgeDraftPriority?.let(PatientBadgePriority::fromCode))
     var diagnosisType by mutableStateOf(initial?.diagnosisType ?: DiagnosisType.fromCode(draft?.diagnosisType.orEmpty()))
     var initialDiagnosis by mutableStateOf(initial?.initialDiagnosis ?: draft?.initialDiagnosis.orEmpty())
-    var treatmentItems by mutableStateOf(initial?.let { parseFieldItems(it.treatmentPlan) } ?: draft?.treatmentItems.orEmpty())
-    var treatmentDraft by mutableStateOf(draft?.treatmentDraft.orEmpty())
-    var followUpItems by mutableStateOf(initial?.let { parseFieldItems(it.followUp) } ?: draft?.followUpItems.orEmpty())
-    var followUpDraft by mutableStateOf(draft?.followUpDraft.orEmpty())
-    var labItems by mutableStateOf(initial?.let { parseFieldItems(it.labs) } ?: draft?.labItems.orEmpty())
-    var labDraft by mutableStateOf(draft?.labDraft.orEmpty())
+    var treatmentText by mutableStateOf(initial?.treatmentPlan ?: clinicalDraftText(draft?.treatmentItems.orEmpty(), draft?.treatmentDraft.orEmpty()))
+    var followUpText by mutableStateOf(initial?.followUp ?: clinicalDraftText(draft?.followUpItems.orEmpty(), draft?.followUpDraft.orEmpty()))
+    var labText by mutableStateOf(initial?.labs ?: clinicalDraftText(draft?.labItems.orEmpty(), draft?.labDraft.orEmpty()))
     var residentId by mutableStateOf(initial?.responsibleResidentId ?: draft?.residentId)
     var specialistId by mutableStateOf(initial?.responsibleSpecialistId ?: draft?.specialistId)
 }
@@ -67,3 +64,7 @@ internal class EditPatientState(patient: Patient) {
     var draftLoaded by mutableStateOf(false)
     val form = PatientFormStateStore()
 }
+
+/** Read older encrypted form drafts without dropping their unfinished entry. */
+private fun clinicalDraftText(items: List<String>, pending: String): String =
+    (items + listOfNotNull(pending.takeIf(String::isNotEmpty))).joinToString("\n")

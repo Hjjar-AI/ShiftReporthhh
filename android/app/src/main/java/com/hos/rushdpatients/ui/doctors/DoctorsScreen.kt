@@ -404,9 +404,6 @@ private fun DoctorCard(
                 doctor.telegramId?.let {
                     Text(uiText(R.string.ui_doctors_screen_048, it), style = MaterialTheme.typography.bodySmall)
                 }
-                doctor.customTitle?.let {
-                    Text(uiText(R.string.ui_doctors_screen_049, it), style = MaterialTheme.typography.bodySmall)
-                }
             }
             AppIconButton(label = uiText(R.string.ui_doctors_screen_050, doctor.fullName),
             icon = AppIcons.Edit,

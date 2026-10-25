@@ -92,7 +92,7 @@ class WardViewModel @Inject constructor(
         _state, viewModelScope, shiftRepository, patientRepository, wardMutations, settingsRepository, sessionManager, json, saveGuard)
 
     private val shiftOperations = WardShiftOperations(uiText,
-        _state, viewModelScope, context, shiftRepository, patientRepository, wardMutations, syncService, settingsRepository, csvExporter, sessionManager, saveGuard, ::bindLiveShift, ::selectReviewShift)
+        _state, viewModelScope, context, syncService, csvExporter, saveGuard, ::bindLiveShift)
 
     init {
         viewModelScope.launch {
@@ -206,8 +206,10 @@ class WardViewModel @Inject constructor(
                 val target = shiftRepository.getLatest()
                     ?: shiftRepository.getOrCreateForDate(ShiftDate.current())
                 observeShift(requestedReviewShiftId ?: target.id)
-            } catch (e: CancellationException) { throw e }
-            catch (e: Exception) { _state.update { it.copy(loading = false, error = e.message ?: uiText(R.string.ui_ward_view_model_001)) } }
+            } catch (e: CancellationException) {
+                _state.update { it.copy(loading = false) }
+                throw e
+            } catch (e: Exception) { _state.update { it.copy(loading = false, error = e.message ?: uiText(R.string.ui_ward_view_model_001)) } }
         }
     }
 
@@ -225,7 +227,7 @@ class WardViewModel @Inject constructor(
                             val replacement = shiftRepository.getLatest()
                             if (requestedReviewShiftId == null && replacement != null && replacement.id != shiftId) {
                                 _state.update { it.copy(patientDraft = null, deletedPatients = emptyList(),
-                                    rolloverPatients = emptyList(), rolloverTarget = null, patients = emptyList(), groupedPatients = emptyList()) }
+                                    patients = emptyList(), groupedPatients = emptyList()) }
                                 observeShift(replacement.id)
                             } else _state.update { it.copy(loading = false, shift = null, patients = emptyList(),
                                 groupedPatients = emptyList(), error = uiText(R.string.ui_ward_shift_operations_005)) }
@@ -262,29 +264,20 @@ class WardViewModel @Inject constructor(
 
     fun bringLatestData() = shiftOperations.bringLatestData()
 
-    private suspend fun rolloverSourceLabel(source: com.hos.rushdpatients.data.model.Shift): String = shiftOperations.rolloverSourceLabel(source)
-
-    fun offerPreviousShift() = shiftOperations.offerPreviousShift()
-
-    fun dismissRollover() = shiftOperations.dismissRollover()
 
 
 
-    fun applyRollover(keepAssignments: Boolean) = shiftOperations.applyRollover(keepAssignments)
 
-    fun bringPreviousData() = shiftOperations.bringPreviousData()
 
-    fun showDownloadedSnapshots() = shiftOperations.showDownloadedSnapshots()
 
-    fun dismissSnapshotPicker() = shiftOperations.dismissSnapshotPicker()
 
-    fun selectDownloadedSnapshot(shiftId: String) = shiftOperations.selectDownloadedSnapshot(shiftId)
+
+
 
     fun togglePatientDetails() = preferences.togglePatientDetails()
 
     fun setPatientDetailsExpanded(expanded: Boolean) = preferences.setPatientDetailsExpanded(expanded)
 
-    fun setSaveAndNext(enabled: Boolean) = preferences.setSaveAndNext(enabled)
 
     fun setTwoColumn(enabled: Boolean) = preferences.setTwoColumn(enabled)
 
@@ -322,7 +315,6 @@ class WardViewModel @Inject constructor(
     fun retryLastAction() {
         when (_state.value.retryAction) {
             WardRetryAction.FETCH_LATEST -> bringLatestData()
-            WardRetryAction.FETCH_PREVIOUS -> bringPreviousData()
             WardRetryAction.EXPORT_CSV -> exportCsv()
             null -> Unit
         }

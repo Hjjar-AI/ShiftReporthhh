@@ -5,5 +5,4 @@ patients independently.
 """
 from desktop_form_controls import button, dialog_actions, section_heading, destination_row, discard_guard, reveal_field, entry, combo, modal, guarded
 from desktop_doctor_picker import doctor_picker
-from desktop_task_editor import edit_task
 from desktop_patient_editor import edit_patient

@@ -27,13 +27,10 @@ object UiPatientCard {
         }
     }
 
-    const val borderAccentFraction = .22f
-
     @Composable
     fun border(selected: Boolean = false): BorderStroke =
         if (selected) UiBorder.stroke(selected = true)
-        else BorderStroke(LocalUiStyle.current.normalBorder,
-            lerp(MaterialTheme.colorScheme.outlineVariant, MaterialTheme.colorScheme.primary, borderAccentFraction))
+        else UiBorder.cardStroke()
 }
 
 /** Neutral surfaces and interactive emphasis; clinical severity has its own palette. */
@@ -43,6 +40,10 @@ object UiBorder {
     val normalWidth = 1.dp
     val selectedWidth = 2.dp
     val focusedWidth = 2.dp
+
+    @Composable
+    fun cardStroke(): BorderStroke = BorderStroke(LocalUiStyle.current.normalBorder,
+        lerp(MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.outlineVariant, 0.65f))
 
     @Composable
     fun stroke(selected: Boolean = false, focused: Boolean = false): BorderStroke = BorderStroke(

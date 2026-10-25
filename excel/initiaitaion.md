@@ -1,5 +1,7 @@
 # Initial setup
 
+24 October2026 VBA snapshot: retains date gates/completion stamps described below; do not infer parity with newer Android/desktop behavior. No Excel runtime certification.
+
 ## Files and private credentials
 
 | Path | Purpose |
@@ -14,7 +16,7 @@
 | `credentials.example.md` | Public placeholder examples |
 | `output/` | Ignored generated workbooks, manifest and adjacent VBA |
 
-`private/`, `output/`, join files and local credential notes are ignored by Git. Keep the private directory off shared/public repositories. The actual app connection requires a current administrator-exported `.srjoin.json` with the original project key. A join-file path must be supplied by the owner; verification fixtures are not production credentials. The password is entered in a masked Windows dialog and is not saved in cells or configuration.
+Private/output/join/local credentials stay ignored. Owner must supply current admin-exported `.srjoin.json` with original project key; no fixture substitutes. Masked interactive password is never saved to cells/configuration.
 
 ## Generate and import
 
@@ -24,14 +26,14 @@ From this directory:
 python generate_workbook.py
 ```
 
-On Linux use `python3`. Without Python on the Windows computer, use the already generated workbook and adjacent source. For a different source/filename:
+Linux: `python3`; Windows without Python: use generated workbook+source. Other outputs:
 
 ```bash
 python generate_workbook.py --source "private/original.xlsm" --format xlsm --output "output/MyWard.xlsm"
 python generate_workbook.py --blank --format xlsx --output "output/Blank.xlsx"
 ```
 
-Existing output files are never overwritten. A generated `.xlsm` is a valid macro-enabled OOXML container **without an executable VBA project** until the following manual import. No old VBA/control package is copied from the source.
+Outputs never overwrite. Generated `.xlsm` is OOXML **without executable VBA** until manual import; no old VBA/control package copied.
 
 1. Install `fonts/Tajawal-Regular.ttf` and `fonts/Tajawal-Bold.ttf`; close/reopen Excel if it was running.
 2. Open the **generated** workbook, not the original containing old Telegram macros.
@@ -46,7 +48,7 @@ For actual legacy BIFF `.xls`, run the generator on Windows with installed Excel
 python generate_workbook.py --blank --format xls --output "output/Blank.xls"
 ```
 
-This explicitly selected path uses a temporary macro-free workbook and installed Excel via `cscript.exe` to write real BIFF. Python still needs no third-party library. Import the same VBA and document event code afterward; `.xls` can retain those macros. This conversion path has not been executed here.
+Explicit conversion uses temporary macro-free workbook/installed Excel via `cscript.exe`; no Python third-party dependency. Import VBA/event code afterward; real `.xls` retains macros. Conversion unexecuted.
 
 ## Connect and work
 
@@ -65,7 +67,7 @@ Excel's own Save/Ctrl+S retains cell edits offline. The clinical Save action cur
 
 Before a publication/report upload, VBA flushes an `UNKNOWN` receipt under `%LOCALAPPDATA%\ShiftReportExcel\<project-digest>.receipts.json`. A per-project Windows file lock serializes this client's receipt writes across Excel processes. `AppReceipts` displays the ledger; editing that sheet cannot change the authoritative file. Receipts contain hashed destinations and operation IDs, without bot tokens, raw chat IDs or clinical content.
 
-An uncertain receipt blocks retry for its shift/destination. Inspect the actual Telegram destination and pinned index, then use **Resolve** as the sender or a current registry admin. Absence from the bounded publication journal does not prove failure. Confirmed identical reports need explicit additional-copy approval. These are local receipts, not cross-device exactly-once evidence.
+UNKNOWN blocks shift/destination retry: inspect actual destination/pin, then sender/live admin **Resolve**. Journal absence proves no failure; confirmed copies need explicit approval. Receipts are local, not cross-device exactly-once.
 
 Preserve recovery workbooks and the ledger when troubleshooting. PDFs are readable by design. Owned temporary previews are deleted best-effort at workbook close; a crash or open viewer may leave them behind. Sign-out clears in-memory connection/session state and leaves clinical cells intact.
 

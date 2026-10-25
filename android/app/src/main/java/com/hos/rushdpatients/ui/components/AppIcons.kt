@@ -10,7 +10,6 @@ import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
@@ -73,7 +72,6 @@ object AppIcons {
     val BookmarkBorder get() = Icons.Filled.BookmarkBorder
     val Build get() = Icons.Filled.Build
     val CalendarMonth get() = Icons.Filled.CalendarMonth
-    val Campaign get() = Icons.Filled.Campaign
     val Check get() = Icons.Filled.Check
     val CheckCircle get() = Icons.Filled.CheckCircle
     val ChevronRight get() = Icons.Filled.ChevronRight

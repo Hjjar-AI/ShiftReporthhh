@@ -163,7 +163,6 @@ fun ProjectSetupScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             NumberField(state.reportsTopicId, viewModel::setReportsTopicId, uiText(R.string.ui_project_setup_screen_023), enabled = !state.busy)
-                            NumberField(state.announcementsTopicId, viewModel::setAnnouncementsTopicId, uiText(R.string.ui_project_setup_screen_024), enabled = !state.busy)
                             NumberField(state.csvTopicId, viewModel::setCsvTopicId, uiText(R.string.ui_project_setup_screen_025), enabled = !state.busy)
                             NumberField(state.doctorsTopicId, viewModel::setDoctorsTopicId, uiText(R.string.ui_project_setup_screen_026), enabled = !state.busy)
                         }

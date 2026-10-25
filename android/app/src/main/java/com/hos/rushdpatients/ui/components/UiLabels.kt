@@ -61,9 +61,7 @@ fun PdfOrientation.uiLabel(uiText: UiStrings): String = uiText(when (this) {
 
 fun PdfPaperSize.uiLabel(uiText: UiStrings): String = uiText(when (this) {
     PdfPaperSize.A4 -> R.string.ui_label_pdf_paper_size_001
-    PdfPaperSize.LETTER -> R.string.ui_label_pdf_paper_size_002
     PdfPaperSize.A5 -> R.string.ui_label_pdf_paper_size_003
-    PdfPaperSize.A3 -> R.string.ui_label_pdf_paper_size_004
 })
 
 fun PdfColorPreset.uiLabel(uiText: UiStrings): String = uiText(when (this) {

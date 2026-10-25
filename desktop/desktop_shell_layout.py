@@ -8,7 +8,6 @@ from desktop_onboarding import create_project, export_project_join
 from desktop_admin_ui import administer
 from desktop_csv import csv_tools
 from desktop_access import configure_pin, lock_screen
-from desktop_announcements import administer_announcement
 from desktop_patient_draft import resume_patient
 from desktop_cards import PatientCards
 from desktop_ui_events import debounce
@@ -98,7 +97,6 @@ def build_window(owner, root, settings, demo):
         recovery=section('استعادة العرض قبل آخر جلب',expanded=False,parent=data_area)
         ctk.CTkLabel(recovery,text='يعيد بيانات الجهاز قبل الجلب؛ لا ينشرها إلى تليجرام.',wraplength=500,justify='right').pack(fill='x',padx=8,pady=3)
         button(recovery,'استعادة ما قبل آخر جلب',lambda:owner.run(owner.undo_download))
-        button(local_data_area,'بدء مناوبة اليوم من السابقة',lambda:owner.run(owner.start_shift))
     button(local_data_area,'استئناف مسودة إدخال المريض',lambda:owner.run(lambda:resume_patient(owner)))
     button(local_data_area,'سلة المرضى المحذوفين',lambda:owner.run(owner.recycle_bin))
     if not demo:
@@ -117,9 +115,10 @@ def build_window(owner, root, settings, demo):
         button(reports,'رفع للشبكة وإرسال تقرير',lambda:owner.run(owner.report))
         button(reports,'تقارير المشرفين (PDF)',lambda:owner.run(owner.report_batch))
         button(reports,'سجل التسليم — تحقق من محاولة سابقة',lambda:owner.run(owner.resolve))
-    button(reports,'حفظ تقرير محلي',lambda:owner.run(lambda:owner.report(export_only=True)))
-    button(reports,'حفظ PDF مستقل لكل مشرف',lambda:owner.run(lambda:owner.report(export_only=True,separate=True)))
-    owner.assignments_button=ctk.CTkButton(reports,text='توزيع الفرق (PDF)',height=48,command=lambda:owner.run(owner.export_assignments))
+    exports=section('تصدير',expanded=False,parent=reports)
+    button(exports,'معاينة تقرير وحفظه',lambda:owner.run(lambda:owner.report(export_only=True)))
+    button(exports,'حفظ PDF مستقل لكل مشرف',lambda:owner.run(lambda:owner.report(export_only=True,separate=True)))
+    owner.assignments_button=ctk.CTkButton(exports,text='توزيع الفرق (PDF)',height=48,command=lambda:owner.run(owner.export_assignments))
     patient_tools=section('بيانات المرضى',expanded=False)
     button(patient_tools,'جلب البيانات ونشرها',owner.open_data_tools)
     button(patient_tools,'المناوبة والمسودات',lambda:owner.open_tool_window(owner.local_data_window))
@@ -134,10 +133,9 @@ def build_window(owner, root, settings, demo):
         command=lambda:owner.open_tool_window(owner.team_window))
     owner.join_export_button=ctk.CTkButton(admin_area,text='ضم جهاز جديد',height=48,
         command=lambda:owner.run(lambda:export_project_join(owner)))
-    owner.announcement_button=ctk.CTkButton(admin_area,text='إعلان المشروع',height=48,
-        command=lambda:owner.run(lambda:administer_announcement(owner)))
     from desktop_empty_start import empty_start_dialog
-    owner.empty_start_button=ctk.CTkButton(admin_area,text='بداية فارغة — المدير الدائم',height=48,
+    advanced_admin=section('إدارة متقدمة',expanded=False,parent=admin_area)
+    owner.empty_start_button=ctk.CTkButton(advanced_admin,text='بداية فارغة — المدير الدائم',height=48,
         command=lambda:owner.run(lambda:empty_start_dialog(owner)))
     owner.help_sidebar=Disclosure(sidebar,'المساعدة ومعلومات التطبيق',expanded=False)
     owner.help_sidebar.pack(fill='x',padx=3,pady=3)

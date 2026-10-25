@@ -22,6 +22,10 @@ internal class WardSaveGuard(
 ) {
 
     fun editableShiftId(): String? {
+        if (_state.value.loading || _state.value.error != null) {
+            showError(uiText(R.string.ui_ward_refresh_before_edit))
+            return null
+        }
         val shift = _state.value.shift ?: return null
         return shift.id
     }

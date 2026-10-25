@@ -235,13 +235,8 @@ class PdfReportExporter @Inject constructor(@ApplicationContext context: Context
         val paper = options.paperSize
         val portraitWidth = paper.widthPoints.toFloat()
         val portraitHeight = paper.heightPoints.toFloat()
-        if (options.orientation == PdfOrientation.LANDSCAPE) {
-            pageWidth = portraitHeight
-            pageHeight = portraitWidth
-        } else {
-            pageWidth = portraitWidth
-            pageHeight = portraitHeight
-        }
+        pageWidth = portraitWidth
+        pageHeight = portraitHeight
         contentLeft = marginLeft
         contentRight = pageWidth - marginRight
         contentWidth = contentRight - contentLeft

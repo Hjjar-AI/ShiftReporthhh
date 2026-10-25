@@ -34,8 +34,6 @@ def render(owner):
         owner.admin_button.configure(state='disabled' if owner.busy else 'normal')
         owner.join_export_button.pack(fill='x',padx=8,pady=4)
         owner.join_export_button.configure(state='disabled' if owner.busy else 'normal')
-        owner.announcement_button.pack(fill='x',padx=8,pady=4)
-        owner.announcement_button.configure(state='disabled' if owner.busy or owner.demo else 'normal')
         owner.assignments_button.pack(fill='x',padx=8,pady=4)
         owner.assignments_button.configure(state='disabled' if owner.busy else 'normal')
     else:
@@ -43,7 +41,6 @@ def render(owner):
         owner.team_window.withdraw()
         owner.join_export_button.pack_forget()
         owner.admin_button.pack_forget()
-        owner.announcement_button.pack_forget()
         owner.assignments_button.pack_forget()
     from desktop_doctors import permanent
     if actor and permanent(actor) and time.time()<owner.client._expires and not owner.demo:

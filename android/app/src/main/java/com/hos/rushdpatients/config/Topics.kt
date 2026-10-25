@@ -6,7 +6,6 @@ import javax.inject.Singleton
 enum class Topic(val label: String) {
     GENERAL("General"),
     REPORTS("reports"),
-    ANNOUNCEMENTS("announcements"),
     CSV("csv"),
     DOCTORS("doctors")
 }
@@ -24,7 +23,6 @@ class Topics @Inject constructor(
         val value = when (topic) {
             Topic.GENERAL -> 0L
             Topic.REPORTS -> config.reportsTopicId
-            Topic.ANNOUNCEMENTS -> config.announcementsTopicId
             Topic.CSV -> config.csvTopicId
             Topic.DOCTORS -> config.doctorsTopicId
         }

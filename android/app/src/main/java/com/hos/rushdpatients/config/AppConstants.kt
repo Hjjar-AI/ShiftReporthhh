@@ -36,7 +36,6 @@ object AppConstants {
 
     // Sync
     const val CSV_VERSION_WINDOW_HOURS = 10L
-    const val CSV_BUNDLE_SHIFT_COUNT = 3
 
     // Settings keys
     const val SETTING_REPORT_AS_PDF = "report_as_pdf"
@@ -57,7 +56,6 @@ object AppConstants {
     const val SETTING_PATIENT_DETAILS_EXPANDED = "patient_details_expanded"
     const val SETTING_PATIENT_TWO_COLUMN = "patient_two_column"
     const val SETTING_PATIENT_COMPACT_DENSITY = "patient_compact_density"
-    const val SETTING_SAVE_AND_NEXT = "save_and_next"
     const val SETTING_REPORT_WARD_NAME = "report_ward_name"
     const val SETTING_GROUP_BY_MODE = "group_by_mode"
     const val SETTING_AUTO_LOCK_MINUTES = "auto_lock_minutes"
@@ -84,7 +82,6 @@ object AppConstants {
     const val AUDIT_DOCTOR_DELETED = "doctor_deleted"
     const val AUDIT_ADMIN_PROMOTED = "admin_promoted"
     const val AUDIT_ADMIN_DEMOTED = "admin_demoted"
-    const val AUDIT_ANNOUNCEMENT_UPDATED = "announcement_updated"
     const val AUDIT_DOCTORS_SYNCED = "doctors_synced"
     const val AUDIT_DOCTORS_EXPORTED = "doctors_exported"
     const val AUDIT_DOCTORS_IMPORTED = "doctors_imported"

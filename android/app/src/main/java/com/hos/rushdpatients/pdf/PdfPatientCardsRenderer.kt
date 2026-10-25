@@ -94,8 +94,8 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
         // A5 portrait is enforced here for every caller, independently of saved table options.
         palette = PdfPalette.resolve(options)
         body.color = palette.text
-        heading.color = if (options.darkMode) palette.text else palette.titleHeader
-        urgentHeading.color = if (options.darkMode) 0xFFFFB4AB.toInt() else 0xFF8B1E1E.toInt()
+        heading.color = palette.titleHeader
+        urgentHeading.color = 0xFF8B1E1E.toInt()
         navigation.color = palette.text
         name.color = Color.WHITE
         outline.color = palette.border
@@ -285,7 +285,7 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
                     }
                     badgeRow += BadgeCell(cellWidth, PdfTextWrapper.wrap(label, badgePaint, cellWidth - 2 * badgeXPadding),
                         if (high) urgentHeading.color else palette.text,
-                        if (high) (if (options.darkMode) 0xFF4D2525.toInt() else 0xFFFDE8E8.toInt()) else palette.summary,
+                        if (high) 0xFFFDE8E8.toInt() else palette.summary,
                         if (high) urgentHeading.color else palette.border)
                     usedWidth += (if (badgeRow.size > 1) badgeGap else 0f) + cellWidth
                 }

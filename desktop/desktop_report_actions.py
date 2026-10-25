@@ -90,8 +90,15 @@ def _report(owner,export_only=False,separate=False):
         else:
             path=owner.io(lambda:render_report(owner.client,local,supervisor,font,options))
             raw=owner.io(path.read_bytes);extension='.pdf'
-        destination=filedialog.asksaveasfilename(title='حفظ تقرير المسودة المحلية — قد يتضمن تعديلات غير منشورة',defaultextension=extension,filetypes=[('Report','*'+extension)])
-        if destination:owner.io(lambda:Path(destination).write_bytes(raw))
+            from desktop_platform import open_pdf
+            owner.io(lambda:open_pdf(path))
+            require(owner.io(path.read_bytes)==raw,'تغير ملف PDF بعد المعاينة؛ أعد التصدير')
+        destination=filedialog.asksaveasfilename(title='حفظ التقرير المعاين — قد يتضمن تعديلات غير منشورة',defaultextension=extension,filetypes=[('Report','*'+extension)])
+        if destination:
+            def save_reviewed():
+                Path(destination).write_bytes(raw)
+                require(Path(destination).read_bytes()==raw,'تعذر التحقق من حفظ التقرير كاملاً')
+            owner.io(save_reviewed)
         return
 
 

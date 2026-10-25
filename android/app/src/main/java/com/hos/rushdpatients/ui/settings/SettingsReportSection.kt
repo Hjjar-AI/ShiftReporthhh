@@ -23,7 +23,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.Modifier
 import com.hos.rushdpatients.pdf.PdfColorPreset
 import com.hos.rushdpatients.ui.components.AppPdfAppearanceControls
-import com.hos.rushdpatients.pdf.PdfOrientation
 import com.hos.rushdpatients.pdf.PdfPaperSize
 import com.hos.rushdpatients.pdf.PdfStyle
 import com.hos.rushdpatients.ui.theme.UiSpacing
@@ -47,17 +46,6 @@ internal fun SettingsReportContent(state: SettingsUiState, viewModel: SettingsVi
         }) { Text(if (advancedPdf) uiText(R.string.ui_settings_report_section_004) else uiText(R.string.ui_settings_report_section_005)) }
     if (advancedPdf) {
         if (state.pdfStyle != PdfStyle.CARDS) {
-            Text(uiText(R.string.ui_settings_report_section_006), style = MaterialTheme.typography.labelMedium)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-                PdfOrientation.entries.forEach { option ->
-                    AppFilterChip(
-                        selected = state.pdfOrientation == option,
-                        onClick = { viewModel.setPdfOrientation(option) },
-                        label = { Text(option.uiLabel(uiText)) }
-                    )
-                }
-            }
-
             Text(uiText(R.string.ui_settings_report_section_007), style = MaterialTheme.typography.labelMedium)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small), verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                 PdfPaperSize.entries.forEach { option ->
@@ -84,16 +72,11 @@ internal fun SettingsReportContent(state: SettingsUiState, viewModel: SettingsVi
         }
 
         AppPdfAppearanceControls(
-            shading = state.pdfRowShading, dark = state.pdfDarkMode,
+            shading = state.pdfRowShading,
             onShading = viewModel::setPdfRowShading,
             showShading = state.pdfStyle != PdfStyle.CARDS
         )
-        AppToggleRow(
-            title = uiText(R.string.ui_settings_report_section_010),
-            subtitle = uiText(R.string.ui_settings_report_section_011),
-            checked = state.pdfDarkMode,
-            onCheckedChange = viewModel::setPdfDarkMode
-        )
+
 
     }
 }

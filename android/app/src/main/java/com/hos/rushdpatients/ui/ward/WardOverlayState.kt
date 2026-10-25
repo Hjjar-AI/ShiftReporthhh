@@ -5,7 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.setValue
 
-internal enum class WardOverlay { SUPPORT, FILTERS, TASKS, RECYCLE, FETCH_LATEST, FETCH_PREVIOUS }
+internal enum class WardOverlay { SUPPORT, FILTERS, TASKS, RECYCLE, FETCH_LATEST }
 
 /** Secondary sheets/confirmations also share one exclusive state. */
 internal class WardOverlayState {
@@ -28,13 +28,10 @@ internal class WardOverlayState {
     var confirmLatest: Boolean
         get() = current == WardOverlay.FETCH_LATEST
         set(value) = set(value, WardOverlay.FETCH_LATEST)
-    var confirmPrevious: Boolean
-        get() = current == WardOverlay.FETCH_PREVIOUS
-        set(value) = set(value, WardOverlay.FETCH_PREVIOUS)
     companion object {
         val Saver = Saver<WardOverlayState, String>(
             save = { it.current?.name.orEmpty() },
-            restore = { saved -> WardOverlayState().apply { current = saved.takeIf(String::isNotEmpty)?.let(WardOverlay::valueOf) } }
+            restore = { saved -> WardOverlayState().apply { current = WardOverlay.entries.firstOrNull { it.name == saved } } }
         )
     }
 }

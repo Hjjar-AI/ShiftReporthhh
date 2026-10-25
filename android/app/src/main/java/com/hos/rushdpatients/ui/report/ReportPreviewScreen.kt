@@ -96,7 +96,7 @@ fun ReportPreviewScreen(
     var showShiftDoctors by remember { mutableStateOf(false) }
     var showDeliveryLog by remember { mutableStateOf(false) }
     var deliveryDecision by remember { mutableStateOf<Pair<ReportDeliveryRecord, DeliveryResolution>?>(null) }
-    var showTools by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    var showExportMenu by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     var showChanges by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     var customizeReport by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     var pendingDelivery by remember { mutableStateOf<ReportDestinationReview?>(null) }
@@ -427,16 +427,8 @@ fun ReportPreviewScreen(
                                         onClick = { update(options.copy(paperSize = value)) }, label = { Text(value.uiLabel(uiText)) })
                                 }
                             }
-                            FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
-                                PdfOrientation.entries.forEach { value ->
-                                    AppFilterChip(selected = options.orientation == value, enabled = !busy,
-                                        onClick = { update(options.copy(orientation = value)) }, label = { Text(value.uiLabel(uiText)) })
-                                }
-                            }
                         }
-                        AppToggleRow(title = uiText(R.string.ui_settings_report_section_010), checked = options.darkMode, enabled = !busy,
-                            onCheckedChange = { update(options.copy(darkMode = it)) })
-                        AppPdfAppearanceControls(shading = options.rowShading, dark = options.darkMode, enabled = !busy,
+                        AppPdfAppearanceControls(shading = options.rowShading, enabled = !busy,
                             showShading = state.pdfStyle != PdfStyle.CARDS,
                             onShading = { update(options.copy(rowShading = it)) })
                         Text(uiText(R.string.ui_report_preview_screen_055), style = MaterialTheme.typography.bodySmall)
@@ -446,7 +438,8 @@ fun ReportPreviewScreen(
                 if (step == ReportFlowStep.PREVIEW) {
                     AppNotice(if (supervisorMode) uiText(R.string.ui_report_preview_screen_056)
                         else uiText(R.string.ui_report_preview_screen_057))
-                    LoadingButton(text = if (supervisorMode) uiText(R.string.ui_report_preview_screen_058) else if (state.reportAsPdf) uiText(R.string.ui_report_preview_screen_059) else uiText(R.string.ui_report_preview_screen_060),
+                    LoadingButton(text = if (state.previewingPdf) uiText(R.string.ui_progress_prepare_preview)
+                        else if (supervisorMode) uiText(R.string.ui_report_preview_screen_058) else if (state.reportAsPdf) uiText(R.string.ui_report_preview_screen_059) else uiText(R.string.ui_report_preview_screen_060),
                         outlined = true, loading = state.previewingPdf, modifier = Modifier.fillMaxWidth(),
                         enabled = !busy && destinationReady, onClick = ::openPreview)
                     if (previewReady) Text(uiText(R.string.ui_report_preview_screen_061), style = MaterialTheme.typography.bodySmall)
@@ -461,32 +454,33 @@ fun ReportPreviewScreen(
                     Text(uiText(R.string.ui_report_preview_screen_066),
                         style = MaterialTheme.typography.bodySmall)
                 }
-                AppTextButton(onClick = { showTools = !showTools }, enabled = !busy,
-                    modifier = Modifier.fillMaxWidth()) {
-                    Text(if (showTools) uiText(R.string.ui_report_preview_screen_067) else uiText(R.string.ui_report_preview_screen_068))
-                }
-                if (showTools) AppSection(title = uiText(R.string.ui_report_preview_screen_069)) {
-                    Text(uiText(R.string.ui_report_preview_screen_070),
-                        style = MaterialTheme.typography.bodySmall)
-                    if (state.reportAsPdf) {
-                        LoadingButton(text = uiText(R.string.ui_report_preview_screen_071), outlined = true, loading = state.exportingLocalPdf,
-                            onClick = viewModel::exportLocally, modifier = Modifier.fillMaxWidth(),
-                            enabled = !busy && state.summary != null)
-                        LoadingButton(text = uiText(R.string.ui_report_preview_screen_072), outlined = true, loading = state.sharingPdf,
-                            onClick = viewModel::sharePdf, modifier = Modifier.fillMaxWidth(),
-                            enabled = !busy && state.summary != null)
-                    } else Text(uiText(R.string.ui_report_preview_screen_073), style = MaterialTheme.typography.bodySmall)
-                    LoadingButton(text = uiText(R.string.report_save_supervisor_pdfs), outlined = true, loading = state.exportingLocalPdf,
-                        onClick = viewModel::exportSupervisorPdfs, modifier = Modifier.fillMaxWidth(),
-                        enabled = !busy && state.summary != null && state.patients.isNotEmpty())
-                    if (state.isAdmin) {
-                        AppOutlinedButton(onClick = viewModel::exportAssignments, modifier = Modifier.fillMaxWidth(),
-                            enabled = !busy && state.shift != null) { Text(uiText(R.string.ui_report_preview_screen_074)) }
-                        Text(uiText(R.string.ui_report_preview_screen_075),
-                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Box(Modifier.fillMaxWidth()) {
+                    AppOutlinedButton(onClick = { showExportMenu = true }, enabled = !busy,
+                        modifier = Modifier.fillMaxWidth()) { Text(uiText(R.string.report_export_menu)) }
+                    com.hos.rushdpatients.ui.components.AppMenu(expanded = showExportMenu,
+                        onDismissRequest = { showExportMenu = false }) {
+                        val reviewedPdfReady = state.pdfReviewUris["general"]?.let { it in state.openedPdfUris } == true
+                        com.hos.rushdpatients.ui.components.AppMenuItem(
+                            text = { Text(uiText(R.string.report_save_reviewed_pdf)) },
+                            enabled = !busy && reviewedPdfReady,
+                            onClick = { showExportMenu = false; viewModel.exportLocally() })
+                        com.hos.rushdpatients.ui.components.AppMenuItem(
+                            text = { Text(uiText(R.string.report_share_reviewed_pdf)) },
+                            enabled = !busy && reviewedPdfReady,
+                            onClick = { showExportMenu = false; viewModel.sharePdf() })
+                        com.hos.rushdpatients.ui.components.AppMenuItem(
+                            text = { Text(uiText(R.string.report_save_supervisor_pdfs)) },
+                            enabled = !busy && state.summary != null && state.patients.isNotEmpty(),
+                            onClick = { showExportMenu = false; viewModel.exportSupervisorPdfs() })
+                        if (state.isAdmin) com.hos.rushdpatients.ui.components.AppMenuItem(
+                            text = { Text(uiText(R.string.ui_report_preview_screen_074)) },
+                            enabled = !busy && state.shift != null,
+                            onClick = { showExportMenu = false; viewModel.exportAssignments() })
                     }
                 }
-                if (showTools) AppTextButton(onClick = { showDeliveryLog = true }, enabled = !busy,
+                if (!state.pdfReviewUris.containsKey("general")) Text(uiText(R.string.report_export_preview_hint),
+                    style = MaterialTheme.typography.bodySmall)
+                AppTextButton(onClick = { showDeliveryLog = true }, enabled = !busy,
                     modifier = Modifier.fillMaxWidth()) { Text(uiText(R.string.ui_report_preview_screen_076)) }
 
             }
@@ -560,9 +554,9 @@ fun ReportPreviewScreen(
         val format = if (!review.includeGeneral || review.generalAsPdf) "PDF"
             else if (review.supervisors.isEmpty()) uiText(R.string.ui_report_preview_screen_015)
             else uiText(R.string.ui_report_mixed_format)
-        val selectedSupervisorIds = review.supervisors.mapTo(linkedSetOf()) { it.doctorId }
+        val confirmedSupervisorIds = review.supervisors.mapTo(linkedSetOf()) { it.doctorId }
         val reportPatientIds = state.patients.filter {
-            review.includeGeneral || it.responsibleSpecialistId in selectedSupervisorIds
+            review.includeGeneral || it.responsibleSpecialistId in confirmedSupervisorIds
         }.mapTo(linkedSetOf()) { it.id }
         ReportSendConfirmation(destinations = destinations, format = format,
             warningCount = state.readinessIssues.flatMap { it.patientIds }.toSet().intersect(reportPatientIds).size,

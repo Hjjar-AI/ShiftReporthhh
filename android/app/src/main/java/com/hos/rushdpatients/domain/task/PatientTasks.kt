@@ -16,11 +16,6 @@ object PatientTasks {
         return TaskCounts(pending.size, 0, 0)
     }
 
-    fun carryForward(tasks: List<PatientTask>, clearOwners: Boolean): List<PatientTask> =
-        tasks.filterNot { it.done }.map { task ->
-            if (clearOwners) task.copy(ownerDoctorId = null, ownerName = null) else task
-        }
-
     @Suppress("UNUSED_PARAMETER")
     fun overdue(task: PatientTask, nowEpochMillis: Long): Boolean =
         false // Imported legacy deadlines do not affect checklist behavior.

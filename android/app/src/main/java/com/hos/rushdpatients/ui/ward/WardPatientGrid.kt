@@ -6,6 +6,8 @@ import com.hos.rushdpatients.ui.components.rememberUiStrings
 import com.hos.rushdpatients.ui.theme.UiLayout
 import com.hos.rushdpatients.ui.theme.UiSpacing
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,6 +21,12 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.animation.core.tween
 import com.hos.rushdpatients.ui.theme.LocalUiStyle
 import com.hos.rushdpatients.ui.components.AppIcons
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.material3.Text
+import com.hos.rushdpatients.ui.components.AppTextButton
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -49,8 +57,18 @@ internal fun WardPatientGrid(
             group to group.patients.filter { it.id in visibleIds }.sortedByDescending { it.id in pinnedIds }
         }.filter { it.second.isNotEmpty() }
     }
+    val scope = rememberCoroutineScope()
+    val showBackToTop by remember(patientGridState) {
+        derivedStateOf { patientGridState.firstVisibleItemIndex >= 8 }
+    }
     Column(Modifier.fillMaxSize()) {
         controlsContent()
+        if (showBackToTop) Row(Modifier.fillMaxWidth().padding(horizontal = UiSpacing.screenGutter),
+            horizontalArrangement = Arrangement.End) {
+            AppTextButton(onClick = { scope.launch { patientGridState.scrollToItem(0) } }) {
+                Text(uiText(R.string.ui_back_to_top))
+            }
+        }
         LazyVerticalGrid(
             columns = if (dualPane) GridCells.Fixed(1) else GridCells.Adaptive(minSize = UiLayout.patientGridMinWidth),
             state = patientGridState,

@@ -50,8 +50,8 @@ import com.hos.rushdpatients.ui.theme.UiSpacing
 
 internal enum class WardDrawerAction {
     REPORT, SETTINGS, DATA_MANAGEMENT,
-    PREVIOUS, RECYCLE_BIN, ADMIN, PROJECT, ABOUT, START_SHIFT,
-    FILES, BACKUP, INVITATIONS, DESTINATIONS, RESET, DIAGNOSTICS, ANNOUNCEMENT
+    RECYCLE_BIN, ADMIN, PROJECT, ABOUT,
+    FILES, BACKUP, INVITATIONS, DESTINATIONS, RESET, DIAGNOSTICS
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -67,8 +67,6 @@ internal fun WardDrawer(
     val uiText = rememberUiStrings()
     val dayLabel = remember(LocalWardTaskNow.current) { com.hos.rushdpatients.util.ShiftDate.current() }
     var preferencesMenuExpanded by rememberSaveable { mutableStateOf(false) }
-    var dataMenuExpanded by rememberSaveable { mutableStateOf(false) }
-    var adminMenuExpanded by rememberSaveable { mutableStateOf(false) }
     var helpMenuExpanded by rememberSaveable { mutableStateOf(false) }
 
     ModalDrawerSheet {
@@ -123,22 +121,14 @@ internal fun WardDrawer(
                     }
 
                     WardDrawerRow(uiText(R.string.ui_ward_drawer_013), AppIcons.Sync) { onAction(WardDrawerAction.DATA_MANAGEMENT) }
-                    DrawerToolGroup(uiText(R.string.ui_ward_drawer_012), AppIcons.Folder, dataMenuExpanded,
-                        onToggle = { dataMenuExpanded = !dataMenuExpanded }) {
-                        WardDrawerRow(uiText(R.string.ui_ward_drawer_016), AppIcons.History, enabled = !state.syncing && !state.saving) { onAction(WardDrawerAction.PREVIOUS) }
-                        WardDrawerRow(uiText(R.string.drawer_recycle_bin), AppIcons.Recycling) { onAction(WardDrawerAction.RECYCLE_BIN) }
-                    }
+                    WardDrawerRow(uiText(R.string.drawer_recycle_bin), AppIcons.Recycling) { onAction(WardDrawerAction.RECYCLE_BIN) }
                     DrawerToolGroup(uiText(R.string.ui_ward_drawer_017), AppIcons.Settings, preferencesMenuExpanded,
                         onToggle = { preferencesMenuExpanded = !preferencesMenuExpanded }) {
                         WardDrawerRow(uiText(R.string.ui_ward_drawer_018), AppIcons.Settings) { onAction(WardDrawerAction.SETTINGS) }
                         WardDrawerRow(uiText(R.string.ui_ward_drawer_019), AppIcons.Link) { onAction(WardDrawerAction.PROJECT) }
                     }
                     if (isAdmin) {
-                        DrawerToolGroup(uiText(R.string.ui_ward_drawer_020), AppIcons.AdminPanelSettings, adminMenuExpanded,
-                            onToggle = { adminMenuExpanded = !adminMenuExpanded }) {
-                            WardDrawerRow(uiText(R.string.ui_admin_screen_001), AppIcons.Groups) { onAction(WardDrawerAction.ADMIN) }
-                            WardDrawerRow(uiText(R.string.ui_ward_drawer_023), AppIcons.Campaign) { onAction(WardDrawerAction.ANNOUNCEMENT) }
-                        }
+                        WardDrawerRow(uiText(R.string.ui_admin_screen_001), AppIcons.AdminPanelSettings) { onAction(WardDrawerAction.ADMIN) }
                     }
                     DrawerToolGroup(uiText(R.string.ui_ward_drawer_026), AppIcons.HelpOutline, helpMenuExpanded,
                         onToggle = { helpMenuExpanded = !helpMenuExpanded }) {

@@ -11,7 +11,6 @@ object Routes {
     const val DATA_MANAGEMENT = "data_management"
     const val PROJECT_SETTINGS = "project_settings"
     const val DIAGNOSTICS = "diagnostics"
-    const val ANNOUNCEMENT = "announcement"
     const val VBA_IMPORT = "vba_import"
     const val ABOUT = "about"
 

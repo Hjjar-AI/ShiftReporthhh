@@ -76,7 +76,7 @@ fun AppCard(
     modifier: Modifier = Modifier,
     colors: CardColors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     elevation: CardElevation = CardDefaults.cardElevation(defaultElevation = UiElevation.flat),
-    border: BorderStroke? = UiBorder.stroke(),
+    border: BorderStroke? = UiBorder.cardStroke(),
     content: @Composable ColumnScope.() -> Unit
 ) {
     Card(

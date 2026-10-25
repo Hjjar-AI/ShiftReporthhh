@@ -8,6 +8,7 @@ data class ProjectSetupUiState(
     val botToken: String = "",
     val chatId: String = "",
     val reportsTopicId: String = "",
+    // Preserved only when importing an existing protected join file.
     val announcementsTopicId: String = "",
     val csvTopicId: String = "",
     val doctorsTopicId: String = "",

@@ -59,7 +59,6 @@ class ProjectSetupViewModel @Inject constructor(
     fun setBotToken(value: String) = update { copy(botToken = value.trim(), error = null) }
     fun setChatId(value: String) = update { copy(chatId = numeric(value, signed = true), error = null) }
     fun setReportsTopicId(value: String) = update { copy(reportsTopicId = numeric(value), error = null) }
-    fun setAnnouncementsTopicId(value: String) = update { copy(announcementsTopicId = numeric(value), error = null) }
     fun setCsvTopicId(value: String) = update { copy(csvTopicId = numeric(value), error = null) }
     fun setDoctorsTopicId(value: String) = update { copy(doctorsTopicId = numeric(value), error = null) }
     fun setProvisioningPassphrase(value: String) = update {
@@ -237,7 +236,7 @@ class ProjectSetupViewModel @Inject constructor(
             telegramDataKey = if (input.mode == ProjectSetupMode.JOIN || input.encryptTelegram) input.telegramDataKey else "",
             chatId = chatId,
             reportsTopicId = topic(input.reportsTopicId, uiText(R.string.ui_project_setup_view_model_021)),
-            announcementsTopicId = topic(input.announcementsTopicId, uiText(R.string.ui_project_setup_view_model_022)),
+            announcementsTopicId = input.announcementsTopicId.toLongOrNull() ?: 0L, // Legacy join files only.
             csvTopicId = topic(input.csvTopicId, uiText(R.string.ui_project_setup_view_model_023)),
             doctorsTopicId = topic(input.doctorsTopicId, uiText(R.string.ui_doctors)),
             initialAdmin = admin

@@ -134,7 +134,7 @@
     <string name="ui_patient_task_editor_023" formatted="false">"مسؤول المهمة (اختياري)"</string>
     <string name="ui_patient_task_editor_024" formatted="false">"غير معيّنة"</string>
     <string name="ui_patient_task_editor_025" formatted="false">"الأولوية (اختياري)"</string>
-    <string name="ui_patient_task_editor_026" formatted="false">"اعتماد المهمة يضيفها إلى المسودة فقط؛ اضغط «حفظ» في صفحة المريض لحفظها."</string>
+    <string name="ui_patient_task_editor_026" formatted="false">"تُحفظ المهام، بما فيها نص المهمة الجديدة، عند حفظ المريض."</string>
     <string name="ui_patient_task_editor_027" formatted="false">"اعتماد المهمة في المسودة"</string>
     <string name="ui_patient_task_editor_028" formatted="false">"لم تُعتمد تعديلات المهمة في مسودة المريض."</string>
     <string name="ui_patient_task_editor_029" formatted="false">"تجاهل والخروج"</string>
@@ -202,20 +202,9 @@
     <string name="ui_edit_patient_dialog_003" formatted="false">"آخر مريض في القائمة الحالية؛ الحفظ ينهي الجولة."</string>
     <string name="ui_edit_patient_dialog_004" formatted="false">"مراجعة المسودة المرفوضة والنسخة المحفوظة"</string>
     <string name="ui_ward_patient_search_field_001" formatted="false">"بحث بالاسم أو رقم القبول الحالي أو المحتوى الطبي"</string>
-    <string name="ui_ward_review_dialogs_001" formatted="false">"بدء مناوبة اليوم من السابقة"</string>
-    <string name="ui_ward_review_dialogs_002" formatted="false">"نسخ جميع المرضى إلى سجلات جديدة في مناوبة اليوم، مع المهام غير المكتملة ومواعيدها فقط. المهام المكتملة تبقى في السابقة. هذا مستقل عن جلب بيانات تليجرام."</string>
-    <string name="ui_ward_review_dialogs_003" formatted="false">"الاحتفاظ بالأطباء المسؤولين ومالكي المهام"</string>
-    <string name="ui_ward_review_dialogs_004" formatted="false">"ستُزال مسؤوليات الأطباء ومالكو المهام من النسخة الجديدة فقط."</string>
-    <string name="ui_ward_review_dialogs_005" formatted="false">" · مهام معلقة "</string>
-    <string name="ui_ward_review_dialogs_006" formatted="false">"تحفظ محلياً، ثم تراجع وتنشر. لا تستبدل مناوبة تحتوي مرضى."</string>
-    <string name="ui_ward_review_dialogs_007" formatted="false">"جارٍ النسخ…"</string>
-    <string name="ui_ward_review_dialogs_008">"نسخ الجميع (%1$s)"</string>
     <string name="ui_ward_review_dialogs_009" formatted="false">"سلة المحذوفات"</string>
     <string name="ui_ward_review_dialogs_010" formatted="false">"لا يوجد مرضى محذوفون في هذه المناوبة"</string>
     <string name="ui_close" formatted="false">"إغلاق"</string>
-    <string name="ui_ward_review_dialogs_012" formatted="false">"اختيار مناوبة محفوظة"</string>
-    <string name="ui_ward_review_dialogs_013" formatted="false">"المناوبات الموجودة في آخر ملف CSV تم تنزيله:"</string>
-    <string name="ui_ward_review_dialogs_014">"%1$s. %2$s — %3$s مريض"</string>
     <string name="ui_patient_card_001" formatted="false">"، رقم القبول الحالي "</string>
     <string name="ui_patient_card_002" formatted="false">"، "</string>
     <string name="ui_patient_card_003" formatted="false">"، المقيم "</string>
@@ -317,14 +306,12 @@
     <string name="ui_ward_drawer_013" formatted="false">"مركز المزامنة"</string>
     <string name="ui_ward_drawer_014" formatted="false">"ملفات المرضى"</string>
     <string name="ui_ward_drawer_015" formatted="false">"نسخة مشفرة في ملف"</string>
-    <string name="ui_ward_drawer_016" formatted="false">"نسخة منشورة سابقة — للعرض"</string>
     <string name="ui_ward_drawer_017" formatted="false">"التفضيلات والاتصال"</string>
     <string name="ui_ward_drawer_018" formatted="false">"إعداداتي"</string>
     <string name="ui_ward_drawer_019" formatted="false">"اتصال المشروع"</string>
     <string name="ui_ward_drawer_020" formatted="false">"إدارة الفريق والمشروع"</string>
     <string name="ui_ward_drawer_021" formatted="false">"مجموعات تقارير المشرفين"</string>
     <string name="ui_ward_drawer_022" formatted="false">"ضم جهاز جديد"</string>
-    <string name="ui_ward_drawer_023" formatted="false">"إعلان المشروع"</string>
     <string name="ui_ward_drawer_024" formatted="false">"مركز النشاط والسجل"</string>
     <string name="ui_ward_drawer_025" formatted="false">"بداية فارغة"</string>
     <string name="ui_ward_drawer_026" formatted="false">"المساعدة ومعلومات التطبيق"</string>
@@ -336,9 +323,6 @@
     <string name="ui_ward_data_review_dialogs_001" formatted="false">"جلب أحدث نسخة"</string>
     <string name="ui_ward_data_review_dialogs_002" formatted="false">"ستُستبدل بيانات المرضى المحلية بأحدث نسخة منشورة. راجع تعديلاتك المحلية قبل الجلب."</string>
     <string name="ui_ward_data_review_dialogs_003" formatted="false">"جلب النسخة"</string>
-    <string name="ui_ward_data_review_dialogs_004" formatted="false">"جلب نسخة سابقة"</string>
-    <string name="ui_ward_data_review_dialogs_005" formatted="false">"ستُستبدل البيانات المحلية بالنسخة التي سبقت أحدث نشر. تبقى النسخة المنشورة على تليجرام كما هي."</string>
-    <string name="ui_ward_data_review_dialogs_006" formatted="false">"جلب النسخة السابقة"</string>
     <string name="ui_ward_supporting_pane_001" formatted="false">"جاهزية التقرير"</string>
     <string name="ui_ward_supporting_pane_002" formatted="false">"لا توجد ملاحظات اكتمال في الفحص الحالي"</string>
     <string name="ui_ward_supporting_pane_003" formatted="false">"مراجعة التقرير"</string>
@@ -407,8 +391,6 @@
     <string name="ui_empty_ward_patients_007" formatted="false">"هل لديك بيانات جاهزة؟"</string>
     <string name="ui_empty_ward_patients_008" formatted="false">"جلب بيانات الفريق"</string>
     <string name="ui_empty_ward_patients_009" formatted="false">"استرجع أحدث نسخة منشورة على تليجرام بعد التأكيد."</string>
-    <string name="ui_empty_ward_patients_010" formatted="false">"نسخ المناوبة السابقة"</string>
-    <string name="ui_empty_ward_patients_011" formatted="false">"ابدأ اليوم بنسخة من المرضى والمهام غير المكتملة؛ تراجعها قبل الحفظ."</string>
     <string name="ui_settings_data_sections_001" formatted="false">"التعديلات محفوظة على الجهاز. «مراجعة ونشر» تشارك النسخة المحلية؛ «جلب البيانات» يسترجع النسخة المنشورة بعد التأكيد."</string>
     <string name="ui_settings_data_sections_002">"آخر اتصال ببيانات المرضى: %1$s"</string>
     <string name="ui_settings_data_sections_003" formatted="false">"جلب أحدث البيانات من تليجرام"</string>
@@ -800,25 +782,6 @@
     <string name="ui_demo_ward_screen_014" formatted="false">"المحذوفات التجريبية"</string>
     <string name="ui_demo_ward_screen_015" formatted="false">"المحذوفات فارغة"</string>
     <string name="ui_demo_ward_screen_016">"استعادة %1$s"</string>
-    <string name="ui_announcement_screen_001" formatted="false">"إعلان المجموعة"</string>
-    <string name="ui_announcement_screen_002" formatted="false">"ينشر في وجهة إعلانات المشروع؛ يبقى فهرس المزامنة مثبتاً. يُرسل النص كما تراجعه، مع تشفير المشروع عند تفعيله."</string>
-    <string name="ui_announcement_screen_003" formatted="false">"جارٍ قراءة حالة الإعلان…"</string>
-    <string name="ui_announcement_screen_004">"الإعلان الحالي: %1$s"</string>
-    <string name="ui_announcement_screen_005" formatted="false">"نص الإعلان"</string>
-    <string name="ui_announcement_screen_006" formatted="false">"اكتب إعلاناً عاماً للمجموعة…"</string>
-    <string name="ui_announcement_screen_007" formatted="false">"مراجعة الإعلان"</string>
-    <string name="ui_announcement_screen_008" formatted="false">"تحديث حالة الإعلان"</string>
-    <string name="ui_announcement_screen_009" formatted="false">"سجل التسليم غير متاح؛ الإرسال محظور حتى إصلاحه."</string>
-    <string name="ui_announcement_screen_010" formatted="false">"نشر إعلان غير مؤكد؛ افحص الرسالة والفهرس في تليجرام قبل أي إعادة."</string>
-    <string name="ui_announcement_screen_011" formatted="false">"تحققت من وجود الإعلان"</string>
-    <string name="ui_announcement_screen_012" formatted="false">"تحققت أنه لم يُنشر"</string>
-    <string name="ui_announcement_screen_013" formatted="false">"مراجعة تحديث الإعلان"</string>
-    <string name="ui_announcement_screen_014" formatted="false">"مراجعة إعلان جديد"</string>
-    <string name="ui_announcement_screen_015" formatted="false">"تأكيد حسم التسليم"</string>
-    <string name="ui_announcement_screen_016" formatted="false">"أدخل معرّف رسالة الإعلان الذي تحققت من نصه في تليجرام. تُصلح إحالة مفقودة دون استبدال إعلان أحدث."</string>
-    <string name="ui_announcement_screen_017" formatted="false">"تأكد أن الإعلان لم يُنشر قبل فتح محاولة جديدة؛ لا تكفي رسالة خطأ أو انقطاع اتصال لإثبات ذلك."</string>
-    <string name="ui_announcement_screen_018" formatted="false">"معرّف رسالة الإعلان"</string>
-    <string name="ui_announcement_screen_019" formatted="false">"تأكيد ما تحققت منه"</string>
     <string name="ui_project_setup_choices_001" formatted="false">"تجربة التطبيق"</string>
     <string name="ui_project_setup_choices_002" formatted="false">"ابدأ فوراً ببيانات تجريبية"</string>
     <string name="ui_project_setup_choices_003" formatted="false">"الانضمام لمشروع"</string>
@@ -848,7 +811,6 @@
     <string name="ui_project_setup_screen_021" formatted="false">"إعدادات المواضيع المتقدمة (اختياري)"</string>
     <string name="ui_project_setup_screen_022" formatted="false">"اختيارية. اترك الحقول فارغة للنشر في General."</string>
     <string name="ui_project_setup_screen_023" formatted="false">"موضوع التقارير"</string>
-    <string name="ui_project_setup_screen_024" formatted="false">"موضوع الإعلانات"</string>
     <string name="ui_project_setup_screen_025" formatted="false">"موضوع بيانات المناوبات"</string>
     <string name="ui_project_setup_screen_026" formatted="false">"موضوع سجل الأطباء"</string>
     <string name="ui_project_setup_screen_027" formatted="false">"حماية بيانات تليجرام"</string>
@@ -914,19 +876,6 @@
     <string name="ui_doctor_choice_groups_002" formatted="false">"المقيمون · دون فريق"</string>
     <string name="ui_doctor_choice_groups_003" formatted="false">"مشرف مرتبط"</string>
     <string name="ui_doctor_choice_groups_004">"فريق %1$s"</string>
-    <string name="ui_ward_shift_operations_001" formatted="false">"غير معروف؛ قد تكون نسخة محلية لم تُنزّل على هذا الجهاز"</string>
-    <string name="ui_ward_shift_operations_002">"المصدر: مناوبة %1$s المحفوظة على هذا الجهاز\nآخر تنزيل لهذه الحزمة: %2$s\n"</string>
-    <string name="ui_ward_shift_operations_003" formatted="false">"لم يُفحص تليجرام الآن؛ قد توجد نسخة أحدث. ألغِ واجلب أحدث البيانات أولاً إذا أردت تحديث المصدر."</string>
-    <string name="ui_ward_shift_operations_004" formatted="false">"مناوبة اليوم تحتوي مرضى؛ لن تُستبدل"</string>
-    <string name="ui_ward_shift_operations_005" formatted="false">"المناوبة غير موجودة"</string>
-    <string name="ui_ward_shift_operations_006" formatted="false">"لا توجد مناوبة سابقة تحتوي مرضى لنسخهم؛ يمكنك جلب البيانات من تليجرام أولاً"</string>
-    <string name="ui_ward_shift_operations_007" formatted="false">"تعذر تحضير المناوبة الجديدة"</string>
-    <string name="ui_ward_shift_operations_008" formatted="false">"أعد فتح نسخ المناوبة"</string>
-    <string name="ui_ward_shift_operations_009" formatted="false">"تغيرت المناوبة؛ أعد فتح النسخ"</string>
-    <string name="ui_ward_shift_operations_010" formatted="false">"لا توجد سجلات لنسخها"</string>
-    <string name="ui_ward_shift_operations_011">"نُسخ جميع المرضى (%1$s) محلياً؛ حدد أطباء المناوبة ثم راجع وانشر"</string>
-    <string name="ui_ward_shift_operations_012" formatted="false">"نزّل أحدث ملف أولاً لعرض المناوبات المحفوظة فيه"</string>
-    <string name="ui_ward_shift_operations_013">"تم عرض مناوبة %1$s"</string>
     <string name="ui_ward_shift_operations_014" formatted="false">"لا توجد وردية للتصدير"</string>
     <string name="ui_ward_shift_operations_015">"تم حفظ %1$s مريض في %2$s"</string>
     <string name="ui_ward_shift_operations_016">"آخر عملية ناجحة: حفظ %1$s"</string>
@@ -1142,13 +1091,6 @@
     <string name="ui_demo_ward_view_model_010" formatted="false">"لم يُحفظ التقرير كاملاً؛ أعد التصدير"</string>
     <string name="ui_demo_ward_view_model_011" formatted="false">"حُفظ تقرير PDF التجريبي؛ لم تُرفع أي بيانات"</string>
     <string name="ui_demo_ward_view_model_012" formatted="false">"تعذر تصدير التقرير التجريبي"</string>
-    <string name="ui_announcement_view_model_001" formatted="false">"تعذر فتح سجل التسليم؛ لن يبدأ إرسال جديد"</string>
-    <string name="ui_announcement_view_model_002" formatted="false">"تعذر قراءة فهرس الإعلان"</string>
-    <string name="ui_announcement_view_model_003" formatted="false">"تعذرت مراجعة الإعلان"</string>
-    <string name="ui_announcement_view_model_004" formatted="false">"تم نشر الإعلان وتأكيد الفهرس"</string>
-    <string name="ui_announcement_view_model_005" formatted="false">"لم يتأكد النشر"</string>
-    <string name="ui_announcement_view_model_006" formatted="false">"؛ راجع سجل التسليم قبل الإعادة"</string>
-    <string name="ui_announcement_view_model_007" formatted="false">"حُسمت العملية؛ أعد مراجعة النص قبل أي نشر جديد"</string>
     <string name="ui_project_setup_view_model_001" formatted="false">"أدخل عبارة المرور المكونة من 10 محارف على الأقل"</string>
     <string name="ui_project_setup_view_model_002" formatted="false">"جارٍ فتح ملف الانضمام…"</string>
     <string name="ui_project_setup_view_model_003" formatted="false">"تم تحميل إعدادات المشروع. اضغط التحقق والانضمام."</string>
@@ -1170,7 +1112,6 @@
     <string name="ui_project_setup_view_model_019" formatted="false">"أدخل اسم المدير الأول"</string>
     <string name="ui_project_setup_view_model_020" formatted="false">"معرف تليجرام للمدير غير صالح"</string>
     <string name="ui_project_setup_view_model_021" formatted="false">"التقارير"</string>
-    <string name="ui_project_setup_view_model_022" formatted="false">"الإعلانات"</string>
     <string name="ui_project_setup_view_model_023" formatted="false">"البيانات"</string>
     <string name="ui_doctors" formatted="false">"الأطباء"</string>
     <string name="ui_project_setup_view_model_025">"معرف موضوع %1$s غير صالح"</string>
@@ -1342,4 +1283,5 @@
     <string name="ui_recovery_retry_after_fix">إعادة الجلب بعد المعالجة</string>
     <string name="ui_recovery_reload_report">تحديث التقرير بعد معالجة سجل الأطباء</string>
     <string name="ui_recovery_ask_admin">اطلب من مدير المشروع معالجة سجل الأطباء، ثم أعد المحاولة.</string>
+    <string name="ui_ward_shift_operations_005" formatted="false">"المناوبة غير موجودة"</string>
 </resources>

@@ -7,23 +7,17 @@ import com.hos.rushdpatients.ui.components.rememberUiStrings
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import com.hos.rushdpatients.ui.components.EmptyState
-import com.hos.rushdpatients.ui.components.AppDestinationCard
 import com.hos.rushdpatients.ui.theme.UiSpacing
 
-/** One manual-entry action, then clearly explained sources; mutations stay caller-owned. */
+/** Empty continuous ward; Fetch remains available in the transfer bar. */
 @Composable
-internal fun EmptyWardPatients(isReadOnly: Boolean, busy: Boolean, canCopy: Boolean,
-    bottomClearance: Dp, onAdd: () -> Unit, onCopyPrevious: () -> Unit,
-    showSources: Boolean = true, topContent: @Composable () -> Unit = {}) {
+internal fun EmptyWardPatients(isReadOnly: Boolean, busy: Boolean,
+    bottomClearance: Dp, onAdd: () -> Unit, topContent: @Composable () -> Unit = {}) {
     val uiText = rememberUiStrings()
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         Column(Modifier.widthIn(max = com.hos.rushdpatients.ui.theme.UiLayout.emptyWardMaxWidth)
@@ -39,16 +33,6 @@ internal fun EmptyWardPatients(isReadOnly: Boolean, busy: Boolean, canCopy: Bool
                 icon = AppIcons.ViewAgenda,
                 actionLabel = if (isReadOnly) null else uiText(R.string.ui_empty_ward_patients_005),
                 onAction = if (isReadOnly) null else onAdd, actionEnabled = !busy)
-            if (!isReadOnly && showSources) {
-                Text(uiText(R.string.ui_empty_ward_patients_006), style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(uiText(R.string.ui_empty_ward_patients_007), modifier = Modifier.fillMaxWidth()
-                    .padding(top = UiSpacing.screen).semantics { heading() },
-                    style = MaterialTheme.typography.titleSmall)
-                AppDestinationCard(title = uiText(R.string.ui_empty_ward_patients_010), icon = AppIcons.History,
-                        summary = uiText(R.string.ui_empty_ward_patients_011),
-                        enabled = !busy && canCopy, onClick = onCopyPrevious)
-            }
         }
     }
 }

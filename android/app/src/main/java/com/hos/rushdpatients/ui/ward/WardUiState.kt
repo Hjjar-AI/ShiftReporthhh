@@ -18,12 +18,6 @@ data class PatientGroup(
     val patients: List<Patient>
 )
 
-data class ShiftSnapshotOption(
-    val shiftId: String,
-    val date: java.time.LocalDate,
-    val patientCount: Int
-)
-
 enum class PatientSyncStatus(@StringRes private val arabicLabelRes: Int) {
     LOCAL(R.string.ui_ward_ui_state_001),
     PENDING(R.string.ui_ward_ui_state_002),
@@ -35,7 +29,7 @@ enum class PatientSyncStatus(@StringRes private val arabicLabelRes: Int) {
 
 enum class WardSyncRecovery { PUBLISH_DOCTORS, FETCH_DOCTORS, PUBLISH_PATIENTS }
 
-enum class WardRetryAction { FETCH_LATEST, FETCH_PREVIOUS, EXPORT_CSV }
+enum class WardRetryAction { FETCH_LATEST, EXPORT_CSV }
 
 data class WardUiState(
     val hospitalName: String = "",
@@ -45,24 +39,19 @@ data class WardUiState(
     val patients: List<Patient> = emptyList(),
     val deletedPatients: List<Patient> = emptyList(),
     val patientDraft: PatientDraft? = null,
-    val rolloverPatients: List<Patient> = emptyList(),
-    val rolloverTarget: Shift? = null,
-    val rolloverSourceLabel: String = "",
     val groupedPatients: List<PatientGroup> = emptyList(),
     val doctors: List<Doctor> = emptyList(),
     val sortSpec: SortSpec = SortSpec.DEFAULT,
     val groupByMode: GroupByMode = GroupByMode.SUPERVISOR,
     val saving: Boolean = false,
     val syncing: Boolean = false,
+    @StringRes val syncProgressRes: Int = R.string.ui_progress_fetch_patients,
     val canUndoDownload: Boolean = false,
-    val snapshotChoices: List<ShiftSnapshotOption> = emptyList(),
-    val showSnapshotPicker: Boolean = false,
     val synchronization: WardSynchronization = WardSynchronization(),
     val exportingCsv: Boolean = false,
     val patientDetailsExpanded: Boolean = false,
     val twoColumn: Boolean = false,
     val compactCards: Boolean = false,
-    val saveAndNext: Boolean = false,
     val lastOperation: String? = null,
     val retryAction: WardRetryAction? = null,
     val error: String? = null,

@@ -47,7 +47,6 @@ internal data class DemoWardState(
     val sort: SortSpec = SortSpec(),
     val date: LocalDate = LocalDate.now(),
     val exporting: Boolean = false,
-    val saveAndNext: Boolean = false,
     val actorId: String = doctors.first().id,
     val message: String? = null,
     val shiftId: String = "demo-${java.util.UUID.randomUUID()}",
@@ -87,7 +86,7 @@ class DemoWardViewModel @Inject constructor(
         groupedPatients = groupPatients(uiText, snapshot.ordered, snapshot.doctors, snapshot.groupBy),
         sortSpec = snapshot.sort, groupByMode = snapshot.groupBy, patientDraft = snapshot.draft,
         patientDetailsExpanded = snapshot.expanded, twoColumn = snapshot.twoColumn,
-        compactCards = snapshot.compact, saveAndNext = snapshot.saveAndNext, snackbar = snapshot.message
+        compactCards = snapshot.compact, snackbar = snapshot.message
     )
     private val workspace = _state.map(::wardState).stateIn(viewModelScope,
         SharingStarted.Eagerly, wardState(_state.value))
@@ -153,7 +152,6 @@ class DemoWardViewModel @Inject constructor(
             val latest = _state.value.patients.firstOrNull { it.id == patient.id } ?: return
             if (save(latest.copy(isPriority = priority))) onSuccess()
         }
-        override fun setSaveAndNext(enabled: Boolean) { this@DemoWardViewModel.setSaveAndNext(enabled) }
         override fun setPatientDetailsExpanded(expanded: Boolean) { _state.update { it.copy(expanded = expanded) } }
         override fun setTwoColumn(enabled: Boolean) { _state.update { it.copy(twoColumn = enabled) } }
         override fun setCompactCards(compact: Boolean) { _state.update { it.copy(compact = compact) } }
@@ -161,12 +159,6 @@ class DemoWardViewModel @Inject constructor(
         override fun dismissSnackbar() { dismissMessage() }
         override fun loadRecycleBin() { }
         override fun bringLatestData() { unavailable() }
-        override fun bringPreviousData() { unavailable() }
-        override fun offerPreviousShift() { unavailable() }
-        override fun applyRollover(keepAssignments: Boolean) { unavailable() }
-        override fun dismissRollover() { }
-        override fun selectDownloadedSnapshot(shiftId: String) { unavailable() }
-        override fun dismissSnapshotPicker() { }
         override fun retryLastAction() { unavailable() }
     }
 
@@ -178,7 +170,6 @@ class DemoWardViewModel @Inject constructor(
     internal fun selectActor(id: String) {
         if (_state.value.doctors.any { it.id == id && !it.isDeleted }) _state.update { it.copy(actorId = id) }
     }
-    internal fun setSaveAndNext(enabled: Boolean) = _state.update { it.copy(saveAndNext = enabled) }
     internal fun dismissMessage() = _state.update { it.copy(message = null) }
     internal fun message(value: String) = _state.update { it.copy(message = value) }
     internal fun sort(spec: SortSpec) = _state.update { current ->

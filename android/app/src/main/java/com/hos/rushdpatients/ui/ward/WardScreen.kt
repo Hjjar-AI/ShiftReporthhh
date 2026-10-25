@@ -131,14 +131,15 @@ private fun WardWorkspaceContent(
     val onOpenProject = navigation.onOpenProject
     val onOpenDataManagement = navigation.onOpenDataManagement
     val onOpenWorkspace = navigation.onOpenWorkspace
-    val onOpenAnnouncement = navigation.onOpenAnnouncement
     val uiText = rememberUiStrings()
-    val state by viewModel.state.collectAsStateWithLifecycle()
+    val liveState by viewModel.state.collectAsStateWithLifecycle()
+    // Retained content is readable during local reload/error, but cannot initiate edits.
+    val state = if (liveState.loading || liveState.error != null) liveState.copy(isReadOnly = true) else liveState
     val online by viewModel.online.collectAsStateWithLifecycle()
     var offlineFetchFailed by rememberSaveable { mutableStateOf(false) }
     var showBackOnline by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(online, state.retryAction, state.syncIssue) {
-        if (!online && state.retryAction in listOf(WardRetryAction.FETCH_LATEST, WardRetryAction.FETCH_PREVIOUS))
+        if (!online && state.retryAction == WardRetryAction.FETCH_LATEST)
             offlineFetchFailed = true
         if (online && offlineFetchFailed) {
             offlineFetchFailed = false
@@ -183,7 +184,6 @@ private fun WardWorkspaceContent(
     var recentlyEditedId by remember { mutableStateOf<String?>(null) }
     var showSort by remember { mutableStateOf(false) }
     var confirmLatest by overlays::confirmLatest
-    var confirmPrevious by overlays::confirmPrevious
     var showSearch by rememberSaveable { mutableStateOf(false) }
     var requestSearchFocus by remember { mutableStateOf(false) }
     var showRecycleBin by overlays::showRecycleBin
@@ -401,10 +401,7 @@ private fun WardWorkspaceContent(
                         WardDrawerAction.DESTINATIONS -> onOpenWorkspace(SettingsWorkspace.DESTINATIONS)
                         WardDrawerAction.RESET -> onOpenWorkspace(SettingsWorkspace.RESET)
                         WardDrawerAction.DIAGNOSTICS -> onOpenWorkspace(SettingsWorkspace.DIAGNOSTICS)
-                        WardDrawerAction.ANNOUNCEMENT -> onOpenAnnouncement()
                         WardDrawerAction.DATA_MANAGEMENT -> onOpenDataManagement()
-                        WardDrawerAction.START_SHIFT -> viewModel.offerPreviousShift()
-                        WardDrawerAction.PREVIOUS -> confirmPrevious = true
                         WardDrawerAction.RECYCLE_BIN -> {
                             viewModel.loadRecycleBin()
                             showRecycleBin = true
@@ -475,10 +472,22 @@ private fun WardWorkspaceContent(
                 if (viewModel.liveProject && patientDestination) WardTransferBar(
                     fetchEnabled = !state.loading && !state.isReadOnly && !state.syncing && !state.saving &&
                         editor.dialog == null && detailsTargetId == null && !confirmLatest,
-                    reportEnabled = state.shift != null && !state.loading && !state.syncing && !state.saving &&
+                    reportEnabled = state.shift != null && !state.isReadOnly && !state.loading && !state.syncing && !state.saving &&
                         editor.dialog == null && detailsTargetId == null,
                     onFetch = { confirmLatest = true },
                     onReport = { state.shift?.id?.let(onOpenReport) })
+                if (state.shift != null && state.loading) com.hos.rushdpatients.ui.components.AppLoadingState(
+                    uiText(R.string.ui_ward_screen_006),
+                    size = com.hos.rushdpatients.ui.components.AppLoadingSize.INLINE)
+                if (state.shift != null && state.error != null) AppNotice(
+                    message = uiText(R.string.ui_ward_refresh_retained, state.error.orEmpty()),
+                    kind = NoticeKind.ERROR, compact = true,
+                    actionLabel = uiText(R.string.ui_retry), onAction = viewModel::reloadWard,
+                    actionEnabled = !state.loading && !state.syncing && !state.saving)
+                if (state.syncing || state.exportingCsv) com.hos.rushdpatients.ui.components.AppLoadingState(
+                    uiText(if (state.syncing) state.syncProgressRes else R.string.ui_progress_export_csv),
+                    modifier = Modifier.padding(horizontal = UiSpacing.section),
+                    size = com.hos.rushdpatients.ui.components.AppLoadingSize.INLINE)
                 if (!viewModel.liveProject) AppNotice(uiText(R.string.ui_demo_navigation_001),
                     kind = NoticeKind.WARNING, icon = AppIcons.Info,
                     modifier = Modifier.fillMaxWidth().padding(UiPadding.screen))
@@ -568,15 +577,15 @@ private fun WardWorkspaceContent(
                     compactOverlay = { if (patientDestination) detailContent(false) },
                     primary = { dualPane ->
                     Box(Modifier.fillMaxSize()) {
-                        if (state.loading) {
+                        if (state.loading && state.shift == null) {
                             com.hos.rushdpatients.ui.components.AppLoadingState(uiText(R.string.ui_ward_screen_006), Modifier.align(Alignment.Center))
-                        } else if (state.error != null) {
+                        } else if (state.error != null && state.shift == null) {
                             AppNotice(
                                 message = uiText(R.string.ui_ward_screen_007, state.error.orEmpty()),
                                 kind = NoticeKind.ERROR,
                                 modifier = Modifier.align(Alignment.Center).padding(UiPadding.content),
-                                actionLabel = if (state.retryAction != null) uiText(R.string.ui_retry) else null,
-                                onAction = if (state.retryAction != null) viewModel::retryLastAction else null,
+                                actionLabel = uiText(R.string.ui_retry),
+                                onAction = viewModel::reloadWard,
                                 actionEnabled = !state.syncing && !state.saving
                             )
                         } else if (viewMode == WardViewMode.DASHBOARD) {
@@ -606,11 +615,9 @@ private fun WardWorkspaceContent(
                             )
                         } else if (state.patients.isEmpty()) {
                             EmptyWardPatients(isReadOnly = state.isReadOnly,
-                                busy = state.syncing || state.saving, canCopy = state.shift != null,
-                                showSources = viewModel.liveProject,
+                                busy = state.syncing || state.saving,
                                 bottomClearance = scrollBottomClearance,
                                 onAdd = { editor.openAdd(state.patients, state.shift?.revision) },
-                                onCopyPrevious = viewModel::offerPreviousShift,
                                 topContent = {})
                         } else {
                             WardPatientGrid(state, visiblePatients, dualPane, patientGridState,
@@ -732,8 +739,8 @@ private fun WardWorkspaceContent(
         )
     }
 
-    if (viewModel.liveProject) WardDataReviewDialogs(state, viewModel, confirmLatest, confirmPrevious,
-        onDismissLatest = { confirmLatest = false }, onDismissPrevious = { confirmPrevious = false })
+    if (viewModel.liveProject) WardDataReviewDialogs(state, viewModel, confirmLatest,
+        onDismissLatest = { confirmLatest = false })
 
     fun saveEdited(p: Patient, draft: Patient, onStale: (Patient?) -> Unit, advance: Boolean) {
         // Capture the displayed successor before saving can change filters/order.
@@ -756,7 +763,7 @@ private fun WardWorkspaceContent(
         onLoadEditDraft = viewModel::loadEditDraft, onEditDraftChanged = viewModel::saveEditDraft,
         onDiscardEditDraft = viewModel::discardEditDraft,
         editSession = editor.editSession, copyInitial = editor.copyInitial, copyForm = editor.copyForm,
-        onSaveEdited = ::saveEdited, onSaveAndNextChanged = viewModel::setSaveAndNext,
+        onSaveEdited = ::saveEdited,
         onDismissEdit = { editor.editTarget = null },
         onCopyConfirmed = { patient -> viewModel.addPatient(patient) { editor.copyTarget = null } },
         onDismissCopy = { editor.copyTarget = null }, onDeleteConfirmed = { p ->

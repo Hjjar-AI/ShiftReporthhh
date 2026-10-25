@@ -21,7 +21,7 @@ import com.hos.rushdpatients.ui.theme.UiSpacing
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun AppPdfAppearanceControls(
-    shading: PdfRowShading, dark: Boolean,
+    shading: PdfRowShading,
     onShading: (PdfRowShading) -> Unit,
     enabled: Boolean = true, showShading: Boolean = true
 ) {
@@ -30,7 +30,7 @@ fun AppPdfAppearanceControls(
     val contrast = PdfRuleContrast.MEDIUM
     if (showShading) AppChoiceChips(PdfRowShading.entries.toList(), shading, onShading, { it.uiLabel(uiText) },
         title = uiText(R.string.ui_app_pdf_appearance_controls_004), enabled = enabled)
-    val palette = PdfPalette.resolve(PdfExportOptions(ruleWeight = weight, ruleContrast = contrast, rowShading = shading, darkMode = dark))
+    val palette = PdfPalette.resolve(PdfExportOptions(ruleWeight = weight, ruleContrast = contrast, rowShading = shading))
     Canvas(Modifier.fillMaxWidth().height(com.hos.rushdpatients.ui.theme.UiSize.pdfAppearancePreview).semantics {
         contentDescription = uiText(R.string.ui_app_pdf_appearance_controls_005, weight.uiLabel(uiText), contrast.uiLabel(uiText), shading.uiLabel(uiText))
     }) {

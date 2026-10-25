@@ -41,7 +41,7 @@ data class SyncState(
     val doctorsMessageId: Long? = null,
     val doctorsUpdatedAt: Long = 0L,
 
-    // --- Announcement ---
+    // Inert legacy index fields: preserve older clients' references.
     val announcementMessageId: Long? = null,
     val announcementUpdatedAt: Long = 0L
 ) {

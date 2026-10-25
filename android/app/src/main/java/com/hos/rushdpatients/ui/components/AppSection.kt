@@ -39,7 +39,7 @@ fun AppSectionHeader(
     complete: Boolean? = null,
     expanded: Boolean? = null,
     onToggle: (() -> Unit)? = null,
-    titleColor: Color = MaterialTheme.colorScheme.primary,
+    titleColor: Color = MaterialTheme.colorScheme.onSurface,
     summary: String? = null,
     icon: ImageVector? = null
 ) {
@@ -54,7 +54,7 @@ fun AppSectionHeader(
                 else if (complete == true) stateDescription = uiText(R.string.ui_app_section_001)
             },
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(UiSpacing.tiny)
+        horizontalArrangement = Arrangement.spacedBy(UiSpacing.screen)
     ) {
         icon?.let { Icon(it, contentDescription = null,
             modifier = Modifier.size(com.hos.rushdpatients.ui.theme.UiSize.iconMedium), tint = titleColor) }
@@ -63,7 +63,7 @@ fun AppSectionHeader(
         } else {
             FlowRow(modifier = Modifier.weight(1f),
                 horizontalArrangement = Arrangement.spacedBy(UiSpacing.medium),
-                verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
+                verticalArrangement = Arrangement.spacedBy(UiSpacing.screen)) {
                 AppText(title, role = AppTextRole.HEADING, color = titleColor)
                 Text(summary, style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -83,7 +83,7 @@ fun AppSection(
     title: String,
     modifier: Modifier = Modifier,
     colors: CardColors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-    titleColor: Color = MaterialTheme.colorScheme.primary,
+    titleColor: Color = MaterialTheme.colorScheme.onSurface,
     content: @Composable ColumnScope.() -> Unit
 ) {
     AppCard(modifier = modifier.fillMaxWidth(), colors = colors) {

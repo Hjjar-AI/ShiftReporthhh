@@ -28,7 +28,6 @@ internal fun DemoReportContent(
 ) {
     val uiText = rememberUiStrings()
     var style by rememberSaveable { mutableStateOf(PdfStyle.CLASSIC) }
-    var orientation by rememberSaveable { mutableStateOf(PdfOrientation.PORTRAIT) }
     var color by rememberSaveable { mutableStateOf(PdfColorPreset.TEAL) }
     var shading by rememberSaveable { mutableStateOf(PdfRowShading.AUTO) }
     var advanced by rememberSaveable { mutableStateOf(false) }
@@ -58,24 +57,20 @@ internal fun DemoReportContent(
             Text(if (advanced) uiText(R.string.ui_settings_report_section_004) else uiText(R.string.ui_settings_report_section_005))
         }
         if (advanced) AppSection(uiText(R.string.ui_settings_report_section_005)) {
-            if (style != PdfStyle.CARDS) AppToggleRow(uiText(R.string.ui_demo_secondary_screens_006),
-                checked = orientation == PdfOrientation.LANDSCAPE,
-                onCheckedChange = { orientation = if (it) PdfOrientation.LANDSCAPE else PdfOrientation.PORTRAIT },
-                enabled = !state.exporting)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                 PdfColorPreset.entries.forEach { value ->
                     AppFilterChip(selected = color == value, onClick = { color = value },
                         enabled = !state.exporting, label = { Text(value.uiLabel(uiText)) })
                 }
             }
-            AppPdfAppearanceControls(shading, dark = false,
+            AppPdfAppearanceControls(shading,
                 onShading = { shading = it },
                 enabled = !state.exporting, showShading = style != PdfStyle.CARDS)
         }
         LoadingButton(text = uiText(R.string.ui_demo_secondary_screens_007), loading = state.exporting,
             enabled = !state.exporting && state.patients.isNotEmpty() && state.shiftDoctorIds.isNotEmpty(),
             modifier = Modifier.fillMaxWidth(), onClick = {
-                onExport(PdfExportOptions(orientation = orientation, colorPreset = color,
+                onExport(PdfExportOptions(colorPreset = color,
                     rowShading = shading), style)
             })
         AppTextButton(onClick = { showContents = !showContents }) {
@@ -120,7 +115,6 @@ internal fun DemoPreferencesContent(
     accent: AppThemePreset, onAccent: (AppThemePreset) -> Unit,
     font: AppFontScale, onFont: (AppFontScale) -> Unit,
     expanded: Boolean, twoColumn: Boolean, compact: Boolean,
-    saveAndNext: Boolean, onSaveAndNext: (Boolean) -> Unit,
     uiPreferences: com.hos.rushdpatients.ui.theme.UiPreferences,
     onUiPreferences: (com.hos.rushdpatients.ui.theme.UiPreferences) -> Unit,
     modifier: Modifier = Modifier
@@ -134,11 +128,6 @@ internal fun DemoPreferencesContent(
                 fontScale = font, patientDetailsExpanded = expanded,
                 patientTwoColumn = twoColumn, patientCompactDensity = compact),
                 onAppearance = onAppearance, onTheme = onAccent, onFont = onFont, onUiPreferences = onUiPreferences)
-        }
-        AppSection(uiText(R.string.ui_demo_secondary_screens_015)) {
-            AppToggleRow(uiText(R.string.ui_edit_patient_dialog_002), checked = saveAndNext, onCheckedChange = onSaveAndNext)
-            Text(uiText(R.string.ui_demo_secondary_screens_016),
-                style = MaterialTheme.typography.bodySmall)
         }
     }
 }

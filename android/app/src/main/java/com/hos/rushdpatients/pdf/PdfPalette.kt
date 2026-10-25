@@ -57,42 +57,19 @@ object PdfPalette {
             else -> GROUP_PALETTE.copyOf()
         }
         val lightSummary = SUMMARY_BACKGROUND
-        return if (options.darkMode) {
-            Resolved(
-                titleHeader = headerColors.first,
-                tableHeader = headerColors.second,
-                summary = 0xFF272C31.toInt(),
-                pageBackground = 0xFF202428.toInt(),
-                text = 0xFFF7F9FA.toInt(),
-                border = 0xFF475569.toInt(),
-                ruleColor = PdfRuleContrast.MEDIUM.dark,
-                ruleWidth = PdfRuleWeight.MEDIUM.points,
-                rowShading = options.rowShading,
-                zebra = 0xFF2B3137.toInt(),
-                cream = 0xFF272C31.toInt(),
-                groups = intArrayOf(
-                    0xFF304850.toInt(),
-                    0xFF344A40.toInt(),
-                    0xFF4A4632.toInt(),
-                    0xFF4D3936.toInt(),
-                    0xFF3D3E52.toInt()
-                )
-            )
-        } else {
-            Resolved(
-                titleHeader = headerColors.first,
-                tableHeader = headerColors.second,
-                summary = lightSummary,
-                pageBackground = 0xFFFFFFFF.toInt(),
-                text = 0xFF1E293B.toInt(),
-                border = 0xFFE2E8F0.toInt(),
-                ruleColor = PdfRuleContrast.MEDIUM.light,
-                ruleWidth = PdfRuleWeight.MEDIUM.points,
-                rowShading = options.rowShading,
-                zebra = ZEBRA,
-                cream = CREAM,
-                groups = lightGroups
-            )
-        }
+        return Resolved(
+            titleHeader = headerColors.first,
+            tableHeader = headerColors.second,
+            summary = lightSummary,
+            pageBackground = 0xFFFFFFFF.toInt(),
+            text = 0xFF1E293B.toInt(),
+            border = 0xFFE2E8F0.toInt(),
+            ruleColor = PdfRuleContrast.MEDIUM.light,
+            ruleWidth = PdfRuleWeight.MEDIUM.points,
+            rowShading = options.rowShading,
+            zebra = ZEBRA,
+            cream = CREAM,
+            groups = lightGroups
+        )
     }
 }

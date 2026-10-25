@@ -16,9 +16,8 @@ Unselected only; choose IDs/subsets. [Completed](../status/changelog.md) · [Cur
 | O14 | Undo without initial reversible-delete confirmation; optional per-task draft Undo. |
 | O15 | Desktop one-tap priority toggle; Android applied25 October with Undo. |
 | O17 | Task/priority swipes with Undo and optional haptics; grouped checkboxes/priority buttons already provide direct actions. |
-| O18 | Sunken/raised surfaces and quieter borders, preserving clinical colors. |
+| O18 | Optional sunken/raised surfaces; quieter card borders applied25 October. |
 | O19 | Bundled lab font and/or desktop Tajawal; assess Arabic coverage first. |
-| O20 | Automatic biometric prompt once on resume with PIN fallback. |
 | O21 | Optional compact desktop mouse controls. |
 | O22 | Dock desktop details/dashboard beside patients on wide windows. |
 | O23 | Automated screenshot matrix; production previews are expanded. |

@@ -116,46 +116,6 @@ class WardMutationRepository @Inject constructor(
             restored
         }
 
-    suspend fun rollover(
-        patientsToInsert: List<Patient>,
-        shiftId: String,
-        expectedRevision: Long,
-        decisions: List<Pair<Patient, String>>,
-        actor: Session?
-    ) = mutate(shiftId) {
-        require(decisions.isNotEmpty() && patientsToInsert.size == decisions.size) { "يجب نسخ المناوبة كاملة" }
-        val sourceIds = decisions.map { it.first.id }.toSet()
-        require(sourceIds.size == decisions.size) { "سجلات المصدر مكررة" }
-        val sourceShiftIds = decisions.map { patients.getShiftId(it.first.id) }.distinct()
-        val sourceShiftId = sourceShiftIds.singleOrNull()
-        require(sourceShiftId != null && sourceShiftId != shiftId &&
-            patients.getForShift(sourceShiftId).map { it.id }.toSet() == sourceIds) {
-            "تغيرت قائمة مرضى المناوبة السابقة؛ أعد فتح النسخ"
-        }
-        require(requireNotNull(shifts.getById(sourceShiftId)).date < requireNotNull(shifts.getById(shiftId)).date) {
-            "يجب أن تكون مناوبة المصدر أقدم من مناوبة اليوم"
-        }
-        decisions.forEach { (source, _) ->
-            val current = patients.getById(source.id)
-            require(current != null && !current.isDeleted) {
-                "تغيرت بيانات المناوبة السابقة؛ أعد فتح نسخ المناوبة"
-            }
-        }
-        val target = requireNotNull(shifts.getById(shiftId))
-        require(patientsToInsert.map { it.id }.toSet().size == patientsToInsert.size &&
-            patientsToInsert.all { patients.getById(it.id) == null }) { "معرّفات النسخة الجديدة مستخدمة؛ أعد فتح النسخ" }
-        val registry = doctors.getAll().associateBy { it.id }
-        patientsToInsert.forEach { PatientDoctorAssignments.requireValid(it, registry) }
-        patients.insertRolloverIfShiftEmpty(patientsToInsert, shiftId)
-        shifts.updateSortSpec(shiftId, SortSpecCodec.encode(SortSpec.EMPTY), target.revision)
-        decisions.forEach { (patient, decision) ->
-            audit.record(
-                actor?.doctorId, actor?.doctorName, "rollover_$decision",
-                patient.name, patientId = patient.id
-            )
-        }
-    }
-
     suspend fun setShiftDoctors(
         shiftId: String,
         doctorIds: List<String>,

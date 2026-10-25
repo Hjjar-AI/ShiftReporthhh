@@ -259,16 +259,14 @@ class ReportPreviewViewModel @Inject constructor(
         val current = _state.value
         if (current.loading || current.sending || current.savingDoctors || current.previewingPdf ||
             current.exportingLocalPdf || current.sharingPdf || current.savingPdfOptions) return
-        val options = requested.copy(ruleWeight = com.hos.rushdpatients.pdf.PdfRuleWeight.MEDIUM, ruleContrast = com.hos.rushdpatients.pdf.PdfRuleContrast.MEDIUM)
+        val options = requested.copy(orientation = com.hos.rushdpatients.pdf.PdfOrientation.PORTRAIT, darkMode = false, ruleWeight = com.hos.rushdpatients.pdf.PdfRuleWeight.MEDIUM, ruleContrast = com.hos.rushdpatients.pdf.PdfRuleContrast.MEDIUM)
         _state.update { it.copy(savingPdfOptions = true) }
         viewModelScope.launch {
             try {
                 settingsRepository.putAll(mapOf(
                     AppConstants.SETTING_PDF_STYLE to style.name,
-                    AppConstants.SETTING_PDF_ORIENTATION to options.orientation.name,
                     AppConstants.SETTING_PDF_PAPER_SIZE to options.paperSize.name,
                     AppConstants.SETTING_PDF_COLOR_PRESET to options.colorPreset.name,
-                    AppConstants.SETTING_PDF_DARK_MODE to options.darkMode.toString(),
                     AppConstants.SETTING_PDF_ROW_SHADING to options.rowShading.name
                 ))
                 clearPdfReviews()

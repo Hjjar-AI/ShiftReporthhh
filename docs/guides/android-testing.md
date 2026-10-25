@@ -2,13 +2,13 @@
 
 [Results](../status/current-state.md#verification-and-limits) · [Remaining checks](../status/testing-handoff.md) · [Device procedures](device-coverage.md) · [Desktop/live](deep-testing.md)
 
-Inventory: **683 JVM methods/85 classes; 288 device methods/55 classes**; not coverage percentages. Results are snapshot-specific.
+Historical inventory/results: [Current state](../status/current-state.md#verification-and-limits). Suite descriptions below predate retired features; they are not a current source audit.
 
 ## Coverage map
 
 | Area | Existing coverage |
 |---|---|
-| Clinical/tasks | Validation, search/filter/counts, ownership/completion, revision-safe edits, audit/pending rollback, rollover, sorting and full report/export content |
+| Clinical/tasks | Validation/search/filter/counts, clinical/task persistence, rollback, sorting and report/export; retired ownership/stamp/rollover expectations need authorized review |
 | Security/storage | PIN/lockout/live authority, encrypted DB/settings/join/backup, same-project reconnect, key/topic protection, cancellation and secret cleanup |
 | Sync/delivery | Reviewed uploads/download Undo, pointer/history/mutex races, independent clients, UNKNOWN receipts, duplicate permission, write failure and actor revocation |
 | Reports/Telegram | Readiness/fingerprints, exact PDF review, Room snapshot consistency, long Markdown/Unicode chunks, retry/rate-limit/cancellation and intercepted transport |
@@ -31,7 +31,7 @@ srgradle :app:compileDebugKotlin :app:compileDebugUnitTestKotlin \
 srgradle :app:testDebugUnitTest > /tmp/shiftreport-jvm.log 2>&1
 ```
 
-For a focused JVM run, add one or more `--tests 'fully.qualified.ClassName'` filters. The delivery-fixture scope is `domain.report.ReportDeliveryLedgerTest`, `domain.report.ReportDeliveryLedgerSafetyTest`, `network.ReportSenderTest` and `domain.announcement.AnnouncementPublisherTest`, all under `com.hos.rushdpatients`.
+For a focused JVM run, add one or more `--tests 'fully.qualified.ClassName'` filters. The delivery-fixture scope is `domain.report.ReportDeliveryLedgerTest`, `domain.report.ReportDeliveryLedgerSafetyTest` and `network.ReportSenderTest`, all under `com.hos.rushdpatients`.
 
 Device checks build/install debug app/test APKs. Compile first, then run on the owner-selected connected device; exclude the automatic Desktop export task:
 

@@ -17,11 +17,7 @@ Open **`android/`** in Android Studio. For the PC client, use the launch scripts
 
 ## Current capabilities
 
-- Ward details/labs/badges/priority, optional clinicians and structured tasks with deadlines/completion identity; overdue is included in pending. Search/filter/group/stored sorting agree across exports. Clinical-first editing, demographic-first creation and one retained draft.
-- Dashboard/personal tasks, admin Activity/history, recycle/rollover/archive, individual/bulk expansion and compact adaptive Arabic RTL controls.
-- Reviewed Classic/A5 reports, unlimited active-doctor roster first, UTF-8 doctor CSV and exact-artifact delivery with durable UNKNOWN handling.
-- Manual Telegram retrieve/edit/review/publish, complete snapshots/last-successful-write-wins, local revisions/conflicts; encrypted database/preferences/backups, clinician PIN/biometrics and service-level authorization.
-- Demo/file-only Join/Create, optional authenticated Telegram encryption, independent appearance/accent/PDF settings, retained emblem/About and five-second hold/tap splash.
+Continuous ward, optional profiles, multiline clinical/labs and inline text/done tasks; search/group/stored sorting, recycle, retained drafts and Save-next. Reviewed A4/A5 reports, unlimited active roster, doctor CSV, encrypted local data/PIN/biometrics and protected-file join. Telegram uses manual complete-snapshot publication and exact-artifact delivery with durable UNKNOWN; clinical Save is last-save-wins. Demo is memory-only. [Current behavior and limits](docs/status/current-state.md).
 
 ## First launch
 
@@ -39,13 +35,13 @@ Token replacement: admin → [BotFather](https://t.me/BotFather) revoke/regenera
 
 Credentials/topics/key live in encrypted preferences, outside APK/Room/backups. Optional topics: blank means General. SQLCipher protects clinical Room; Android backup disabled. Join/backup files are password encrypted; share passwords separately.
 
-Optional AES-256-GCM protects Telegram bundles/tasks, doctors, pinned state, announcements and text documents; PDFs/captions/Telegram metadata deliberately readable. Keep protected join/password for key recovery; existing unencrypted projects retain their mode. Conversion/key rotation are not implemented.
+Optional AES-256-GCM protects Telegram bundles/tasks, doctors, pinned state and text documents; PDFs/captions/Telegram metadata deliberately readable. Keep protected join/password for key recovery; existing unencrypted projects retain their mode. Conversion/key rotation are not implemented.
 
-Admin mutations are authorized below navigation; stale local revisions fail explicitly. Telegram offers reviewed complete snapshots/last-successful-write-wins, without atomic simultaneous collaboration or required backend. [Architecture](docs/reference/architecture.md). Appearance/accent are independent; uncommon PDF settings stay Advanced; expanded cards retain full content.
+Admin mutations are authorized below navigation; clinical saves retain existence/shift/assignment checks without revision prompts. Telegram offers reviewed complete snapshots/last-successful-write-wins, without atomic simultaneous collaboration or required backend. [Architecture](docs/reference/architecture.md). Appearance/accent are independent; uncommon PDF settings stay Advanced; expanded cards retain full content.
 
 ## Implementation status
 
-[Current evidence/limits](docs/status/current-state.md#verification-and-limits) · [Unfinished CSV/signing and deferred proposals](docs/status/roadmap.md) · [Remaining device/runtime checks](docs/status/testing-handoff.md).
+[Current evidence/limits](docs/status/current-state.md#verification-and-limits) · [Production signing and deferred proposals](docs/status/roadmap.md) · [Remaining device/runtime checks](docs/status/testing-handoff.md).
 
 ## Project documentation
 

@@ -14,7 +14,7 @@ internal fun WardPatientDialogs(
     roundsPatientIds: List<String>,
     editSession: EditPatientState? = null, copyInitial: Patient? = null, copyForm: PatientFormStateStore? = null,
     onSaveEdited: (Patient, Patient, (Patient?) -> Unit, Boolean) -> Unit,
-    onSaveAndNextChanged: (Boolean) -> Unit, onDismissEdit: () -> Unit,
+    onDismissEdit: () -> Unit,
     onCopyConfirmed: (Patient) -> Unit, onDismissCopy: () -> Unit,
     onDeleteConfirmed: (Patient) -> Unit, onDismissDelete: () -> Unit,
     onLoadEditDraft: (String, (PatientDraft?) -> Unit) -> Unit = { _, done -> done(null) },
@@ -32,12 +32,9 @@ internal fun WardPatientDialogs(
                 doctors = state.doctors,
                 saving = state.saving,
                 onConfirm = { draft, onStale -> onSaveEdited(p, draft, onStale, false) },
-                onConfirmAndNext = if (state.saveAndNext &&
-                    patientRoundsNavigation(roundsPatientIds, p.id)?.nextId != null)
+                onConfirmAndNext = if (patientRoundsNavigation(roundsPatientIds, p.id)?.nextId != null)
                     { draft, onStale -> onSaveEdited(p, draft, onStale, true) } else null,
                 roundsNavigation = patientRoundsNavigation(roundsPatientIds, p.id),
-                saveAndNextEnabled = state.saveAndNext,
-                onSaveAndNextChanged = onSaveAndNextChanged,
                 onDismiss = onDismissEdit
             )
         }

@@ -7,8 +7,8 @@ enum class PdfOrientation(val arabicLabel: String) {
     LANDSCAPE("أفقي");
 
     companion object {
-        fun fromSetting(value: String?): PdfOrientation =
-            entries.firstOrNull { it.name == value } ?: PORTRAIT
+        @Suppress("UNUSED_PARAMETER")
+        fun fromSetting(value: String?): PdfOrientation = PORTRAIT
     }
 }
 
@@ -18,9 +18,7 @@ enum class PdfPaperSize(
     val heightPoints: Int
 ) {
     A4("A4", 595, 842),
-    LETTER("Letter", 612, 792),
-    A5("A5", 420, 595),
-    A3("A3", 842, 1191);
+    A5("A5", 420, 595);
 
     companion object {
         fun fromSetting(value: String?): PdfPaperSize =
@@ -76,6 +74,7 @@ enum class PdfPresentationPreset(
 }
 
 data class PdfExportOptions(
+    // Retired options retained for source compatibility; renderers always use portrait/light.
     val orientation: PdfOrientation = PdfOrientation.PORTRAIT,
     val paperSize: PdfPaperSize = PdfPaperSize.A4,
     val colorPreset: PdfColorPreset = PdfColorPreset.TEAL,

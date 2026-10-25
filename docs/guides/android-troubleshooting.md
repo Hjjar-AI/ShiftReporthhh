@@ -6,7 +6,7 @@ Use an already installed development app. These recipes do not authorize builds,
 
 ## Doctor registry needs attention
 
-«جلب سجل الأطباء» retrieves; «نشر سجل الأطباء» reviews/publishes local doctors/teams/permissions/destinations. «عرض التعديلات» shows portable changes, excluding local PIN/unchanged saves. Unrelated registry edits need not block patient publication; unpublished invalid roster/assignment/pending-owner references must be published/corrected first (admin registry shortcut). Fetch invalidates previews; review again. Publication replaces the complete reviewed local shift, last-write-wins; check destination/UNKNOWN before retry.
+«جلب سجل الأطباء» retrieves; «نشر سجل الأطباء» reviews/publishes local doctors/teams/permissions/destinations. «عرض التعديلات» shows portable changes, excluding local PIN/unchanged saves. Unrelated registry edits need not block patient publication; unpublished invalid roster/assignment references must be published/corrected first (admin registry shortcut). Fetch invalidates previews; review again. Publication replaces the complete reviewed local shift, last-write-wins; check destination/UNKNOWN before retry.
 
 ## Build, cache and signing failures
 
@@ -120,6 +120,8 @@ print("rows_with_extra_columns:", sum(None in row for row in rows))
 PY
 ```
 
+The legacy `blank_required_count` diagnostic includes name parts, now optional; only schema/ID blanks are required-field errors.
+
 Also check encoding and the first bytes without printing the records:
 
 ```bash
@@ -132,17 +134,17 @@ UTF-8 with or without a UTF-8 BOM is accepted. A UTF-16 spreadsheet export is no
 
 ### Spreadsheet pitfalls
 
-CSV UTF-8 (BOM optional), exact header/schema1; no ANSI/UTF16/XLSX. Preserve numeric IDs (negative group IDs, no scientific notation/separators/`.0`), CSV quoting and unique active admin ranks. Blank Telegram IDs allowed; doctor IDs/name parts required. Gender `M/MALE/F/FEMALE`; roles `RESIDENT/SUPERVISOR`.
+CSV UTF-8 (BOM optional), exact header/schema1; no ANSI/UTF16/XLSX. Preserve numeric IDs (negative group IDs, no scientific notation/separators/`.0`), CSV quoting and unique active admin ranks. Blank Telegram IDs allowed; doctor IDs required; name parts optional. Gender `M/MALE/F/FEMALE`; roles `RESIDENT/SUPERVISOR`.
 
 ## Tasks and reports
 
-Overdue ⊂ pending: never add counts. Card=patient,dashboard=ward; minute refresh, shift-end08:30 next calendar day. Optional owners, Save-stamped completion, rollover unfinished deadlines, patient copies start without tasks; notes never tasks.
+Tasks are explicit text/done records, never parsed notes; pending counts exclude completed tasks. Legacy ownership/deadlines/stamps remain storage-only. No overdue counters, minute refresh or rollover;08:30 labels the continuing ward day.
 
 Use dummy DEMO PDF: mixed Arabic/Latin,long content/tasks,badges,order/continuations/headings/footer. Acrobat/browser: search/copy/selection,index/name/Previous/Next,print. A5≈420×595pt; `pdfinfo`/`pdftotext -enc UTF-8` do not establish viewer behavior. [Remaining](../status/testing-handoff.md).
 
 ## Appearance and navigation
 
-Check independent appearance/accent and neutral diagnosis/shared severity; field focus/error/disabled,large Arabic wrapping,48dp,IME-safe actions,fold-safe regions and last-row dock clearance. Bulk immediate/individual brief. In filtered/pinned demo rounds, only successful Save-next advances; invalid/stale/discard/no-successor must not. See [actual limits](../status/current-state.md#verification-and-limits).
+Check independent appearance/accent and neutral diagnosis/shared severity; field focus/error/disabled,large Arabic wrapping,48dp,IME-safe actions,fold-safe regions and last-row dock clearance. Bulk immediate/individual brief. In filtered/pinned demo rounds, only successful Save-next advances; invalid/discard/no-successor must not. See [actual limits](../status/current-state.md#verification-and-limits).
 
 ## Report a problem
 

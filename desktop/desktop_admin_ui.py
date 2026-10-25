@@ -18,8 +18,7 @@ def doctor_form(owner, doctor=None, registry=None):
     actions = ctk.CTkFrame(window); actions.pack(side='bottom', fill='x')
     body = ctk.CTkScrollableFrame(window); body.pack(fill='both', expand=True)
     section_heading(body,'البيانات الشخصية')
-    fields=dict(first=entry(body,'الاسم',parts[0]),last=entry(body,'الكنية',parts[1] if len(parts)>1 else ''),
-                title=entry(body,'اللقب — اختياري، حتى 16 محرفاً',doctor.get('title','')))
+    fields=dict(first=entry(body,'الاسم',parts[0]),last=entry(body,'الكنية',parts[1] if len(parts)>1 else ''))
     gender=combo(body,'الجنس',GENDER,doctor.get('gender','M'))
     section_heading(body,'الدور السريري والفريق','الفريق الثابت مستقل عن تعيينات المرضى والتغطية الفردية.')
     role=combo(body,'الدور السريري',{'RESIDENT':'مقيم','SUPERVISOR':'مشرف'},doctor.get('clinicalRole','RESIDENT'))
@@ -37,7 +36,7 @@ def doctor_form(owner, doctor=None, registry=None):
     result = []
     def submit():
         values = {key:widget.get() for key,widget in fields.items()}
-        values.update(gender=gender(), clinicalRole=role(),teamSupervisorId=team() if role()=='RESIDENT' else '')
+        values.update(title=doctor.get('title',''),gender=gender(), clinicalRole=role(),teamSupervisorId=team() if role()=='RESIDENT' else '')
         from desktop_doctors import profile
         profile(values, doctor or None)
         result.append(values); window.destroy()
@@ -52,7 +51,6 @@ def registry_text(doctors, permissions=False):
         text=doctor_label(doctors,key)+'\n'+GENDER[doctor['gender']]+' · '+('مشرف' if doctor['clinicalRole']=='SUPERVISOR' else 'مقيم')
         if permissions:text+=' · رتبة '+str(rank(doctor))+(' · مدير دائم' if permanent(doctor) else '')
         text+='\nحساب تليجرام: '+str(doctor.get('telegram_id') or 'غير مرتبط')+' · مجموعة التقارير: '+str(doctor.get('destination') or 'بدون')
-        text+='\nاللقب: '+(doctor.get('title') or 'بدون')
         if doctor.get('teamSupervisorId'):text+='\nمشرف الفريق: '+doctor_label(doctors,doctor['teamSupervisorId'])
         lines.append(text)
     return '\n\n'.join(lines)

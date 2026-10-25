@@ -94,16 +94,14 @@ internal class ReportPdfWorkspace(
     suspend fun loadPdfOptions(): PdfExportOptions = PdfExportOptions(
         hospitalName = projectConfigStore.current().hospitalName,
         wardName = settingsRepository.get(AppConstants.SETTING_REPORT_WARD_NAME).orEmpty(),
-        orientation = PdfOrientation.fromSetting(
-            settingsRepository.get(AppConstants.SETTING_PDF_ORIENTATION)
-        ),
+        orientation = PdfOrientation.PORTRAIT,
         paperSize = PdfPaperSize.fromSetting(
             settingsRepository.get(AppConstants.SETTING_PDF_PAPER_SIZE)
         ),
         colorPreset = PdfColorPreset.fromSetting(
             settingsRepository.get(AppConstants.SETTING_PDF_COLOR_PRESET)
         ),
-        darkMode = settingsRepository.getBoolean(AppConstants.SETTING_PDF_DARK_MODE, false),
+        darkMode = false,
         ruleWeight = PdfRuleWeight.MEDIUM,
         ruleContrast = PdfRuleContrast.MEDIUM,
         rowShading = PdfRowShading.fromSetting(settingsRepository.get(AppConstants.SETTING_PDF_ROW_SHADING)),
@@ -144,25 +142,6 @@ internal class ReportPdfWorkspace(
                 options = options,
                 outputFile = outputFile
             )
-        }
-    }
-
-    suspend fun saveCombinedPdf(built: BuiltReport, options: PdfExportOptions) {
-        val tmp = File.createTempFile("rushd_local_report_", ".pdf", context.cacheDir)
-        try {
-            renderPdf(
-                patients = built.patients,
-                doctors = built.doctors,
-                summary = built.summary,
-                residentNames = built.doctorNames,
-                supervisorNames = built.doctorNames,
-                options = options,
-                outputFile = tmp
-            )
-            val name = reportFileName(built.summary.shiftDate)
-            checkNotNull(mediaStoreSaver.savePdf(context, tmp, name)) { uiText(R.string.ui_report_preview_view_model_028) }
-        } finally {
-            tmp.delete()
         }
     }
 

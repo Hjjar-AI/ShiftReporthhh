@@ -99,17 +99,17 @@ internal class ReportLocalActions(
         _state.update { it.copy(sharingPdf = true, error = null, doctorRegistryAction = null, retryAction = null) }
         viewModelScope.launch {
             try {
-                val built = reportBuilder.build(shiftId)
+                val built = reviewedSnapshot() ?: throw PdfReviewRequiredException(uiText)
                 val uri = withContext(Dispatchers.IO) {
+                    val reviewedFile = pdfWorkspace.checkedPdf(built)
                     val shareDir = File(context.cacheDir, "shared_reports").apply { mkdirs() }
                     shareDir.listFiles()?.forEach { it.delete() }
                     val file = File(shareDir, pdfWorkspace.reportFileName(built.summary.shiftDate))
                     try {
-                        pdfWorkspace.renderPdf(
-                            patients = built.patients, doctors = built.doctors, summary = built.summary,
-                            residentNames = built.doctorNames, supervisorNames = built.doctorNames,
-                            options = pdfWorkspace.loadPdfOptions(), outputFile = file
-                        )
+                        reviewedFile.copyTo(file, overwrite = true)
+                        check(pdfWorkspace.pdfDigest(file) == pdfWorkspace.pdfDigest(reviewedFile)) {
+                            uiText(R.string.ui_report_local_actions_004)
+                        }
                         FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
                     } catch (e: Exception) {
                         file.delete()
@@ -167,6 +167,7 @@ internal class ReportLocalActions(
                 _state.update { it.copy(exportingLocalPdf = false, snackbar = uiText(R.string.ui_report_local_actions_007),
                     lastOperation = uiText(R.string.ui_report_local_actions_008), retryAction = null) }
             } catch (e: CancellationException) {
+                _state.update { it.copy(exportingLocalPdf = false) }
                 throw e
             } catch (e: Exception) {
                 _state.update { it.copy(exportingLocalPdf = false, error = e.message ?: uiText(R.string.ui_report_local_actions_006),
@@ -185,12 +186,19 @@ internal class ReportLocalActions(
         _state.update { it.copy(exportingLocalPdf = true, error = null, doctorRegistryAction = null, retryAction = null) }
         viewModelScope.launch {
             try {
-                val built = reportBuilder.build(shiftId)
-                val options = pdfWorkspace.loadPdfOptions()
+                val built = reviewedSnapshot() ?: throw PdfReviewRequiredException(uiText)
                 val count = if (separate) {
-                    pdfWorkspace.saveSupervisorPdfs(built, options)
+                    withContext(Dispatchers.IO) {
+                        pdfWorkspace.saveSupervisorPdfs(built, pdfWorkspace.loadPdfOptions())
+                    }
                 } else {
-                    pdfWorkspace.saveCombinedPdf(built, options)
+                    withContext(Dispatchers.IO) {
+                        val file = pdfWorkspace.checkedPdf(built)
+                        checkNotNull(mediaStoreSaver.savePdf(context, file,
+                            pdfWorkspace.reportFileName(built.summary.shiftDate), verifyContents = true)) {
+                            uiText(R.string.ui_report_local_actions_011)
+                        }
+                    }
                     1
                 }
                 _state.update {
@@ -202,6 +210,7 @@ internal class ReportLocalActions(
                     )
                 }
             } catch (e: CancellationException) {
+                _state.update { it.copy(exportingLocalPdf = false) }
                 throw e
             } catch (e: Exception) {
                 _state.update {

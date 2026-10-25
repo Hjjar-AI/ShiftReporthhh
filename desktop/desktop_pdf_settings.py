@@ -6,7 +6,6 @@ from desktop_pdf_content import normalize_options, palette
 
 CHOICES = {
     'color': ('اللون', {'teal':'فيروزي', 'blue':'أزرق', 'green':'أخضر', 'purple':'بنفسجي', 'pastel':'باستيل'}),
-    'dark': ('مظهر PDF', {False:'فاتح', True:'داكن'}),
     'row_shading': ('تظليل صفوف الجدول', {'auto':'تلقائي حسب الفرق', 'zebra':'صفوف متناوبة', 'none':'دون تظليل'}),
 }
 
@@ -18,7 +17,7 @@ def appearance_controls(parent, previous):
     def read():
         result={key:next(value for value,label in mapping.items() if label==variables[key].get())
                 for key,(_,mapping) in CHOICES.items()}
-        result.update(rule_weight='medium',rule_contrast='medium')
+        result.update(rule_weight='medium',rule_contrast='medium',dark=False)
         return result
     def refresh(*args):
         if len(variables)!=len(CHOICES):return

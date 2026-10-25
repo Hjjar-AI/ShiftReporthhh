@@ -19,8 +19,6 @@ internal fun EditPatientDialog(
     onConfirm: (Patient, (Patient?) -> Unit) -> Unit,
     onConfirmAndNext: ((Patient, (Patient?) -> Unit) -> Unit)? = null,
     roundsNavigation: PatientRoundsNavigation? = null,
-    saveAndNextEnabled: Boolean = false,
-    onSaveAndNextChanged: (Boolean) -> Unit = {},
     onDismiss: () -> Unit,
     onLoadDraft: (String, (PatientDraft?) -> Unit) -> Unit = { _, done -> done(null) },
     onDraftChanged: (String, PatientDraft) -> Unit = { _, _ -> },
@@ -54,9 +52,6 @@ internal fun EditPatientDialog(
             roundsNavigation?.let { navigation ->
                 Text(uiText(R.string.ui_patient_rounds_navigation_002, com.hos.rushdpatients.ui.components.uiNumber(navigation.index + 1), com.hos.rushdpatients.ui.components.uiNumber(navigation.total)),
                     style = androidx.compose.material3.MaterialTheme.typography.labelMedium)
-                com.hos.rushdpatients.ui.components.AppToggleRow(
-                    title = uiText(R.string.ui_edit_patient_dialog_002), checked = saveAndNextEnabled,
-                    onCheckedChange = onSaveAndNextChanged, enabled = !saving)
                 if (navigation.nextId == null) Text(uiText(R.string.ui_edit_patient_dialog_003),
                     style = androidx.compose.material3.MaterialTheme.typography.bodySmall)
             }

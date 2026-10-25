@@ -9,8 +9,8 @@ data class ShiftCsvSnapshot(
 )
 
 /**
- * A human-readable container of up to three ordinary shift CSV documents. A legacy single-shift
- * CSV is treated as a one-entry bundle, so existing Telegram data remains importable.
+ * Publications contain the current ward only. Keep decoding older containers with up to three
+ * dated lists and legacy single CSVs; the fetch workflow selects their newest list.
  */
 object CsvBundleCodec {
     private const val HEADER = "# rushdShiftBundle=1"

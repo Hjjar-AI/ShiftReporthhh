@@ -54,20 +54,6 @@ class PatientRepository @Inject constructor(
         dao.upsertAll(patients.map { PatientMapper.toEntity(it.withoutTrackingMetadata(), shiftId) })
     }
 
-    suspend fun insertRolloverIfShiftEmpty(patients: List<Patient>, shiftId: String) =
-        withContext(dispatchers.io) {
-            database.withTransaction {
-                require(dao.countForShift(shiftId) == 0) {
-                    "لم تعد المناوبة فارغة؛ أعد مراجعة المرضى قبل تطبيق الترحيل"
-                }
-                if (patients.isNotEmpty()) {
-                    dao.upsertAll(
-                        patients.map { PatientMapper.toEntity(it.withoutTrackingMetadata(), shiftId) }
-                    )
-                }
-            }
-        }
-
     suspend fun updateOptimistically(
         patient: Patient,
         shiftId: String,

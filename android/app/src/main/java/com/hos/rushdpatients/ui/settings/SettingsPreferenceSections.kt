@@ -18,20 +18,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.hos.rushdpatients.ui.theme.UiSpacing
 
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-internal fun SettingsWorkflowContent(state: SettingsUiState, viewModel: SettingsViewModel) {
-    val uiText = rememberUiStrings()
-    SettingsSubheading(uiText(R.string.ui_settings_preference_sections_009))
-    AppToggleRow(
-        title = uiText(R.string.ui_edit_patient_dialog_002),
-        subtitle = uiText(R.string.ui_settings_preference_sections_010),
-        checked = state.saveAndNext,
-        onCheckedChange = viewModel::setSaveAndNext
-    )
-
-}
-
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 internal fun SettingsSecurityContent(state: SettingsUiState, viewModel: SettingsViewModel, onSignOut: () -> Unit) {

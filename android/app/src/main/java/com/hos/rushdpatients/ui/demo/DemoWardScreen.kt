@@ -63,8 +63,7 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
         onOpenAbout = { viewModel.message(uiText(R.string.ui_demo_local_only)) },
         onOpenProject = { viewModel.message(uiText(R.string.ui_demo_local_only)) },
         onOpenDataManagement = { viewModel.message(uiText(R.string.ui_demo_local_only)) },
-        onOpenWorkspace = { navigate(DemoDestination.SETTINGS) },
-        onOpenAnnouncement = { viewModel.message(uiText(R.string.ui_demo_local_only)) }
+        onOpenWorkspace = { navigate(DemoDestination.SETTINGS) }
     )
     val export = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")) {
         viewModel.exportPreparedPdf(it)
@@ -97,7 +96,7 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
                             DemoDestination.TEAM -> DemoTeamContent(state, { showDoctors = true }, viewModel::selectActor, modifier)
                             DemoDestination.SETTINGS -> DemoPreferencesContent(appearance, { appearance = it }, accent, { accent = it },
                                 font, { font = it }, ward.patientDetailsExpanded, ward.twoColumn, ward.compactCards,
-                                state.saveAndNext, viewModel::setSaveAndNext, uiPreferences, { uiPreferencesSetting = it.encode() }, modifier)
+                                uiPreferences, { uiPreferencesSetting = it.encode() }, modifier)
                             DemoDestination.REPORT -> DemoReportContent(state, { showDoctors = true }, onExport = { options, style ->
                                 viewModel.preparePdfExport(options, style == PdfStyle.CARDS)
                                 try { export.launch("ShiftReport_DEMO_${state.date}.pdf") }

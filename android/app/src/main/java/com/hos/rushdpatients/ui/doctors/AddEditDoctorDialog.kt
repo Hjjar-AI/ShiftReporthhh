@@ -75,14 +75,13 @@ fun AddEditDoctorDialog(
     var clinicalRole by remember(existing?.id) { mutableStateOf(existing?.clinicalRole ?: ClinicalRole.RESIDENT) }
     var teamSupervisorId by remember(existing?.id) { mutableStateOf(existing?.teamSupervisorId) }
     var pin by remember(existing?.id) { mutableStateOf("") }
-    var customTitle by remember(existing?.id) { mutableStateOf(existing?.customTitle ?: "") }
     var telegramIdText by remember(existing?.id) { mutableStateOf(existing?.telegramId?.toString() ?: "") }
 
     var confirmDiscard by remember { mutableStateOf(false) }
     val dirty = firstName != baseline?.firstName.orEmpty() || lastName != baseline?.lastName.orEmpty() ||
         gender != (baseline?.gender ?: Gender.MALE) || clinicalRole != (baseline?.clinicalRole ?: ClinicalRole.RESIDENT) ||
         teamSupervisorId != baseline?.teamSupervisorId || pin.isNotEmpty() ||
-        customTitle != baseline?.customTitle.orEmpty() || telegramIdText != baseline?.telegramId?.toString().orEmpty()
+        telegramIdText != baseline?.telegramId?.toString().orEmpty()
     val requestDismiss: () -> Unit = { if (!saving) { if (dirty) confirmDiscard = true else onDismiss() } }
 
     fun restore(input: DoctorEditInput) {
@@ -92,7 +91,6 @@ fun AddEditDoctorDialog(
         clinicalRole = input.clinicalRole
         teamSupervisorId = input.teamSupervisorId
         pin = input.pin.orEmpty()
-        customTitle = input.customTitle.orEmpty()
         telegramIdText = input.telegramId?.toString().orEmpty()
         telegramIdError = false
     }
@@ -148,13 +146,6 @@ fun AddEditDoctorDialog(
                             label = { Text(uiText(R.string.ui_female)) }
                         )
                     }
-                    AppTextField(
-                        value = customTitle,
-                        onValueChange = { if (it.length <= 16) customTitle = it },
-                        label = { Text(uiText(R.string.ui_add_edit_doctor_dialog_005)) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
                     AppSectionHeader(title = uiText(R.string.ui_add_edit_doctor_dialog_006))
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                         ClinicalRole.entries.forEach { role ->
@@ -207,7 +198,7 @@ fun AddEditDoctorDialog(
                         }
                         val input = DoctorEditInput(
                             firstName, lastName, gender, clinicalRole,
-                            pin.takeIf { it.isNotBlank() }, customTitle.takeIf { it.isNotBlank() }, telegramId,
+                            pin.takeIf { it.isNotBlank() }, baseline?.customTitle, telegramId,
                             teamSupervisorId.takeIf { clinicalRole == ClinicalRole.RESIDENT }
                         )
                         val expected = baseline
@@ -238,13 +229,13 @@ fun AddEditDoctorDialog(
             val savedInput = doctorInput(it)
             val draftValues = listOf(draft.firstName, draft.lastName,
                 if (draft.gender == Gender.MALE) uiText(R.string.ui_male) else uiText(R.string.ui_female), draft.clinicalRole.uiLabel(uiText),
-                draft.customTitle.orEmpty(), draft.telegramId?.toString().orEmpty(),
+                draft.telegramId?.toString().orEmpty(),
                 doctors.firstOrNull { it.id == draft.teamSupervisorId }?.fullName ?: draft.teamSupervisorId.orEmpty())
             val savedValues = listOf(savedInput.firstName, savedInput.lastName,
                 if (savedInput.gender == Gender.MALE) uiText(R.string.ui_male) else uiText(R.string.ui_female), savedInput.clinicalRole.uiLabel(uiText),
-                savedInput.customTitle.orEmpty(), savedInput.telegramId?.toString().orEmpty(),
+                savedInput.telegramId?.toString().orEmpty(),
                 doctors.firstOrNull { it.id == savedInput.teamSupervisorId }?.fullName ?: savedInput.teamSupervisorId.orEmpty())
-            val labels = listOf(uiText(R.string.ui_add_edit_doctor_dialog_003), uiText(R.string.ui_add_edit_doctor_dialog_004), uiText(R.string.ui_patient_demographic_fields_010), uiText(R.string.ui_add_edit_doctor_dialog_015), uiText(R.string.ui_add_edit_doctor_dialog_016), uiText(R.string.ui_add_edit_doctor_dialog_017), uiText(R.string.ui_add_edit_doctor_dialog_007))
+            val labels = listOf(uiText(R.string.ui_add_edit_doctor_dialog_003), uiText(R.string.ui_add_edit_doctor_dialog_004), uiText(R.string.ui_patient_demographic_fields_010), uiText(R.string.ui_add_edit_doctor_dialog_015), uiText(R.string.ui_add_edit_doctor_dialog_017), uiText(R.string.ui_add_edit_doctor_dialog_007))
             buildList {
                 labels.indices.forEach { index ->
                     if (draftValues[index] != savedValues[index]) add(Triple(labels[index], draftValues[index], savedValues[index]))

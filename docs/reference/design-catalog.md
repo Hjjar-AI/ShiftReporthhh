@@ -25,7 +25,7 @@ UI Arabic wording: `res/values/strings_ui.xml` and `strings.xml`; reuse common a
 | Targets / controls | Always ≥48dp interactive; visual compact/standard/comfortable minima 32/40/48dp, growing for text. |
 | Patient density | Compact padding 4h/2v, gap 4; normal 12h/8v, gap 8; list gap 8dp. Density changes spacing, not fonts/targets. |
 | Padding | Content 4h/2v; compact 2h/1v; fields 4h/8top/2bottom; chips 8h/2v (dp). |
-| Borders | Hairline .5, normal 1, strong 1.5, selected/focused 2dp. Patient border blends outline toward accent by 22%. |
+| Borders | Hairline .5, normal 1, strong 1.5, selected/focused 2dp. Neutral cards blend surface→outline65%; selected/focused retain accent. |
 | Elevation / opacity | Flat/low/raised/overlay 0/1/2/6dp; navigation/action 2/3dp. Enabled 1, disabled content .38/container .12. |
 | Motion | Expand/collapse/highlight 160/130/220ms; indicator 160, placement 200, fast token 90. Bulk/reduced motion immediate. |
 | Shapes / sizes | Corners 4/8/12/16/24dp; icons 12/16/20/24/32/40dp; progress/loading 40dp, stroke 2; severity edge 4dp. |
@@ -33,20 +33,13 @@ UI Arabic wording: `res/values/strings_ui.xml` and `strings.xml`; reuse common a
 | Content widths | General 720; patient form 840; empty ward 520; dock 480; rail 80dp. |
 | Adaptive thresholds | Fields/grid 360; card columns 440; toolbar actions 240; metric pair 280dp. Fields/toolbar/metrics account for font scale. |
 | Panes | Split width 760; primary/support minima 320/360; fold width/height 360/360 and clearance 8dp. Medium support ≥520×640, height 240dp. |
-| Rail / gestures | Rail window ≥600×480dp; patient transfer shortcuts require long press; rounds swipe ≥64dp and 20% width. |
+| Rail / gestures | Rail window ≥600×480dp; patient transfer tap/long press opens review; rounds swipe ≥64dp and 20% width. |
 
 Keep purpose-specific tokens independent; whole-row controls own selection/toggle semantics, labels wrap. Severity differs from accent/density; diagnoses are not errors. [UiTokens](../../android/app/src/main/java/com/hos/rushdpatients/ui/theme/UiTokens.kt) is authoritative for layout/border/motion constants.
 
-## Profiles and local overrides
+## Internal profiles and local overrides
 
-| Profile | Arabic name | Density/list gap | Border normal/selected | Elevation navigation/action | Expand/collapse/highlight |
-|---|---|---|---|---|---|
-| `current` | الحالي | Current table above; list 8dp | 1/2dp | 2/3dp | 160/130/220ms |
-| `relaxed` | أوسع | Compact: padding 6h/4v, gap 6dp; normal: 16h/12v, gap 12dp; list 12dp | 1/2dp | 2/3dp | 160/130/220ms |
-| `quiet` | هادئ | Current density; list 8dp | 1/2dp | 0/0dp | 120/100/180ms |
-| `clear` | أوضح | Current density; list 8dp | 1.5/2dp | 2/3dp | 160/130/220ms |
-
-`h/v` = horizontal/vertical dp. `LocalUiStyle` supplies profile roles; explicit Compact/ Relaxed density overrides patient spacing, while Normal preserves the card-only compact preference. `UiPreferences` is encrypted device-local state; demo keeps it in memory. Appearance/accent/font/PDF choices are separate. Reduced motion zeroes app-owned motion; platform sheets/ripples follow Android settings. Auto-hide/header expansion default off; compact labelled Add defaults on. Touch exploration keeps the dock visible.
+Profile definitions remain internal/compatible; Appearance exposes theme/text size/normal-or-comfortable spacing/reduced motion. Retired overrides normalize to current profile, comfortable controls, visible navigation, compact Add and explicit expansion. `LocalUiStyle` owns spacing/motion; `UiPreferences` stays encrypted/device-local (demo memory). Accent/PDF independent; reduced motion zeroes app-owned animation, platform sheets/ripples follow Android.
 
 ```kotlin
 ProvideUiPreferences(UiPreferences(profile = "relaxed", density = UiDensity.RELAXED)) {

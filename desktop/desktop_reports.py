@@ -94,8 +94,7 @@ def options_dialog(owner, export_only=False, assignments=False, force_pdf=False,
         previous['layout'], on_change=lambda:refresh_options())
     page_area=ctk.CTkFrame(advanced.content,fg_color='transparent')
     page_area.pack(fill='x')
-    paper = (lambda:'A4') if assignments else combo(page_area, 'حجم الورق', {key:key for key in ('A4','A5','A3','Letter')}, previous['paper'])
-    orientation = (lambda:'portrait') if assignments else combo(page_area, 'الاتجاه', {'portrait':'عمودي', 'landscape':'أفقي'}, previous['orientation'])
+    paper = (lambda:'A4') if assignments else combo(page_area, 'حجم الورق', {key:key for key in ('A4','A5')}, previous['paper'])
     appearance_area=ctk.CTkFrame(advanced.content,fg_color='transparent')
     appearance_area.pack(fill='x')
     from desktop_pdf_settings import appearance_controls
@@ -130,7 +129,7 @@ def options_dialog(owner, export_only=False, assignments=False, force_pdf=False,
     refresh_options()
     result = []
     def read_options():
-        return dict(format=format_get(), layout=layout(), paper=paper(), orientation=orientation(),
+        return dict(format=format_get(), layout=layout(), paper=paper(), orientation='portrait',
                     separate=False, ward=previous['ward'], **appearance())
     def save_options(options):
         preferences = dict(previous, **appearance()) if assignments else dict(options)

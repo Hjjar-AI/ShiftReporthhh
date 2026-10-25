@@ -11,6 +11,5 @@ class WardNavigation(
     val onOpenProject: () -> Unit,
     val onOpenDataManagement: () -> Unit,
     val onOpenWorkspace: (SettingsWorkspace) -> Unit,
-    val onOpenAnnouncement: () -> Unit,
     val onOpenDoctors: () -> Unit = {}
 )

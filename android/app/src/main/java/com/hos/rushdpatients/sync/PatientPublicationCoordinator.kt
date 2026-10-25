@@ -91,15 +91,7 @@ internal class PatientPublicationCoordinator(
                 snapshotId = UUID.randomUUID().toString(),
                 revision = maxOf(built.shift.revision, remote?.shiftRevision ?: 0L) + 1,
                 publishedByDeviceId = getOrCreateDeviceId())
-            // Retain already published history, never quietly upload local edits to other shifts.
-            val history = remoteBundle.filter { it.shiftDate != built.shift.date }
-                .take(AppConstants.CSV_BUNDLE_SHIFT_COUNT - 1).map { parsed ->
-                    ShiftCsvSnapshot(com.hos.rushdpatients.data.model.Shift(
-                        id = requireNotNull(parsed.shiftId), date = parsed.shiftDate, doctorIds = parsed.doctorIds,
-                        sortSpecJson = parsed.sortSpecJson, revision = parsed.shiftRevision, snapshotId = parsed.snapshotId,
-                        baseSnapshotId = parsed.baseSnapshotId, publishedByDeviceId = parsed.deviceId), parsed.patients)
-                }
-            val snapshots = listOf(ShiftCsvSnapshot(publishedShift, built.patients)) + history
+            val snapshots = listOf(ShiftCsvSnapshot(publishedShift, built.patients))
             CsvPublicationReview(shiftId, CsvBundleCodec.encode(snapshots), source,
                 actor.id, actor.telegramId, publishedShift, built.patients, doctorsCsv, text)
         }

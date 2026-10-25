@@ -71,7 +71,6 @@ def create_project(owner):
     details = ('المشفى: '+review['hospital']+'\nمجموعة تليجرام: '+review['group']+
         '\nمعرّف المجموعة: '+str(review['group_id'])+
         '\nالمواضيع — التقارير: '+str(review['topics']['reportsTopicId'])+
-        '، الإعلانات: '+str(review['topics']['announcementsTopicId'])+
         '، بيانات المناوبات: '+str(review['topics']['csvTopicId'])+
         '، سجل الأطباء: '+str(review['topics']['doctorsTopicId'])+
         '\nالمدير الأول: '+review['admin']+

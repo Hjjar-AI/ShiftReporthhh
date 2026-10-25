@@ -9,7 +9,6 @@ import com.hos.rushdpatients.data.repository.SettingsRepository
 import com.hos.rushdpatients.domain.patient.PatientCardStyle
 import com.hos.rushdpatients.pdf.PdfColorPreset
 import com.hos.rushdpatients.pdf.PdfRowShading
-import com.hos.rushdpatients.pdf.PdfOrientation
 import com.hos.rushdpatients.pdf.PdfPaperSize
 import com.hos.rushdpatients.pdf.PdfStyle
 import com.hos.rushdpatients.ui.theme.AppFontScale
@@ -53,13 +52,6 @@ internal class SettingsPreferences(
         }
     }
 
-    fun setPdfOrientation(value: PdfOrientation) {
-        viewModelScope.launch {
-            settingsRepository.put(AppConstants.SETTING_PDF_ORIENTATION, value.name)
-            _state.update { it.copy(pdfOrientation = value) }
-        }
-    }
-
     fun setPdfPaperSize(value: PdfPaperSize) {
         viewModelScope.launch {
             settingsRepository.put(AppConstants.SETTING_PDF_PAPER_SIZE, value.name)
@@ -82,15 +74,6 @@ internal class SettingsPreferences(
         viewModelScope.launch {
             settingsRepository.put(AppConstants.SETTING_PDF_ROW_SHADING, value.name)
             _state.update { it.copy(pdfRowShading = value) }
-        }
-    }
-
-
-
-    fun setPdfDarkMode(value: Boolean) {
-        viewModelScope.launch {
-            settingsRepository.putBoolean(AppConstants.SETTING_PDF_DARK_MODE, value)
-            _state.update { it.copy(pdfDarkMode = value) }
         }
     }
 
@@ -139,13 +122,6 @@ internal class SettingsPreferences(
 
 
 
-
-    fun setSaveAndNext(value: Boolean) {
-        viewModelScope.launch {
-            settingsRepository.putBoolean(AppConstants.SETTING_SAVE_AND_NEXT, value)
-            _state.update { it.copy(saveAndNext = value) }
-        }
-    }
 
     fun setReportWardName(value: String) {
         viewModelScope.launch {

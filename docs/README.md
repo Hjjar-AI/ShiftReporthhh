@@ -16,3 +16,5 @@
 | Shared wire format / contributor rules | [Protocol](reference/telegram-protocol.md), [AGENTS.md](../AGENTS.md) |
 
 One topic/home; commands stay in guides. Private `docs/local/` notes remain ignored/excluded from packages.
+
+Documentation work: [plan](status/documentation-plan.md). Excel has its own [source/setup/limits](../excel/README.md); private VBA/credentials and historical local evidence remain preserved.
