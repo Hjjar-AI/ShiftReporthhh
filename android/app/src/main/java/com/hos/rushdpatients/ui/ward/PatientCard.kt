@@ -105,6 +105,7 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
     val onPinToggle = actions.onPinToggle
     val onExpandToggle = actions.onExpandToggle
     val uiText = rememberUiStrings()
+    val dayLabel = LocalWardDayLabel.current
     val canExpand = patient.initialDiagnosis.isNotBlank() || patient.treatmentPlan.isNotBlank() ||
         patient.followUp.isNotBlank() || patient.labs.isNotBlank() || patient.tasks.isNotEmpty() ||
         patient.badges.isNotEmpty() || patient.hasCompanion
@@ -146,7 +147,7 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
                 contentDescription = buildString {
                     append(patient.displayName)
                     append(uiText(R.string.ui_patient_card_001)).append(patient.admittanceNumber)
-                    append(uiText(R.string.ui_patient_card_002)).append(PatientIdentityText.personal(uiText, patient))
+                    append(uiText(R.string.ui_patient_card_002)).append(PatientIdentityText.personal(uiText, patient, dayLabel))
                     append(uiText(R.string.ui_patient_card_002)).append(patient.diagnosisType.uiLabel(uiText))
                     patient.responsibleResidentId?.let { id ->
                         doctorNames[id]?.let { append(uiText(R.string.ui_patient_card_003)).append(it) }
@@ -264,7 +265,7 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
                         PatientTasks.summary(patient.tasks))
                 }
             }
-            if (!showIdentity) Text(PatientIdentityText.details(uiText, patient),
+            if (!showIdentity) Text(PatientIdentityText.details(uiText, patient, dayLabel),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (expanded && showViewControls) FlowRow(horizontalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                 if (!readOnly) com.hos.rushdpatients.ui.components.AppButton(onClick = onEdit, style = com.hos.rushdpatients.ui.components.AppButtonStyle.TONAL) { Text(uiText(R.string.ui_ward_form_dialog_001)) }

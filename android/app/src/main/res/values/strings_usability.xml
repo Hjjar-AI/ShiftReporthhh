@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="sync_publish_fetch">مراجعة ونشر التعديلات</string>
+    <string name="delivery_exact_copy_required">الإذن المتاح يخص نسخة إضافية من التقرير نفسه فقط. راجع التقرير المأذون به أو احسم نتيجة تسليمه قبل إرسال محتوى مختلف.</string>
+    <string name="sync_review_publish">مراجعة ونشر التعديلات</string>
     <string name="sync_replace_fetch">استبدال نسختي بالنسخة المنشورة</string>
-    <string name="sync_publish_fetch_confirm">نشر التعديلات</string>
+    <string name="sync_publish_confirm">نشر التعديلات</string>
     <string name="sync_older_admin_title">تأكيد المدير: جلب نسخة أقدم</string>
     <string name="sync_older_admin_confirm">استبدال مع الاحتفاظ بالتراجع</string>
     <string name="sync_fetch_choice_body">اختر ما تريد فعله بالتعديلات المحلية. الاستبدال قابل للتراجع من «تراجع عن آخر جلب».</string>
@@ -69,4 +70,5 @@
     <string name="ui_ward_refresh_before_edit">أعد تحميل بيانات المناوبة قبل التعديل.</string>
     <string name="sync_publication_complete">تم نشر النسخة المراجعة</string>
     <string name="report_shift_settings_changed">تغيّر ترتيب القائمة أو أطباء المناوبة</string>
+    <string name="sync_publication_bookkeeping_warning">تم النشر في تليجرام، لكن تعذر تحديث سجل المزامنة المحلي. لا تُعد النشر تلقائياً؛ راجع الحالة قبل العملية التالية.</string>
 </resources>

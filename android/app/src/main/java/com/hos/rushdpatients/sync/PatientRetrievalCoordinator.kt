@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.sync
 
+import com.hos.rushdpatients.domain.sort.PatientComparators
+import com.hos.rushdpatients.domain.sort.SortSpecCodec
+import com.hos.rushdpatients.R
 import android.content.Context
 import androidx.room.withTransaction
 import com.hos.rushdpatients.config.AppConstants
@@ -65,7 +68,8 @@ internal class PatientRetrievalCoordinator(
         withContext(dispatchers.io) {
             val changes = KnownShiftSnapshot.changes(shiftRepository.getById(shiftId),
                 patientRepository.getForShift(shiftId),
-                settingsRepository.get(AppConstants.SETTING_KNOWN_SHIFT_SNAPSHOT_PREFIX + shiftId))
+                settingsRepository.get(AppConstants.SETTING_KNOWN_SHIFT_SNAPSHOT_PREFIX + shiftId),
+                doctorRepository.getAllIncludingDeleted().associate { it.id to it.fullName })
             HandoverChangeSummary(changes.added.map { it.displayName }, changes.changed.map { it.displayName },
                 changes.removed.map { it.displayName }, changes.settingsChanged)
         }
@@ -79,11 +83,11 @@ internal class PatientRetrievalCoordinator(
                     }
                 }
                 val state = remoteState.readState()
-                    ?: return@withContext Result.failure(IllegalStateException("لا يوجد ملف منشور بعد"))
+                    ?: return@withContext Result.failure(IllegalStateException(context.getString(R.string.patients_publication_absent)))
                 if (allowOlder) doctorSync.requirePublishedAdmin(state)
                 val snapshot = state.currentCsvSnapshot()
                 if (snapshot == null) {
-                    val message = "لا يوجد ملف منشور بعد"
+                    val message = context.getString(R.string.patients_publication_absent)
                     return@withContext Result.failure(IllegalStateException(message))
                 }
                 val lastKnownMessageId = syncStateRepository.csvMessageHighWater()
@@ -97,7 +101,7 @@ internal class PatientRetrievalCoordinator(
 
                 val remote = telegram.getFile(snapshot.fileId)
                 val path = remote.filePath
-                    ?: return@withContext Result.failure(IllegalStateException("تعذر الحصول على مسار الملف"))
+                    ?: return@withContext Result.failure(IllegalStateException(context.getString(R.string.sync_file_path_unavailable)))
 
                 val local = File.createTempFile("remote_shift_", ".csv", context.cacheDir)
                 val parsedShifts = try {
@@ -130,7 +134,7 @@ internal class PatientRetrievalCoordinator(
                         sameEditableShift(currentShift, guardedShift) &&
                             samePublishedPatients(currentPatients, guardedPatients)
                     ) {
-                        "تغيرت البيانات المحلية أثناء التنزيل؛ أعد المزامنة لنشر التعديلات بأمان"
+                        context.getString(R.string.patients_local_changed_download)
                     }
 
                     val beforeDownload = prepared.map { item ->
@@ -203,28 +207,28 @@ internal class PatientRetrievalCoordinator(
             when (val result = PatientValidator.validate(patient)) {
                 PatientValidationResult.Valid -> when {
                     !patient.responsibleResidentId.isNullOrBlank() && resident == null ->
-                        "المقيم المسؤول غير موجود للمريض ${patient.name}"
+                        context.getString(R.string.patient_resident_missing, patient.displayName)
                     !patient.responsibleSpecialistId.isNullOrBlank() && specialist == null ->
-                        "الاختصاصي المسؤول غير موجود للمريض ${patient.name}"
+                        context.getString(R.string.patient_specialist_missing, patient.displayName)
                     resident != null && !resident.clinicalRole.canBeResident() ->
-                        "تصنيف المقيم غير صالح للمريض ${patient.name}"
+                        context.getString(R.string.patient_resident_role_invalid, patient.displayName)
                     specialist != null && !specialist.clinicalRole.canBeSupervisor() ->
-                        "تصنيف الاختصاصي غير صالح للمريض ${patient.name}"
+                        context.getString(R.string.patient_specialist_role_invalid, patient.displayName)
                     else -> null
                 }
                 is PatientValidationResult.Invalid ->
-                    "بيانات المريض ${patient.name} غير صالحة: ${result.errors.joinToString()}"
+                    context.getString(R.string.patient_download_content_invalid, patient.displayName, result.errors.joinToString())
             }
         }
         require(validationErrors.isEmpty()) { validationErrors.joinToString("\n") }
         require(normalizedPatients.size <= AppConstants.MAX_PATIENTS_PER_SHIFT) {
-            "عدد المرضى يتجاوز الحد الأقصى في مناوبة ${parsed.shiftDate}"
+            context.getString(R.string.patients_download_count_invalid, parsed.shiftDate)
         }
         require(normalizedDoctorIds.all { id -> activeDoctors.any { it.id == id } }) {
-            "قائمة أطباء مناوبة ${parsed.shiftDate} تحتوي معرّفات غير معروفة"
+            context.getString(R.string.patients_download_roster_unknown, parsed.shiftDate)
         }
         require(normalizedDoctorIds.distinct().size >= AppConstants.MIN_SHIFT_DOCTORS
-        ) { "عدد أطباء مناوبة ${parsed.shiftDate} غير صالح" }
+        ) { context.getString(R.string.patients_download_roster_count_invalid, parsed.shiftDate) }
         return PreparedShift(parsed, normalizedPatients, normalizedDoctorIds.distinct())
     }
 
@@ -236,13 +240,17 @@ internal class PatientRetrievalCoordinator(
             ?: emptyMap()
         var inserted = 0
         var updated = 0
-        val toUpsert = prepared.patients.mapIndexed { index, patient ->
+        val incoming = prepared.patients.mapIndexed { index, patient -> patient.copy(sortOrder = index + 1) }
+        val existingOrder = PatientComparators.ordered(existing.values.toList(),
+            SortSpecCodec.decode(existingShift?.sortSpecJson),
+            doctorRepository.getAllIncludingDeleted().associate { it.id to it.fullName })
+        val changedIds = KnownShiftSnapshot.changes(incoming, existingOrder).changed.mapTo(mutableSetOf()) { it.id }
+        val toUpsert = incoming.map { patient ->
             val previous = existing[patient.id]
-            val ordered = patient.copy(sortOrder = index + 1)
-            if (previous != null && samePatientContent(previous, ordered) && previous.sortOrder == ordered.sortOrder) previous
+            if (previous != null && patient.id !in changedIds) previous.copy(sortOrder = patient.sortOrder)
             else {
                 if (previous == null) inserted++ else updated++
-                ordered.copy(revision = maxOf(patient.revision, previous?.revision ?: 0L) + 1)
+                patient.copy(revision = maxOf(patient.revision, previous?.revision ?: 0L) + 1)
             }
         }
         val shift = existingShift
@@ -251,7 +259,7 @@ internal class PatientRetrievalCoordinator(
             patientRepository.getShiftId(patient.id)?.let { owner -> owner != shift.id } == true
         }
         require(conflicting == null) {
-            "معرّف المريض ${conflicting?.id} مستخدم في وردية أخرى"
+            context.getString(R.string.patients_download_identity_collision, conflicting?.id)
         }
         patientRepository.softDeleteMissingFromShift(shift.id, toUpsert.map(Patient::id))
         patientRepository.upsertAll(toUpsert.filter { row -> row != existing[row.id] }, shift.id)

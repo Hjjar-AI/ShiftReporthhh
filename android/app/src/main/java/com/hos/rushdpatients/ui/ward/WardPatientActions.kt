@@ -6,9 +6,7 @@ import com.hos.rushdpatients.R
 
 import com.hos.rushdpatients.config.AppConstants
 import com.hos.rushdpatients.data.model.Patient
-import com.hos.rushdpatients.data.model.Shift
 import com.hos.rushdpatients.data.repository.StalePatientEditException
-import com.hos.rushdpatients.data.repository.StaleShiftEditException
 import com.hos.rushdpatients.data.repository.PatientRepository
 import com.hos.rushdpatients.data.repository.ShiftRepository
 import com.hos.rushdpatients.data.repository.SettingsRepository
@@ -126,7 +124,7 @@ internal class WardPatientActions(
 
     fun updatePatient(
         patient: Patient,
-        onStale: (Patient?) -> Unit = {},
+        onUnavailable: (Patient?) -> Unit = {},
         onSuccess: () -> Unit = {}
     ) {
         val shiftId = saveGuard.editableShiftId() ?: return
@@ -135,10 +133,10 @@ internal class WardPatientActions(
             saveGuard.saveAction(onSuccess = {
                 _state.update { it.copy(snackbar = uiText(R.string.ui_ward_patient_actions_002)) }
                 onSuccess()
-            }, onStale = { error ->
+            }, onUnavailable = { error ->
                 if (error !is StalePatientEditException) false else {
                     val latest = patientRepository.getById(patient.id)
-                    onStale(latest?.takeIf { patientRepository.getShiftId(it.id) == shiftId })
+                    onUnavailable(latest?.takeIf { patientRepository.getShiftId(it.id) == shiftId })
                     saveGuard.showError(uiText(R.string.patient_refresh_unavailable))
                     true
                 }

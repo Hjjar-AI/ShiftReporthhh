@@ -123,8 +123,8 @@ class DemoWardViewModel @Inject constructor(
                 if (row.sortOrder == index + 1) row else row.copy(sortOrder = index + 1, revision = row.revision + 1)
             }, sort = SortSpec.EMPTY, revision = it.revision + 1) }
         }
-        override fun updatePatient(patient: Patient, onStale: (Patient?) -> Unit, onSuccess: () -> Unit) {
-            if (save(patient, onStale)) onSuccess()
+        override fun updatePatient(patient: Patient, onUnavailable: (Patient?) -> Unit, onSuccess: () -> Unit) {
+            if (save(patient, onUnavailable)) onSuccess()
         }
         override fun deletePatient(patient: Patient, onSuccess: (Patient) -> Unit) {
             val saved = _state.value.patients.firstOrNull { it.id == patient.id }
@@ -181,11 +181,11 @@ class DemoWardViewModel @Inject constructor(
         }
     }
 
-    internal fun save(patient: Patient, onStale: (Patient?) -> Unit = {}): Boolean {
+    internal fun save(patient: Patient, onUnavailable: (Patient?) -> Unit = {}): Boolean {
         val current = _state.value
         val before = current.patients.find { it.id == patient.id }
         if (current.deleted.any { it.id == patient.id }) {
-            onStale(before)
+            onUnavailable(before)
             return false
         }
         val prepared = patient.copy(

@@ -32,7 +32,10 @@ data class ReportDeliveryRecord(
 @Serializable
 private data class DeliveryLog(val records: List<ReportDeliveryRecord> = emptyList(), val repeatPermits: Set<String> = emptySet())
 
-class ReportDeliveryBlockedException(message: String) : IllegalStateException(message)
+open class ReportDeliveryBlockedException(message: String) : IllegalStateException(message)
+
+class ExactReportCopyRequiredException : ReportDeliveryBlockedException(
+    "Extra-copy permission applies only to the approved report")
 
 enum class DeliveryResolution { RECEIVED, NOT_RECEIVED, ALLOW_COPY }
 
@@ -45,6 +48,7 @@ class ReportDeliveryLedger @Inject constructor(
 ) {
     private val mutex = Mutex()
     private val activeAttempts = mutableSetOf<String>()
+    private val activeCopyOrigins = mutableMapOf<String, Set<String>>()
     private val json = Json { ignoreUnknownKeys = true }
     private val settingKey = "report_delivery_ledger"
     private fun decode(raw: String?): DeliveryLog = raw?.let { json.decodeFromString<DeliveryLog>(it) } ?: DeliveryLog()
@@ -68,8 +72,17 @@ class ReportDeliveryLedger @Inject constructor(
             requireAllowed(log, route, keys)
             val record = ReportDeliveryRecord(UUID.randomUUID().toString(), shiftId, route, key,
                 label, format, actor.id, System.currentTimeMillis(), metadata = metadata)
-            save(log.copy(records = log.records + record, repeatPermits = log.repeatPermits - keys))
+            val origins = log.records.filter {
+                it.route == route && it.status == DeliveryStatus.UNKNOWN_COPY_ALLOWED &&
+                    it.key in keys && it.key in log.repeatPermits
+            }.mapTo(mutableSetOf()) { it.id }
+            // Consume the one-use permit while durably restoring the original uncertainty.
+            // Failed/interrupted copies must leave that original outcome actionable.
+            save(log.copy(records = log.records.map {
+                if (it.id in origins) it.copy(status = DeliveryStatus.UNKNOWN) else it
+            } + record, repeatPermits = log.repeatPermits - keys))
             activeAttempts += record.id
+            activeCopyOrigins[record.id] = origins
             record
         }
     }
@@ -96,7 +109,10 @@ class ReportDeliveryLedger @Inject constructor(
         }
         finally {
             withContext(NonCancellable + Dispatchers.IO) {
-                mutex.withLock { activeAttempts -= record.id }
+                mutex.withLock {
+                    activeAttempts -= record.id
+                    activeCopyOrigins.remove(record.id)
+                }
             }
         }
     }
@@ -104,6 +120,8 @@ class ReportDeliveryLedger @Inject constructor(
     private fun requireAllowed(log: DeliveryLog, route: String, keys: Set<String>) {
         if (log.records.any { it.route == route && it.status == DeliveryStatus.UNKNOWN }) throw ReportDeliveryBlockedException(
             "يوجد إرسال غير مؤكد لهذه الوجهة؛ افتح سجل التسليم وافحص تليجرام ثم احسمه قبل الإعادة")
+        if (log.records.any { it.route == route && it.status == DeliveryStatus.UNKNOWN_COPY_ALLOWED &&
+                it.key in log.repeatPermits && it.key !in keys }) throw ExactReportCopyRequiredException()
         if (log.records.any { it.key in keys && it.status == DeliveryStatus.SENT } && keys.none { it in log.repeatPermits }) throw ReportDeliveryBlockedException(
             "هذا المحتوى سُلّم سابقاً؛ افتح سجل التسليم واسمح صراحةً بنسخة إضافية إن أردتها")
     }
@@ -122,13 +140,22 @@ class ReportDeliveryLedger @Inject constructor(
             require(messageIds.isNotEmpty() && messageIds.all { it > 0 }) { "إيصال تليجرام غير صالح" }
             val log = load()
             require(log.records.any { it.id == id && it.status == DeliveryStatus.UNKNOWN }) { "تغير سجل التسليم؛ راجعه" }
-            save(log.copy(records = log.records.map { if (it.id == id) it.copy(status = DeliveryStatus.SENT, messageIds = messageIds) else it }))
+            val origins = activeCopyOrigins[id].orEmpty()
+            save(log.copy(records = log.records.map {
+                when {
+                    it.id == id -> it.copy(status = DeliveryStatus.SENT, messageIds = messageIds)
+                    it.id in origins && it.status == DeliveryStatus.UNKNOWN -> it.copy(status = DeliveryStatus.UNKNOWN_COPY_ALLOWED)
+                    else -> it
+                }
+            }))
         }
     }
 
     private suspend fun resolvable(log: DeliveryLog, id: String, expectedStatus: DeliveryStatus): ReportDeliveryRecord {
         val actor = activeActor()
-        require(id !in activeAttempts) { "طلب التسليم ما زال قيد التنفيذ؛ انتظر نتيجته قبل الحسم" }
+        require(id !in activeAttempts && activeCopyOrigins.values.none { id in it }) {
+            "طلب التسليم ما زال قيد التنفيذ؛ انتظر نتيجته قبل الحسم"
+        }
         val row = log.records.singleOrNull { it.id == id } ?: error("سجل التسليم غير موجود")
         require(row.status == expectedStatus) { "تغيرت حالة العملية؛ أعد فتح سجل التسليم" }
         require(actor.id == row.actorId || actor.isAdmin) { "حسم العملية متاح لمن أرسلها أو لمدير نشط" }
@@ -151,9 +178,12 @@ class ReportDeliveryLedger @Inject constructor(
                     if (it.id == id && it.status == DeliveryStatus.UNKNOWN) it.copy(status = DeliveryStatus.UNKNOWN_COPY_ALLOWED) else it
                 }, repeatPermits = log.repeatPermits + row.key))
             } else {
-                require(row.status == DeliveryStatus.UNKNOWN) { "هذه العملية محسومة بالفعل" }
+                require(row.status == DeliveryStatus.UNKNOWN || row.status == DeliveryStatus.UNKNOWN_COPY_ALLOWED) {
+                    "هذه العملية محسومة بالفعل"
+                }
                 val status = if (resolution == DeliveryResolution.RECEIVED) DeliveryStatus.SENT else DeliveryStatus.NOT_SENT
-                save(log.copy(records = log.records.map { if (it.id == id) it.copy(status = status) else it }))
+                save(log.copy(records = log.records.map { if (it.id == id) it.copy(status = status) else it },
+                    repeatPermits = log.repeatPermits - row.key))
             }
         }
     }

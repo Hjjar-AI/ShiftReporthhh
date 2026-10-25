@@ -11,7 +11,6 @@ import com.hos.rushdpatients.domain.sort.SortSpecCodec
 import com.hos.rushdpatients.domain.sort.SortSpec
 import com.hos.rushdpatients.domain.auth.Session
 import com.hos.rushdpatients.util.DispatcherProvider
-import com.hos.rushdpatients.util.ShiftDate
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -32,9 +31,7 @@ class WardMutationRepository @Inject constructor(
                 require(shifts.getById(shiftId) != null) {
                     "قائمة المرضى لم تعد متاحة"
                 }
-                val result = block()
-
-                result
+                block()
             }
         }
 
@@ -76,19 +73,18 @@ class WardMutationRepository @Inject constructor(
                         patients.save(row.copy(sortOrder = index + 1), shiftId)
                 }
             }
-
+            added
         }
 
     suspend fun updatePatient(patient: Patient, shiftId: String): Patient =
         mutate(shiftId) {
-            val updated = patients.save(
+            patients.save(
                 prepareTasks(patient).copy(
                     lastEditedByDoctorId = null,
                     lastEditedByName = null
                 ),
                 shiftId
             )
-            updated
         }
 
     suspend fun deletePatient(patient: Patient, shiftId: String): Patient =

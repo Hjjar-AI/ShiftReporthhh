@@ -27,8 +27,6 @@ import com.hos.rushdpatients.ui.components.*
 import com.hos.rushdpatients.ui.theme.LocalClinicalColors
 import com.hos.rushdpatients.ui.theme.UiPadding
 import com.hos.rushdpatients.ui.theme.UiSpacing
-import java.time.Instant
-import java.time.ZoneId
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable

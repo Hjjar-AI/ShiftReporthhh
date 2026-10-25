@@ -10,7 +10,6 @@ import android.text.TextDirectionHeuristics
 import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.data.model.Patient
 import com.hos.rushdpatients.domain.task.PatientTasks
-import com.hos.rushdpatients.data.model.TaskPriority
 import com.hos.rushdpatients.domain.report.ReportSummary
 import com.hos.rushdpatients.domain.report.ReportRosterLabel
 import kotlinx.coroutines.ensureActive

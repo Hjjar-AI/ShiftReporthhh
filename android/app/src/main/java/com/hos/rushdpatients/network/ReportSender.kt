@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.network
 
+import com.hos.rushdpatients.R
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
 import com.hos.rushdpatients.config.ProjectDataCipher
@@ -59,7 +60,7 @@ class ReportSender @Inject constructor(
         val messageIds = mutableListOf<Long>()
         try {
             file?.writeText(chunks.joinToString("\n\n"), Charsets.UTF_8)
-            deliveryLedger.deliver(shift.id, topics.chatId, contentKey, "TEXT", "تقرير المناوبة العام", actor?.id, legacyContentKey = legacyContentKey) { receipt ->
+            deliveryLedger.deliver(shift.id, topics.chatId, contentKey, "TEXT", context.getString(R.string.report_general_route_label), actor?.id, legacyContentKey = legacyContentKey) { receipt ->
                 try {
                     if (file != null) {
                         val msg = uncertainDelivery { telegram.sendDocument(chatId = topics.chatId, file = file,
@@ -102,8 +103,8 @@ class ReportSender @Inject constructor(
         contentKey: String,
         legacyContentKey: String? = null
     ): SendResult = withContext(Dispatchers.IO) {
-        require(pdfFile.isFile && pdfFile.length() > 0) { "ملف المعاينة غير موجود؛ أعد المعاينة" }
-        deliveryLedger.deliver(shift.id, topics.chatId, contentKey, "PDF", "تقرير المناوبة العام", actor?.id, legacyContentKey = legacyContentKey) { receipt ->
+        require(pdfFile.isFile && pdfFile.length() > 0) { context.getString(R.string.report_preview_file_missing) }
+        deliveryLedger.deliver(shift.id, topics.chatId, contentKey, "PDF", context.getString(R.string.report_general_route_label), actor?.id, legacyContentKey = legacyContentKey) { receipt ->
             val msg = uncertainDelivery { telegram.sendDocument(
                 chatId = topics.chatId,
                 file = pdfFile,
@@ -139,8 +140,8 @@ class ReportSender @Inject constructor(
         contentKey: String,
         legacyContentKey: String? = null
     ): SendResult = withContext(Dispatchers.IO) {
-        require(chatId < 0L) { "معرف مجموعة المشرف غير صالح" }
-        require(pdfFile.isFile && pdfFile.length() > 0) { "ملف المعاينة غير موجود؛ أعد المعاينة" }
+        require(chatId < 0L) { context.getString(R.string.report_supervisor_chat_invalid) }
+        require(pdfFile.isFile && pdfFile.length() > 0) { context.getString(R.string.report_preview_file_missing) }
         deliveryLedger.deliver(shift.id, chatId, contentKey, "PDF", supervisor.fullName, actor?.id, legacyContentKey = legacyContentKey) { receipt ->
             val msg = uncertainDelivery { telegram.sendDocument(
                 chatId = chatId,
@@ -153,17 +154,7 @@ class ReportSender @Inject constructor(
             ) }
             confirmBestEffort(receipt, listOf(msg.messageId))
             val sentAt = Instant.now()
-            try {
-                auditRepository.record(
-                    actorDoctorId = actor?.id,
-                    actorName = actor?.fullName,
-                    action = AppConstants.AUDIT_REPORT_SENT,
-                    detail = "supervisor-pdf; supervisor=${supervisor.id}; " +
-                        "shift=${shift.id}; size=${pdfFile.length()} bytes"
-                )
-            } catch (e: Exception) {
-                Logging.e("Supervisor report delivered, but audit recording failed", e)
-            }
+            recordAuditBestEffort(actor, "supervisor-pdf; supervisor=${supervisor.id}; shift=${shift.id}; size=${pdfFile.length()} bytes")
             SendResult(listOf(msg.messageId), msg.messageId, sentAt)
         }
     }
@@ -206,6 +197,10 @@ class ReportSender @Inject constructor(
             // The Telegram delivery is authoritative; do not invite a duplicate retry.
             Logging.e("Report delivered, but local sent state could not be recorded", e)
         }
+        recordAuditBestEffort(actor, detail)
+    }
+
+    private suspend fun recordAuditBestEffort(actor: Doctor?, detail: String) {
         try {
             auditRepository.record(
                 actorDoctorId = actor?.id,

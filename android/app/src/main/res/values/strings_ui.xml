@@ -993,36 +993,36 @@
     <string name="ui_settings_section_layout_027">"%1$s · %2$s مناوبة محفوظة"</string>
     <string name="ui_settings_view_model_001" formatted="false">"غير مدير"</string>
     <string name="ui_settings_view_model_002" formatted="false">"تعذر تحميل الإعدادات"</string>
-    <string name="ui_report_preview_view_model_001" formatted="false">"تعذر فتح سجل التسليم؛ لن يبدأ إرسال جديد حتى إصلاح السجل"</string>
-    <string name="ui_report_preview_view_model_002" formatted="false">"معرف المناوبة غير موجود"</string>
-    <string name="ui_report_preview_view_model_003">"مريض جديد: %1$s"</string>
-    <string name="ui_report_preview_view_model_004">"تم تعديل: %1$s"</string>
-    <string name="ui_report_preview_view_model_005">"تمت إزالة: %1$s"</string>
-    <string name="ui_report_preview_view_model_006" formatted="false">"خطأ في بناء التقرير"</string>
-    <string name="ui_report_preview_view_model_007" formatted="false">"تعذر جلب سجل الأطباء"</string>
-    <string name="ui_report_preview_view_model_008" formatted="false">"جُلب سجل الأطباء؛ راجع التقرير وعاينه مجدداً قبل الإرسال."</string>
-    <string name="ui_report_preview_view_model_009" formatted="false">"تعذر حفظ أطباء المناوبة"</string>
-    <string name="ui_report_preview_view_model_010" formatted="false">"تعذر حفظ تخصيص التقرير"</string>
-    <string name="ui_report_preview_view_model_011" formatted="false">قائمة المرضى غير متاحة للإرسال؛ افتح أحدث نسخة</string>
-    <string name="ui_report_preview_view_model_012" formatted="false">انتهت مهلة نشر هذه المناوبة.</string>
-    <string name="ui_report_preview_view_model_013" formatted="false">"يجب تسجيل الدخول قبل إرسال التقرير"</string>
-    <string name="ui_report_preview_view_model_014" formatted="false">"المستخدم الحالي لم يعد نشطاً؛ أعد تسجيل الدخول"</string>
-    <string name="ui_report_preview_view_model_015" formatted="false">"حُفظ قرار التسليم؛ أي إرسال جديد يمر بالمراجعة والتأكيد"</string>
-    <string name="ui_report_preview_view_model_016" formatted="false">"تعذر حسم التسليم"</string>
-    <string name="ui_report_preview_view_model_017" formatted="false">"افحص وصول التقرير في تليجرام قبل إعادة الإرسال."</string>
-    <string name="ui_report_preview_view_model_018" formatted="false">"لم يتأكد نشر البيانات؛ اجلب الحالة الحالية وراجعها قبل الإعادة."</string>
-    <string name="ui_report_preview_view_model_019">"تم تأكيد %1$s تقارير؛ راجع الوجهات المستلمة ولا تُعد إرسالها."</string>
-    <string name="ui_report_preview_view_model_020" formatted="false">"البيانات منشورة؛ لم يبدأ تسليم التقرير. عالج السبب ثم راجع وأرسل."</string>
-    <string name="ui_report_preview_view_model_021" formatted="false">"لم يبدأ تسليم التقرير؛ عالج السبب ثم راجع العملية."</string>
-    <string name="ui_report_preview_view_model_022" formatted="false">"لا يوجد اتصال بالإنترنت — بقي التقرير محفوظاً محلياً"</string>
-    <string name="ui_report_preview_view_model_023" formatted="false">"تغيّرت مجموعات المشرفين؛ أعد مراجعة الاختيار"</string>
-    <string name="ui_report_preview_view_model_024">"تم إرسال %1$s تقرير PDF ونشر بيانات CSV الكاملة"</string>
-    <string name="ui_report_preview_view_model_025" formatted="false">"آخر عملية ناجحة: إرسال تقارير المشرفين"</string>
-    <string name="ui_report_preview_view_model_026" formatted="false">"تم إرسال التقرير ونشر أحدث بيانات المرضى"</string>
-    <string name="ui_report_preview_view_model_027" formatted="false">"آخر عملية ناجحة: إرسال التقرير ونشر بيانات المرضى"</string>
-    <string name="ui_report_preview_view_model_028" formatted="false">"تعذر حفظ ملف PDF"</string>
-    <string name="ui_report_preview_view_model_029">"تقرير المناوبة: %1$s · %2$s أطباء؛ الأسماء داخل الملف"</string>
-    <string name="ui_report_preview_view_model_030" formatted="false">"المشرف غير موجود"</string>
+    <string name="delivery_log_unavailable" formatted="false">"تعذر فتح سجل التسليم؛ لن يبدأ إرسال جديد حتى إصلاح السجل"</string>
+    <string name="report_shift_id_missing" formatted="false">"معرف المناوبة غير موجود"</string>
+    <string name="report_patient_added">"مريض جديد: %1$s"</string>
+    <string name="report_patient_changed">"تم تعديل: %1$s"</string>
+    <string name="report_patient_removed">"تمت إزالة: %1$s"</string>
+    <string name="report_build_failed" formatted="false">"خطأ في بناء التقرير"</string>
+    <string name="report_doctors_fetch_failed" formatted="false">"تعذر جلب سجل الأطباء"</string>
+    <string name="report_doctors_fetched_review_again" formatted="false">"جُلب سجل الأطباء؛ راجع التقرير وعاينه مجدداً قبل الإرسال."</string>
+    <string name="report_roster_save_failed" formatted="false">"تعذر حفظ أطباء المناوبة"</string>
+    <string name="report_appearance_save_failed" formatted="false">"تعذر حفظ تخصيص التقرير"</string>
+    <string name="report_ward_unavailable" formatted="false">قائمة المرضى غير متاحة للإرسال؛ افتح أحدث نسخة</string>
+    <string name="report_retired_deadline" formatted="false">انتهت مهلة نشر هذه المناوبة.</string>
+    <string name="report_login_required" formatted="false">"يجب تسجيل الدخول قبل إرسال التقرير"</string>
+    <string name="report_actor_inactive" formatted="false">"المستخدم الحالي لم يعد نشطاً؛ أعد تسجيل الدخول"</string>
+    <string name="delivery_resolution_saved" formatted="false">"حُفظ قرار التسليم؛ أي إرسال جديد يمر بالمراجعة والتأكيد"</string>
+    <string name="delivery_resolution_failed" formatted="false">"تعذر حسم التسليم"</string>
+    <string name="report_delivery_uncertain_help" formatted="false">"افحص وصول التقرير في تليجرام قبل إعادة الإرسال."</string>
+    <string name="report_publication_uncertain_help" formatted="false">"لم يتأكد نشر البيانات؛ اجلب الحالة الحالية وراجعها قبل الإعادة."</string>
+    <string name="report_partial_delivery_help">"تم تأكيد %1$s تقارير؛ راجع الوجهات المستلمة ولا تُعد إرسالها."</string>
+    <string name="report_published_delivery_not_started" formatted="false">"البيانات منشورة؛ لم يبدأ تسليم التقرير. عالج السبب ثم راجع وأرسل."</string>
+    <string name="report_delivery_not_started" formatted="false">"لم يبدأ تسليم التقرير؛ عالج السبب ثم راجع العملية."</string>
+    <string name="report_offline_retained" formatted="false">"لا يوجد اتصال بالإنترنت — بقي التقرير محفوظاً محلياً"</string>
+    <string name="report_supervisor_destination_changed" formatted="false">"تغيّرت مجموعات المشرفين؛ أعد مراجعة الاختيار"</string>
+    <string name="report_supervisors_delivered">"تم إرسال %1$s تقرير PDF ونشر بيانات CSV الكاملة"</string>
+    <string name="report_supervisors_last_operation" formatted="false">"آخر عملية ناجحة: إرسال تقارير المشرفين"</string>
+    <string name="report_delivered_and_published" formatted="false">"تم إرسال التقرير ونشر أحدث بيانات المرضى"</string>
+    <string name="report_delivery_last_operation" formatted="false">"آخر عملية ناجحة: إرسال التقرير ونشر بيانات المرضى"</string>
+    <string name="report_pdf_save_failed" formatted="false">"تعذر حفظ ملف PDF"</string>
+    <string name="report_pdf_caption">"تقرير المناوبة: %1$s · %2$s أطباء؛ الأسماء داخل الملف"</string>
+    <string name="report_supervisor_missing" formatted="false">"المشرف غير موجود"</string>
     <string name="ui_report_pdf_workspace_001" formatted="false">"لا يوجد مرضى لهذا المشرف"</string>
     <string name="ui_report_pdf_workspace_002">"تعذر حفظ ملف PDF للمشرف %1$s"</string>
     <string name="ui_report_local_actions_001" formatted="false">"تغيّرت بيانات التقرير أو خياراته؛ عاين الملف من جديد"</string>

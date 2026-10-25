@@ -16,6 +16,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import com.hos.rushdpatients.data.model.Gender
+import com.hos.rushdpatients.util.ShiftDate
+import java.time.LocalDate
 import com.hos.rushdpatients.data.model.Patient
 import com.hos.rushdpatients.ui.components.uiNumber
 import com.hos.rushdpatients.ui.theme.UiSize
@@ -23,18 +25,18 @@ import com.hos.rushdpatients.ui.theme.UiSpacing
 
 internal object PatientIdentityText {
     fun admission(uiText: UiStrings, patient: Patient) = uiText(R.string.ui_patient_identity_003, uiNumber(patient.admittanceNumber))
-    fun personal(uiText: UiStrings, patient: Patient): String = buildString {
+    fun personal(uiText: UiStrings, patient: Patient, dayLabel: LocalDate = ShiftDate.current()): String = buildString {
         append(if (patient.gender == Gender.MALE) uiText(R.string.ui_male) else uiText(R.string.ui_female))
-        patient.age?.let { append(uiText(R.string.ui_patient_identity_004, uiNumber(it))) }
+        patient.ageOn(dayLabel)?.let { append(uiText(R.string.ui_patient_identity_004, uiNumber(it))) }
     }
-    fun admissionDetails(uiText: UiStrings, patient: Patient): String = buildList {
+    fun admissionDetails(uiText: UiStrings, patient: Patient, dayLabel: LocalDate = ShiftDate.current()): String = buildList {
         if (patient.admittanceNumber.isNotBlank()) add(uiText(R.string.ui_patient_identity_005, uiNumber(patient.admittanceNumber)))
         patient.admittanceDate?.let { date ->
             add(uiText(R.string.ui_patient_identity_006, uiNumber(date)))
-            patient.admittanceDays?.let { add(uiText(R.string.ui_patient_identity_007, uiNumber(it))) }
+            patient.admittanceDaysOn(dayLabel)?.let { add(uiText(R.string.ui_patient_identity_007, uiNumber(it))) }
         }
     }.joinToString(" · ")
-    fun details(uiText: UiStrings, patient: Patient) = listOf(personal(uiText, patient), admissionDetails(uiText, patient)).filter(String::isNotBlank).joinToString(" · ")
+    fun details(uiText: UiStrings, patient: Patient, dayLabel: LocalDate = ShiftDate.current()) = listOf(personal(uiText, patient, dayLabel), admissionDetails(uiText, patient, dayLabel)).filter(String::isNotBlank).joinToString(" · ")
 }
 
 @Composable
@@ -46,11 +48,11 @@ internal fun PatientName(name: String, modifier: Modifier = Modifier,
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-@Suppress("UNUSED_PARAMETER")
 internal fun PatientIdentityHeading(patient: Patient, modifier: Modifier = Modifier, pinned: Boolean = false,
-    showFreshness: Boolean = false, nameStyle: TextStyle = MaterialTheme.typography.titleMedium,
+    nameStyle: TextStyle = MaterialTheme.typography.titleMedium,
     showPersonal: Boolean = false, showOrdinal: Boolean = false, showDemographics: Boolean = false) {
     val uiText = rememberUiStrings()
+    val dayLabel = LocalWardDayLabel.current
     Column(modifier, verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
         PatientName(if (showOrdinal) "${uiNumber(patient.sortOrder)} · ${patient.displayName}" else patient.displayName, style = nameStyle)
         FlowRow(verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny),
@@ -63,9 +65,9 @@ internal fun PatientIdentityHeading(patient: Patient, modifier: Modifier = Modif
                 Text(uiText(R.string.ui_patient_identity_002), style = MaterialTheme.typography.labelMedium,
                     color = com.hos.rushdpatients.ui.theme.LocalClinicalColors.current.warning)
             }
-            val metadata = if (showPersonal) PatientIdentityText.details(uiText, patient) else listOfNotNull(
+            val metadata = if (showPersonal) PatientIdentityText.details(uiText, patient, dayLabel) else listOfNotNull(
                 PatientIdentityText.admission(uiText, patient),
-                PatientIdentityText.personal(uiText, patient).takeIf { showDemographics }
+                PatientIdentityText.personal(uiText, patient, dayLabel).takeIf { showDemographics }
             ).filter(String::isNotBlank).joinToString(" · ")
             Text(metadata,
                 style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

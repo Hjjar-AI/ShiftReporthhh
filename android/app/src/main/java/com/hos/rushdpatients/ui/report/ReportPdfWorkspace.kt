@@ -83,7 +83,7 @@ internal class ReportPdfWorkspace(
 
     fun supervisorPdfReport(built: BuiltReport, supervisorId: String): BuiltReport {
         val supervisor = built.registryDoctors.firstOrNull { it.id == supervisorId && !it.isDeleted }
-            ?: error(uiText(R.string.ui_report_preview_view_model_030))
+            ?: error(uiText(R.string.report_supervisor_missing))
         val patients = built.patients.filter { it.responsibleSpecialistId == supervisorId }
         require(patients.isNotEmpty()) { uiText(R.string.ui_report_pdf_workspace_001) }
         return built.copy(patients = patients, doctors = listOf(supervisor), summary = built.summary.copy(

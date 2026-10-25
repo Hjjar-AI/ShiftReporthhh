@@ -30,7 +30,7 @@ internal fun WardDataReviewDialogs(state: WardUiState, viewModel: WardController
                 androidx.compose.foundation.layout.Column {
                     com.hos.rushdpatients.ui.components.AppButton(onClick = {
                         dismissLatest(); viewModel.reviewPendingPublication()
-                    }) { androidx.compose.material3.Text(uiText(R.string.sync_publish_fetch)) }
+                    }) { androidx.compose.material3.Text(uiText(R.string.sync_review_publish)) }
                     com.hos.rushdpatients.ui.components.AppTextButton(onClick = {
                         dismissLatest(); viewModel.replaceAndFetch()
                     }) { androidx.compose.material3.Text(uiText(R.string.sync_replace_fetch)) }
@@ -44,10 +44,10 @@ internal fun WardDataReviewDialogs(state: WardUiState, viewModel: WardController
     state.fetchReviewText?.let { text ->
         com.hos.rushdpatients.ui.components.AppAlertDialog(
             onDismissRequest = viewModel::dismissFetchReview,
-            title = { androidx.compose.material3.Text(uiText(R.string.sync_publish_fetch)) },
+            title = { androidx.compose.material3.Text(uiText(R.string.sync_review_publish)) },
             text = { androidx.compose.material3.Text(text, androidx.compose.ui.Modifier.appDialogBody().verticalScroll(rememberScrollState())) },
             confirmButton = { com.hos.rushdpatients.ui.components.AppButton(onClick = viewModel::confirmPendingPublication) {
-                androidx.compose.material3.Text(uiText(R.string.sync_publish_fetch_confirm))
+                androidx.compose.material3.Text(uiText(R.string.sync_publish_confirm))
             } },
             dismissButton = { com.hos.rushdpatients.ui.components.AppTextButton(onClick = viewModel::dismissFetchReview) {
                 androidx.compose.material3.Text(uiText(R.string.ui_cancel))

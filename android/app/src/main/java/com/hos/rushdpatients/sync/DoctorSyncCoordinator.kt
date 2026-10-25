@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.sync
 
+import com.hos.rushdpatients.R
 import com.hos.rushdpatients.domain.doctor.DoctorRegistryAction
 import com.hos.rushdpatients.domain.doctor.DoctorRegistryActionRequired
 
@@ -21,6 +22,7 @@ import com.hos.rushdpatients.domain.auth.AdminAuthorizer
 import com.hos.rushdpatients.domain.auth.SessionManager
 import com.hos.rushdpatients.network.telegram.TelegramClient
 import com.hos.rushdpatients.util.DispatcherProvider
+import com.hos.rushdpatients.util.runCatchingCancellable
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withContext
@@ -50,16 +52,12 @@ class DoctorSyncCoordinator @Inject constructor(
 
     suspend fun uploadDoctors(registryData: String): Result<Unit> = doctorSyncMutex.withLock {
         withContext(dispatchers.io) {
-            try {
+            runCatchingCancellable {
                 require(this@DoctorSyncCoordinator.registryData(DoctorsRegistryCodec.decode(registryData).doctors) ==
                     this@DoctorSyncCoordinator.registryData(doctorRepository.getAll())) {
-                    "تغيّر سجل الأطباء المحلي قبل المزامنة؛ أعد المحاولة بأحدث نسخة"
+                    context.getString(R.string.doctors_local_changed_before_publish)
                 }
                 uploadCurrentDoctorsInternal()
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Result.failure(e)
             }
         }
     }
@@ -72,7 +70,7 @@ class DoctorSyncCoordinator @Inject constructor(
 
     private suspend fun uploadDoctorsInternal(
         registryData: String
-    ): Result<Unit> = withContext(dispatchers.io) {
+    ) {
         try {
             val remoteStateBeforeUpload = remoteState.readState()
             val actor = adminAuthorizer.requireAdmin()
@@ -81,17 +79,17 @@ class DoctorSyncCoordinator @Inject constructor(
                 val remoteDoctors = loadPublishedRegistry(remoteStateBeforeUpload)
                 val remoteActor = remoteDoctors.firstOrNull { it.id == actor.id && it.isAdmin && !it.isDeleted }
                 require(remoteActor != null && remoteActor.telegramId == actor.telegramId) {
-                    "صلاحية المدير لم تعد متاحة في السجل المنشور"
+                    context.getString(R.string.doctors_published_admin_unavailable)
                 }
                 val proposed = DoctorsRegistryCodec.decode(registryData).doctors.associateBy { it.id }
                 remoteDoctors.filter { it.isAdmin }.forEach { current ->
                     val next = proposed[current.id]
                     if (current.isPermanentAdmin) require(next != null && next.isPermanentAdmin && next.rank > 0) {
-                        "لا يمكن إزالة مدير دائم عبر استبدال السجل"
+                        context.getString(R.string.doctors_permanent_admin_removal_blocked)
                     }
                     if (next == null || next.rank != current.rank || next.isPermanentAdmin != current.isPermanentAdmin) {
                         require(canModify(remoteActor, current)) {
-                            "لا يمكنك تغيير صلاحية مدير أعلى رتبة عبر استبدال السجل"
+                            context.getString(R.string.doctors_higher_rank_change_blocked)
                         }
                     }
                 }
@@ -102,7 +100,7 @@ class DoctorSyncCoordinator @Inject constructor(
                 telegram.sendDocument(
                     chatId = topics.chatId,
                     file = file,
-                    caption = "سجل الأطباء",
+                    caption = context.getString(R.string.doctors_registry_caption),
                     parseMode = null,
                     disableNotification = true,
                     messageThreadId = topics.threadId(Topic.DOCTORS)
@@ -111,13 +109,13 @@ class DoctorSyncCoordinator @Inject constructor(
                 file.delete()
             }
             val uploadedFileId = requireNotNull(message.document?.fileId) {
-                "لم يعُد تليجرام بمعرّف ملف سجل الأطباء"
+                context.getString(R.string.doctors_upload_file_id_missing)
             }
 
-            require(adminAuthorizer.requireAdmin().id == actor.id) { "تغيّر المدير أثناء الرفع" }
+            require(adminAuthorizer.requireAdmin().id == actor.id) { context.getString(R.string.doctors_admin_changed_upload) }
             val newState = remoteState.updateState { current ->
                 require(sameDoctorPointer(current, remoteStateBeforeUpload ?: SyncState())) {
-                    "وصل سجل أطباء أحدث أثناء الرفع؛ اجلبه قبل إعادة تطبيق تعديلاتك"
+                    context.getString(R.string.doctors_registry_changed_upload)
                 }
                 current.copy(
                     doctorsData = null,
@@ -127,7 +125,7 @@ class DoctorSyncCoordinator @Inject constructor(
                 )
             }
             check(newState.doctorsMessageId == message.messageId) {
-                "وصل نشر أحدث لسجل الأطباء بالتزامن؛ اجلبه قبل إعادة تطبيق تعديلاتك"
+                context.getString(R.string.doctors_publication_superseded)
             }
             database.withTransaction {
                 syncStateRepository.update(
@@ -149,14 +147,11 @@ class DoctorSyncCoordinator @Inject constructor(
                 )
             }
 
-            Result.success(Unit)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            runCatching {
-                settingsRepository.putBoolean(AppConstants.SETTING_DOCTORS_SYNC_PENDING, true)
-            }
-            Result.failure(e)
+            runCatchingCancellable { settingsRepository.putBoolean(AppConstants.SETTING_DOCTORS_SYNC_PENDING, true) }
+            throw e
         }
     }
 
@@ -171,24 +166,20 @@ class DoctorSyncCoordinator @Inject constructor(
     }
 
     suspend fun uploadReviewedDoctors(csv: String): Result<Unit> = doctorSyncMutex.withLock {
-        validateDoctorRegistry(DoctorsRegistryCodec.decode(csv).doctors)
-        uploadDoctorsInternal(csv)
+        withContext(dispatchers.io) { runCatchingCancellable {
+            validateDoctorRegistry(DoctorsRegistryCodec.decode(csv).doctors)
+            uploadDoctorsInternal(csv)
+        } }
     }
 
     suspend fun uploadCurrentDoctors(): Result<Unit> = doctorSyncMutex.withLock {
-        uploadCurrentDoctorsInternal()
+        withContext(dispatchers.io) { runCatchingCancellable { uploadCurrentDoctorsInternal() } }
     }
 
-    private suspend fun uploadCurrentDoctorsInternal(): Result<Unit> = withContext(dispatchers.io) {
-        try {
-            val doctors = doctorRepository.getAll()
-            validateDoctorRegistry(doctors)
-            uploadDoctorsInternal(registryData(doctors))
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
+    private suspend fun uploadCurrentDoctorsInternal() {
+        val doctors = doctorRepository.getAll()
+        validateDoctorRegistry(doctors)
+        uploadDoctorsInternal(registryData(doctors))
     }
 
     /** Compatibility entry point: fetching never publishes local registry changes. */
@@ -211,7 +202,7 @@ class DoctorSyncCoordinator @Inject constructor(
     private suspend fun fetchLatestDoctorsInternal(): Result<String> = withContext(dispatchers.io) {
         try {
             val state = remoteState.readState()
-                ?: return@withContext Result.failure(IllegalStateException("لا يوجد سجل أطباء بعد"))
+                ?: return@withContext Result.failure(IllegalStateException(context.getString(R.string.doctors_registry_absent)))
             Result.success(downloadDoctorsData(state))
         } catch (e: CancellationException) {
             throw e
@@ -229,16 +220,16 @@ class DoctorSyncCoordinator @Inject constructor(
             doctorRepository.pendingSharedChangesSummary()?.let { throw DoctorRegistryActionRequired(DoctorRegistryAction.PUBLISH, it.message) }
             val local = doctorRepository.getAllIncludingDeleted()
             val state = remoteState.readState()
-                ?: return@withContext Result.failure(IllegalStateException("لا يوجد سجل أطباء بعد"))
+                ?: return@withContext Result.failure(IllegalStateException(context.getString(R.string.doctors_registry_absent)))
             val remote = loadPublishedRegistry(state)
             validateDoctorRegistry(remote)
             check(sameDoctorPointer(remoteState.readState(), state)) {
-                "تغيّر سجل الأطباء أثناء التنزيل؛ أعد جلب النسخة الكاملة"
+                context.getString(R.string.doctors_registry_changed_download)
             }
             database.withTransaction {
                 check(doctorRepository.getAllIncludingDeleted() == local &&
                     !doctorRepository.hasPendingSharedChanges()) {
-                    "تغيّر سجل الأطباء المحلي أثناء التنزيل؛ لم تُستبدل تعديلاتك"
+                    context.getString(R.string.doctors_local_changed_download)
                 }
                 // Replace all portable fields while preserving device-only PINs/identity aliases
                 // and the existing permanent-admin/clinical-reference safety checks.
@@ -263,7 +254,7 @@ class DoctorSyncCoordinator @Inject constructor(
         validateDoctorRegistry(published)
         if (registryData(doctorRepository.getAll()) != registryData(published)) {
             throw DoctorRegistryActionRequired(DoctorRegistryAction.FETCH,
-                "سجل الأطباء المنشور مختلف عن النسخة على الجهاز. افتح سجل الأطباء واختر «جلب سجل الأطباء»، ثم راجع التقرير.")
+                context.getString(R.string.doctors_registry_fetch_required))
         }
     }
 
@@ -278,57 +269,57 @@ class DoctorSyncCoordinator @Inject constructor(
                 patient.responsibleSpecialistId?.let { published[it]?.clinicalRole?.canBeSupervisor() != true } == true
         }
         if (invalidRoster || invalidPatient != null) {
-            val subject = invalidPatient?.let { "المريض ${it.name}" } ?: "أطباء المناوبة"
+            val subject = invalidPatient?.let { context.getString(R.string.sync_patient_subject, it.displayName) } ?: context.getString(R.string.report_roster_label)
             throw DoctorRegistryActionRequired(DoctorRegistryAction.PUBLISH,
-                "$subject: يوجد طبيب غير منشور أو بتصنيف مختلف. انشر سجل الأطباء أو صحح الإسناد أولاً حتى تستطيع الأجهزة الأخرى قراءة بيانات المرضى. بقية تعديلات سجل الأطباء لا تمنع النشر بعد التأكيد.")
+                context.getString(R.string.doctors_assignment_publication_required, subject))
         }
     }
 
     suspend fun requirePublishedAdmin(state: SyncState, permanentOnly: Boolean = false): Doctor = withContext(dispatchers.io) {
         val actor = adminAuthorizer.requireAdmin()
-        require(!permanentOnly || actor.isPermanentAdmin) { "هذه العملية متاحة للمدير الدائم فقط" }
+        require(!permanentOnly || actor.isPermanentAdmin) { context.getString(R.string.doctors_permanent_admin_required) }
         require(actor.telegramId != null && sessions.current()?.telegramId == actor.telegramId) {
-            "تغير حساب المدير المرتبط؛ سجّل الدخول مجدداً"
+            context.getString(R.string.doctors_admin_identity_changed)
         }
         val registry = loadPublishedRegistry(state)
         require(registry.any { it.id == actor.id && it.isAdmin && (!permanentOnly || it.isPermanentAdmin) && !it.isDeleted && it.telegramId == actor.telegramId }) {
-            "صلاحية المدير لم تعد متاحة في السجل المنشور"
+            context.getString(R.string.doctors_published_admin_unavailable)
         }
         actor
     }
 
     suspend fun requirePublishedClinician(state: SyncState): Doctor = withContext(dispatchers.io) {
-        val session = sessions.current() ?: error("سجّل الدخول قبل نشر البيانات")
+        val session = sessions.current() ?: error(context.getString(R.string.doctors_publish_login_required))
         val actor = doctorRepository.getActiveById(session.doctorId)
-            ?: error("الطبيب الحالي لم يعد نشطاً؛ سجّل الدخول مجدداً")
+            ?: error(context.getString(R.string.doctors_actor_inactive))
         require(actor.telegramId != null && session.telegramId == actor.telegramId) {
-            "تغير حساب الطبيب المرتبط؛ سجّل الدخول مجدداً"
+            context.getString(R.string.doctors_actor_identity_changed)
         }
         val registry = loadPublishedRegistry(state)
         require(registry.any { it.id == actor.id && !it.isDeleted && it.telegramId == actor.telegramId }) {
-            "الطبيب الحالي غير متاح في السجل المنشور"
+            context.getString(R.string.doctors_actor_unpublished)
         }
         actor
     }
 
     private fun validateDoctorRegistry(doctors: List<Doctor>) {
         require(doctors.isNotEmpty() && doctors.size <= AppConstants.MAX_DOCTORS) {
-            "عدد سجلات الأطباء غير صالح"
+            context.getString(R.string.doctors_registry_invalid_count)
         }
-        require(doctors.any { it.isAdmin && !it.isDeleted }) { "يجب إبقاء مدير نشط في سجل الأطباء" }
+        require(doctors.any { it.isAdmin && !it.isDeleted }) { context.getString(R.string.doctors_active_admin_required) }
         require(doctors.map { it.id }.distinct().size == doctors.size &&
             doctors.map { it.fullName.lowercase(Locale.ROOT) }.distinct().size == doctors.size) {
-            "سجل الأطباء يحتوي معرّفات أو أسماء مكررة؛ راجع السجلات المتعارضة"
+            context.getString(R.string.doctors_registry_duplicate_identity)
         }
         val telegramIds = doctors.mapNotNull { it.telegramId }
         require(telegramIds.distinct().size == telegramIds.size && telegramIds.all { it > 0 }) {
-            "سجل الأطباء يحتوي هويات تليجرام مكررة أو غير صالحة"
+            context.getString(R.string.doctors_registry_invalid_telegram_identity)
         }
         require(doctors.all { it.rank >= 0 && (!it.isPermanentAdmin || it.rank > 0) }) {
-            "رتبة المدير أو الصلاحية الدائمة غير صالحة"
+            context.getString(R.string.doctors_registry_invalid_rank)
         }
         val ranks = doctors.filter { it.rank > 0 }.map { it.rank }
-        require(ranks.distinct().size == ranks.size) { "رتب المديرين مكررة؛ راجع تعارض إسناد الرتبة" }
+        require(ranks.distinct().size == ranks.size) { context.getString(R.string.doctors_registry_duplicate_rank) }
         DoctorsRegistryCodec.encode(doctors) // Also validates clinical role/group invariants.
     }
 
@@ -341,12 +332,12 @@ class DoctorSyncCoordinator @Inject constructor(
 
     private suspend fun loadPublishedRegistry(state: SyncState): List<Doctor> {
         val decoded = registryCacheMutex.withLock {
-        val key = state.doctorsData?.let { "inline:$it" } ?: "file:${requireNotNull(state.doctorsFileId)}"
-        if (cachedRegistryKey == key) return@withLock requireNotNull(cachedRegistry)
-        val registry = DoctorsRegistryCodec.decode(downloadDoctorsData(state)).doctors
-        cachedRegistryKey = key
-        cachedRegistry = registry
-        registry
+            val key = state.doctorsData?.let { "inline:$it" } ?: "file:${requireNotNull(state.doctorsFileId)}"
+            if (cachedRegistryKey == key) return@withLock requireNotNull(cachedRegistry)
+            val registry = DoctorsRegistryCodec.decode(downloadDoctorsData(state)).doctors
+            cachedRegistryKey = key
+            cachedRegistry = registry
+            registry
         }
         return doctorRepository.normalizeRemoteRegistry(decoded)
     }
@@ -354,9 +345,9 @@ class DoctorSyncCoordinator @Inject constructor(
     private suspend fun downloadDoctorsData(state: SyncState): String {
         state.doctorsData?.let { return it }
         val fileId = state.doctorsFileId
-            ?: throw IllegalStateException("لا يوجد سجل أطباء بعد")
+            ?: throw IllegalStateException(context.getString(R.string.doctors_registry_absent))
         val path = telegram.getFile(fileId).filePath
-            ?: throw IllegalStateException("تعذر الحصول على سجل الأطباء")
+            ?: throw IllegalStateException(context.getString(R.string.doctors_registry_path_unavailable))
         val local = File.createTempFile("remote_doctors_", ".txt", context.cacheDir)
         return try {
             telegram.downloadFile(path, local)

@@ -24,9 +24,6 @@ import com.hos.rushdpatients.domain.export.PatientCsvExporter
 import com.hos.rushdpatients.domain.sort.GroupByMode
 import com.hos.rushdpatients.domain.sort.SortSpec
 import com.hos.rushdpatients.domain.sort.SortSpecCodec
-import com.hos.rushdpatients.sync.KnownShiftSnapshot
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import com.hos.rushdpatients.sync.SyncService
 import com.hos.rushdpatients.util.ShiftDate
 import com.hos.rushdpatients.util.NetworkStatus
@@ -114,13 +111,12 @@ class WardViewModel @Inject constructor(
                 _state.update { it.copy(synchronization = WardSynchronization()) }
                 if (id == null) return@collectLatest
                 val publication = combine(
-                    publicationStatus.observePending(),
                     syncStateRepository.observe(SyncChannel.CSV),
                     settingsRepository.observe(AppConstants.SETTING_PATIENT_PUBLISHED_AT_PREFIX + id)
-                ) { pending, sync, publishedAt ->
-                    Triple(pending, sync?.lastSyncedAtEpochMillis, publishedAt?.toLongOrNull())
+                ) { sync, publishedAt ->
+                    sync?.lastSyncedAtEpochMillis to publishedAt?.toLongOrNull()
                 }
-                val selectedSnapshot = publicationStatus.observeShift(id).map { it.state to it.count }
+                val selectedSnapshot = publicationStatus.observeWorkflow(id)
                 // An unreadable delivery ledger must not hide publication/download metadata.
                 val deliveries = deliveryLedger.observe().map { records ->
                     val rows = records.filter { it.shiftId == id }
@@ -134,7 +130,7 @@ class WardViewModel @Inject constructor(
                     deliveries,
                     selectedSnapshot
                 ) { published, at, message, delivery, selected ->
-                    WardSynchronization(pending = published.first, selectedSnapshot = selected.first, pendingCount = selected.second, lastSynchronizedAt = published.second, publishedAt = published.third,
+                    WardSynchronization(pending = selected.pending, selectedSnapshot = selected.selected?.state ?: com.hos.rushdpatients.sync.KnownShiftState.UNKNOWN, pendingCount = selected.selected?.count ?: 0, lastSynchronizedAt = published.first, publishedAt = published.second,
                         downloadedAt = at?.toLongOrNull(), downloadedMessage = message?.toLongOrNull(),
                         unresolvedDeliveries = delivery.first, deliveryLogUnavailable = delivery.second, lastReportAt = delivery.third)
                 }.collect { synchronization ->
@@ -279,9 +275,9 @@ class WardViewModel @Inject constructor(
 
     fun updatePatient(
         patient: Patient,
-        onStale: (Patient?) -> Unit = {},
+        onUnavailable: (Patient?) -> Unit = {},
         onSuccess: () -> Unit = {}
-    ) = patientActions.updatePatient(patient, onStale, onSuccess)
+    ) = patientActions.updatePatient(patient, onUnavailable, onSuccess)
 
     fun setTaskDone(patient: Patient, taskId: String, done: Boolean, onSuccess: (Patient) -> Unit) =
         patientActions.setTaskDone(patient, taskId, done, onSuccess)

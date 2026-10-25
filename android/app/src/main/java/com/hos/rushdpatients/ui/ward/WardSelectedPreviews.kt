@@ -50,7 +50,6 @@ private fun SelectedWardPreview(preferences: UiPreferences, appearance: AppAppea
     val patients = remember { DemoData.patients(doctors).take(4).mapIndexed { index, patient ->
         if (index == 0) patient.copy(name = "شاي بالنعناع والزنجبيل والقرفة — اسم تجريبي طويل") else patient
     } }
-    val now = remember { System.currentTimeMillis() }
     val names = remember { doctors.associate { it.id to it.fullName } }
     RushdPatientsTheme(appearance = appearance, uiPreferences = preferences) {
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl, LocalWardDayLabel provides com.hos.rushdpatients.util.ShiftDate.current()) {

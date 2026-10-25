@@ -53,7 +53,7 @@ internal class WardShiftOperations(
         viewModelScope.launch {
             try {
                 syncService.uploadReviewedCsv(review).fold(
-                    onSuccess = { _state.update { it.copy(snackbar = uiText(R.string.sync_publication_complete), syncIssue = null, syncRecovery = null, retryAction = null) } },
+                    onSuccess = { uploaded -> _state.update { it.copy(snackbar = uiText(if (uploaded.localBookkeepingFailed) R.string.sync_publication_bookkeeping_warning else R.string.sync_publication_complete), syncIssue = null, syncRecovery = null, retryAction = null) } },
                     onFailure = { showDownloadIssue(it, WardRetryAction.FETCH_LATEST) })
             } catch (e: CancellationException) { throw e }
             catch (e: Exception) { showDownloadIssue(e, WardRetryAction.FETCH_LATEST) }

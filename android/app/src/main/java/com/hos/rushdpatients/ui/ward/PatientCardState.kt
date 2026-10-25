@@ -2,7 +2,7 @@ package com.hos.rushdpatients.ui.ward
 
 import com.hos.rushdpatients.data.model.Patient
 
-internal val LocalWardDayLabel = androidx.compose.runtime.staticCompositionLocalOf { com.hos.rushdpatients.util.ShiftDate.current() }
+internal val LocalWardDayLabel = androidx.compose.runtime.compositionLocalOf { com.hos.rushdpatients.util.ShiftDate.current() }
 
 /** Display snapshots; callers replace patient/list/map values rather than mutating collections in place. */
 @androidx.compose.runtime.Immutable

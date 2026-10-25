@@ -6,10 +6,6 @@ enum class PdfOrientation(val arabicLabel: String) {
     PORTRAIT("عمودي"),
     LANDSCAPE("أفقي");
 
-    companion object {
-        @Suppress("UNUSED_PARAMETER")
-        fun fromSetting(value: String?): PdfOrientation = PORTRAIT
-    }
 }
 
 enum class PdfPaperSize(
@@ -41,20 +37,12 @@ enum class PdfColorPreset(val arabicLabel: String) {
 
 enum class PdfRuleWeight(val arabicLabel: String, val points: Float) {
     THIN("رفيعة", .75f), MEDIUM("متوسطة", 1.5f), THICK("سميكة", 2.25f);
-    companion object {
-        @Suppress("UNUSED_PARAMETER")
-        fun fromSetting(value: String?): PdfRuleWeight = MEDIUM
-    }
 }
 
 enum class PdfRuleContrast(val arabicLabel: String, val light: Int, val dark: Int) {
     LIGHT("خفيف", 0xFFCBD5E1.toInt(), 0xFF475569.toInt()),
     MEDIUM("متوسط", 0xFF94A3B8.toInt(), 0xFF64748B.toInt()),
     STRONG("واضح", 0xFF64748B.toInt(), 0xFF94A3B8.toInt());
-    companion object {
-        @Suppress("UNUSED_PARAMETER")
-        fun fromSetting(value: String?): PdfRuleContrast = MEDIUM
-    }
 }
 
 enum class PdfRowShading(val arabicLabel: String) {

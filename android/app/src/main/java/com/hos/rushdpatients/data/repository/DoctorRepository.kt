@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.data.repository
 
+import com.hos.rushdpatients.domain.doctor.RegistryChangeSummary
+import com.hos.rushdpatients.data.model.Shift
+import com.hos.rushdpatients.data.mapper.ShiftMapper
 import com.hos.rushdpatients.data.model.DoctorOptions
 import com.hos.rushdpatients.domain.doctor.DoctorTeams
 
@@ -104,14 +107,14 @@ class DoctorRepository @Inject constructor(
     }
 
     /** User-facing portable changes only; never include PINs, aliases or credentials. */
-    suspend fun pendingSharedChangesSummary(): com.hos.rushdpatients.domain.doctor.RegistryChangeSummary? = withContext(dispatchers.io) {
+    suspend fun pendingSharedChangesSummary(): RegistryChangeSummary? = withContext(dispatchers.io) {
         database.withTransaction {
             if (!hasPendingSharedChanges()) return@withTransaction null
             val local = getAll().associateBy { it.id }
             val raw = settingsRepository.get(AppConstants.SETTING_DOCTORS_BASE_REGISTRY)
             val base = try { raw?.let { DoctorsRegistryCodec.decode(it).doctors } }
                 catch (e: IllegalArgumentException) { null }
-            if (base.isNullOrEmpty()) return@withTransaction com.hos.rushdpatients.domain.doctor.RegistryChangeSummary("لم يتأكد نشر سجل الأطباء المحلي.")
+            if (base.isNullOrEmpty()) return@withTransaction RegistryChangeSummary("لم يتأكد نشر سجل الأطباء المحلي.")
             val previous = base.associateBy { it.id }
             val lines = buildList {
                 (local.keys - previous.keys).forEach { add("إضافة طبيب: ${local.getValue(it).fullName}") }
@@ -132,7 +135,7 @@ class DoctorRepository @Inject constructor(
                     if (fields.isNotEmpty()) add("${next.fullName}: ${fields.joinToString("، ")}")
                 }
             }
-            com.hos.rushdpatients.domain.doctor.RegistryChangeSummary("تعديلات سجل الأطباء غير المنشورة:\n" + lines.joinToString("\n"))
+            RegistryChangeSummary("تعديلات سجل الأطباء غير المنشورة:\n" + lines.joinToString("\n"))
         }
     }
 
@@ -176,7 +179,7 @@ class DoctorRepository @Inject constructor(
     }
 
     /** Called only inside the authorized doctor-deletion transaction; historical rosters stay intact. */
-    internal suspend fun removeCurrentShiftAssignment(id: String): com.hos.rushdpatients.data.model.Shift? =
+    internal suspend fun removeCurrentShiftAssignment(id: String): Shift? =
         withContext(dispatchers.io) {
             val shifts = database.shiftDao()
             val shift = shifts.getLatest() ?: return@withContext null
@@ -189,7 +192,7 @@ class DoctorRepository @Inject constructor(
             )
             if (changed != 1) throw StaleShiftEditException()
 
-            com.hos.rushdpatients.data.mapper.ShiftMapper.fromEntity(shift)
+            ShiftMapper.fromEntity(shift)
         }
 
     suspend fun requireNoClinicalReferences(id: String) = withContext(dispatchers.io) {

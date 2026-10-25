@@ -330,7 +330,7 @@ fun ReportPreviewScreen(
                                 if (state.retryAction == ReportRetryAction.SEND) {
                                     step = ReportFlowStep.PREVIEW
                                 } else if (state.retryAction == ReportRetryAction.PREVIEW) openPreview()
-                                else viewModel.retryLastAction()
+                                else viewModel.retryLastAction { step = ReportFlowStep.PREVIEW }
                             }),
                             actionEnabled = !state.sending && !state.previewingPdf && !state.exportingLocalPdf && !state.sharingPdf)
                         when (state.doctorRegistryAction) {
@@ -355,6 +355,7 @@ fun ReportPreviewScreen(
                         DeliveryQuestion(receipt, !busy, viewModel::resolveDelivery)
                     }
                 }
+                state.publicationWarning?.let { AppNotice(it, kind = NoticeKind.WARNING) }
                 state.lastOperation?.let { AppNotice(it) }
 
                 if (step == ReportFlowStep.PREVIEW) {
@@ -515,7 +516,7 @@ fun ReportPreviewScreen(
                     Text(java.time.Instant.ofEpochMilli(row.at).atZone(java.time.ZoneId.systemDefault())
                         .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")),
                         style = MaterialTheme.typography.bodySmall)
-                    if (row.status == DeliveryStatus.UNKNOWN) {
+                    if (row.status == DeliveryStatus.UNKNOWN || row.status == DeliveryStatus.UNKNOWN_COPY_ALLOWED) {
                         DeliveryQuestion(row, !busy, viewModel::resolveDelivery)
                     } else if (row.status == DeliveryStatus.SENT) {
                         Text(uiText(R.string.ui_report_preview_screen_092), style = MaterialTheme.typography.bodySmall)
@@ -574,5 +575,7 @@ private fun DeliveryQuestion(row: ReportDeliveryRecord, enabled: Boolean,
     Text(uiText(R.string.delivery_inline_question))
     com.hos.rushdpatients.ui.components.AppButton(style = com.hos.rushdpatients.ui.components.AppButtonStyle.TONAL, onClick = { resolve(row, DeliveryResolution.RECEIVED) }, enabled = enabled) { Text(uiText(R.string.delivery_received_explicit)) }
     com.hos.rushdpatients.ui.components.AppButton(style = com.hos.rushdpatients.ui.components.AppButtonStyle.TONAL, onClick = { resolve(row, DeliveryResolution.NOT_RECEIVED) }, enabled = enabled) { Text(uiText(R.string.delivery_not_received_explicit)) }
-    com.hos.rushdpatients.ui.components.AppButton(style = com.hos.rushdpatients.ui.components.AppButtonStyle.TONAL, onClick = { resolve(row, DeliveryResolution.ALLOW_COPY) }, enabled = enabled) { Text(uiText(R.string.delivery_allow_copy_explicit)) }
+    if (row.status == DeliveryStatus.UNKNOWN) {
+        com.hos.rushdpatients.ui.components.AppButton(style = com.hos.rushdpatients.ui.components.AppButtonStyle.TONAL, onClick = { resolve(row, DeliveryResolution.ALLOW_COPY) }, enabled = enabled) { Text(uiText(R.string.delivery_allow_copy_explicit)) }
+    }
 }

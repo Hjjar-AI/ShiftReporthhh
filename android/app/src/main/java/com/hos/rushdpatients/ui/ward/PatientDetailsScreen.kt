@@ -60,16 +60,12 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.window.layout.FoldingFeature
 import com.hos.rushdpatients.data.model.Patient
-import com.hos.rushdpatients.data.db.entity.AuditEntryEntity
-import java.time.Instant
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-@Suppress("UNUSED_PARAMETER")
 internal fun PatientDetailsScreen(
     patient: Patient,
     doctorNames: Map<String, String>,
-    activity: List<AuditEntryEntity> = emptyList(),
     readOnly: Boolean,
     onEdit: () -> Unit,
     onCopy: () -> Unit = {},
@@ -94,7 +90,7 @@ internal fun PatientDetailsScreen(
                 Column {
                     AppCompactTopBar(
                         title = {
-                            PatientIdentityHeading(patient, showFreshness = true,
+                            PatientIdentityHeading(patient,
                                 nameStyle = MaterialTheme.typography.titleLarge)
                         },
                         navigation = {

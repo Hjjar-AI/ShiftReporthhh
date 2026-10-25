@@ -1,12 +1,14 @@
 package com.hos.rushdpatients.ui.components
 
 import com.hos.rushdpatients.R
+import com.hos.rushdpatients.domain.report.ExactReportCopyRequiredException
 import com.hos.rushdpatients.domain.auth.LocalPinException
 import com.hos.rushdpatients.domain.auth.LocalPinFailure
 import com.hos.rushdpatients.network.telegram.TelegramException
 
 /** Map transport/login conditions at the presentation boundary. */
 fun failureText(uiText: UiStrings, error: Throwable): String? = when {
+    error is ExactReportCopyRequiredException -> uiText(R.string.delivery_exact_copy_required)
     error is TelegramException && error.isRateLimited -> uiText(R.string.telegram_wait_retry,
         uiNumber(error.retryAfterSeconds?.coerceAtLeast(1) ?: 30))
     error is LocalPinException -> when (error.reason) {

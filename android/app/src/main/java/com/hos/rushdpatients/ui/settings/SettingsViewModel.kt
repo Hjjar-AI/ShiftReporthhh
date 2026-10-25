@@ -281,7 +281,7 @@ class SettingsViewModel @Inject constructor(
 
     fun bringLatest() = dataOperations.bringLatest()
     fun replaceAndFetch(allowOlder: Boolean = false) = dataOperations.bringLatest(replaceLocal = true, allowOlder = allowOlder)
-    fun publishAndFetch() = dataOperations.uploadCurrent(thenFetch = true)
+    fun reviewPendingPublication() = dataOperations.uploadCurrent()
     fun dismissFetchChoice() = dataOperations.dismissFetchChoice()
     fun dismissOlderRemote() = dataOperations.dismissOlderRemote()
     fun prepareRollback() = dataOperations.prepareRollback()

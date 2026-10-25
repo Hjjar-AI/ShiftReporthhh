@@ -1,5 +1,7 @@
 package com.hos.rushdpatients.sync
 
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.data.model.Shift
 import com.hos.rushdpatients.domain.doctor.DoctorRegistryAction
 import com.hos.rushdpatients.domain.doctor.DoctorRegistryActionRequired
 import android.content.Context
@@ -55,7 +57,7 @@ internal class PatientPublicationCoordinator(
 
     suspend fun prepareCsvPublication(shiftId: String, reviewed: BuiltReport? = null): CsvPublicationReview = patientSyncMutex.withLock {
         withContext(dispatchers.io) {
-            val source = requireNotNull(remoteState.readState()) { "فهرس المشروع غير متاح؛ أعد الجلب" }
+            val source = requireNotNull(remoteState.readState()) { context.getString(R.string.sync_index_unavailable_fetch) }
             val actor = doctorSync.requirePublishedClinician(source)
             val built = reviewed ?: reportBuilder.build(shiftId)
             val doctorsCsv = if (actor.isAdmin && built.registryChangeSummary != null) doctorSync.preparePendingPublication(source, built.registryDoctors) else null
@@ -65,21 +67,21 @@ internal class PatientPublicationCoordinator(
             val before = remote?.patients.orEmpty().associateBy(Patient::id)
             val after = built.patients.associateBy(Patient::id)
             fun names(ids: Set<String>, rows: Map<String, Patient>) =
-                ids.mapNotNull { rows[it]?.name }.sorted().joinToString("، ").ifBlank { "لا يوجد" }
+                ids.mapNotNull { rows[it]?.displayName }.sorted().joinToString(context.getString(R.string.sync_list_separator)).ifBlank { context.getString(R.string.sync_nothing) }
             val changed = KnownShiftSnapshot.changes(built.patients, remote?.patients.orEmpty()).changed.mapTo(mutableSetOf()) { it.id }
             val text = buildString {
                 if (doctorsCsv == null && built.registryChangeSummary != null) {
-                    append("تعديلات سجل الأطباء ستبقى معلقة؛ نشرها يتطلب مديراً. ستُنشر نسخة المرضى المراجعة فقط.\n")
+                    append(context.getString(R.string.patients_doctors_remain_pending))
                 }
                 if (doctorsCsv != null) {
-                    append("نشر الكل — سجل الأطباء أولاً ثم المرضى\n")
+                    append(context.getString(R.string.patients_review_publish_all))
                     append(built.registryChangeSummary?.summary.orEmpty()).append('\n')
                     append(DoctorsRegistryCodec.decode(doctorsCsv).doctors.joinToString("\n") { it.fullName + " · " + it.clinicalRole.arabicLabel }).append("\n\n")
                 }
-                append("ستُنشر النسخة المحلية الكاملة للمناوبة، بما فيها الحذف والترتيب وأطباء المناوبة. آخر نشر ناجح هو المعتمد.\n")
-                append("إضافات: ").append(names(after.keys - before.keys, after)).append('\n')
-                append("تعديلات: ").append(names(changed, after)).append('\n')
-                append("حذف من النسخة المنشورة: ").append(names(before.keys - after.keys, before)).append("\n\n")
+                append(context.getString(R.string.patients_review_snapshot_notice))
+                append(context.getString(R.string.patients_review_additions)).append(names(after.keys - before.keys, after)).append('\n')
+                append(context.getString(R.string.patients_review_changes)).append(names(changed, after)).append('\n')
+                append(context.getString(R.string.patients_review_removals)).append(names(before.keys - after.keys, before)).append("\n\n")
                 append(built.textChunks.joinToString("\n\n") { Markdown.toPlainText(it) })
             }
             val publishedShift = built.shift.copy(
@@ -103,7 +105,7 @@ internal class PatientPublicationCoordinator(
 
     private suspend fun requirePublicationReview(review: CsvPublicationReview, state: SyncState?) {
         val actor = doctorSync.requirePublishedClinician(requireNotNull(state))
-        require(actor.id == review.actorId && actor.telegramId == review.telegramId) { "تغير المستخدم؛ سجّل الدخول بحساب المراجع" }
+        require(actor.id == review.actorId && actor.telegramId == review.telegramId) { context.getString(R.string.patients_reviewer_changed) }
         doctorSync.requirePublishedAssignments(state, review.shift, review.patients)
     }
 
@@ -112,13 +114,13 @@ internal class PatientPublicationCoordinator(
         review: CsvPublicationReview
     ): Result<CsvUploadResult> = withContext(dispatchers.io) {
         try {
-            val initialSource = requireNotNull(remoteState.readState()) { "فهرس المشروع غير متاح" }
+            val initialSource = requireNotNull(remoteState.readState()) { context.getString(R.string.sync_index_unavailable) }
             val actor = doctorSync.requirePublishedClinician(initialSource)
-            require(actor.id == review.actorId && actor.telegramId == review.telegramId) { "تغير المستخدم" }
+            require(actor.id == review.actorId && actor.telegramId == review.telegramId) { context.getString(R.string.patients_actor_changed) }
             val shift = review.shift
             val patients = review.patients
-            require(shift.doctorIds.distinct().size >= AppConstants.MIN_SHIFT_DOCTORS) { "حدد أطباء المناوبة قبل الرفع" }
-            require(patients.none { PatientValidator.validate(it) is PatientValidationResult.Invalid }) { "بيانات مرضى غير صالحة" }
+            require(shift.doctorIds.distinct().size >= AppConstants.MIN_SHIFT_DOCTORS) { context.getString(R.string.patients_roster_required) }
+            require(patients.none { PatientValidator.validate(it) is PatientValidationResult.Invalid }) { context.getString(R.string.patients_invalid_content) }
             review.doctorsCsv?.let { doctorSync.uploadReviewedDoctors(it).getOrThrow() }
             val publishingDeviceId = requireNotNull(shift.publishedByDeviceId)
             requirePublicationReview(review, remoteState.readState())
@@ -132,7 +134,7 @@ internal class PatientPublicationCoordinator(
                 telegram.sendDocument(
                     chatId = topics.chatId,
                     file = file,
-                    caption = "${shift.date} • قائمة المرضى الحالية",
+                    caption = context.getString(R.string.patients_snapshot_caption, shift.date),
                     parseMode = null,
                     messageThreadId = topics.threadId(Topic.CSV)
                 )
@@ -140,7 +142,7 @@ internal class PatientPublicationCoordinator(
                 file.delete()
             }
             val uploadedFileId = requireNotNull(msg.document?.fileId) {
-                "لم يعُد تليجرام بمعرّف ملف CSV"
+                context.getString(R.string.patients_upload_file_id_missing)
             }
 
             val uploadedAt = msg.date.takeIf { it > 0L }
@@ -169,8 +171,9 @@ internal class PatientPublicationCoordinator(
             }
             val published = newState.currentCsvSnapshot()
             check(published != null && published.messageId == msg.messageId) {
-                "وصل نشر أحدث بالتزامن؛ راجع النسخة الحالية قبل نشر نسختك الكاملة"
+                context.getString(R.string.patients_publication_superseded)
             }
+            var localBookkeepingFailed = false
             try {
                 database.withTransaction {
                     syncStateRepository.update(
@@ -198,10 +201,11 @@ internal class PatientPublicationCoordinator(
             } catch (e: CancellationException) { throw e }
             catch (error: Exception) {
                 // Remote publication succeeded; keep an explicit bookkeeping diagnostic.
+                localBookkeepingFailed = true
                 Logging.e("CSV published, but local sync bookkeeping failed", error)
             }
 
-            Result.success(CsvUploadResult(msg.messageId, patients.size))
+            Result.success(CsvUploadResult(msg.messageId, patients.size, localBookkeepingFailed))
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -211,16 +215,16 @@ internal class PatientPublicationCoordinator(
 
     private suspend fun requireRollbackAssignments(source: SyncState, csv: String) {
         CsvBundleCodec.decode(csv).forEach { parsed ->
-            doctorSync.requirePublishedAssignments(source, com.hos.rushdpatients.data.model.Shift(
+            doctorSync.requirePublishedAssignments(source, Shift(
                 id = requireNotNull(parsed.shiftId), date = parsed.shiftDate, doctorIds = parsed.doctorIds), parsed.patients)
         }
     }
 
     suspend fun prepareRollback(): CsvRollbackReview = patientSyncMutex.withLock {
         withContext(dispatchers.io) {
-            val source = requireNotNull(remoteState.readState()) { "فهرس المشروع غير متاح" }
+            val source = requireNotNull(remoteState.readState()) { context.getString(R.string.sync_index_unavailable) }
             val actor = doctorSync.requirePublishedAdmin(source)
-            val snapshot = requireNotNull(source.previousCsvSnapshot()) { "لا توجد نسخة منشورة سابقة" }
+            val snapshot = requireNotNull(source.previousCsvSnapshot()) { context.getString(R.string.patients_previous_publication_absent) }
             val remote = telegram.getFile(snapshot.fileId)
             val local = File.createTempFile("rollback_review_", ".csv", context.cacheDir)
             val csv = try {
@@ -230,8 +234,8 @@ internal class PatientPublicationCoordinator(
             val shifts = CsvBundleCodec.decode(csv)
             requireRollbackAssignments(source, csv)
             CsvRollbackReview(snapshot, csv, actor.id, actor.telegramId,
-                "ستصبح هذه النسخة السابقة هي المنشورة للجميع. البيانات المحلية ستبقى كما هي؛ اجلبها لتطبيقها محلياً.\n" +
-                    shifts.joinToString("\n") { "${it.shiftDate}: ${it.patients.size} مريض" })
+                context.getString(R.string.patients_rollback_review_notice) +
+                    shifts.joinToString("\n") { context.getString(R.string.patients_snapshot_inventory, it.shiftDate, it.patients.size) })
         }
     }
 
@@ -241,17 +245,17 @@ internal class PatientPublicationCoordinator(
                 val source = requireNotNull(remoteState.readState())
                 val actor = doctorSync.requirePublishedAdmin(source)
                 requireRollbackAssignments(source, review.csv)
-                require(actor.id == review.actorId && actor.telegramId == review.telegramId) { "تغير المدير" }
+                require(actor.id == review.actorId && actor.telegramId == review.telegramId) { context.getString(R.string.doctors_admin_changed) }
                 val file = File.createTempFile("rollback_publish_", ".csv", context.cacheDir)
                 val message = try {
                     file.writeText(review.csv, Charsets.UTF_8)
-                    telegram.sendDocument(chatId = topics.chatId, file = file, caption = "استعادة النسخة المنشورة السابقة",
+                    telegram.sendDocument(chatId = topics.chatId, file = file, caption = context.getString(R.string.patients_rollback_caption),
                         parseMode = null, messageThreadId = topics.threadId(Topic.CSV))
                 } finally { file.delete() }
                 val currentSource = requireNotNull(remoteState.readState())
                 val currentActor = doctorSync.requirePublishedAdmin(currentSource)
                 requireRollbackAssignments(currentSource, review.csv)
-                require(currentActor.id == actor.id && currentActor.telegramId == actor.telegramId) { "تغير المدير أثناء الرفع" }
+                require(currentActor.id == actor.id && currentActor.telegramId == actor.telegramId) { context.getString(R.string.patients_admin_changed_upload) }
                 val snapshot = review.snapshot.copy(fileId = requireNotNull(message.document?.fileId),
                     messageId = message.messageId, updatedAt = message.date.takeIf { it > 0 }?.times(1000L) ?: System.currentTimeMillis())
                 val parsed = CsvBundleCodec.decode(review.csv).first()
@@ -275,7 +279,7 @@ internal class PatientPublicationCoordinator(
 
     private suspend fun downloadSnapshot(snapshot: CsvSnapshot): List<ParsedShift> {
         val remote = telegram.getFile(snapshot.fileId)
-        val path = requireNotNull(remote.filePath) { "تعذر الحصول على مسار الملف" }
+        val path = requireNotNull(remote.filePath) { context.getString(R.string.sync_file_path_unavailable) }
         val local = File.createTempFile("snapshot_shift_", ".csv", context.cacheDir)
         return try {
             telegram.downloadFile(path, local)

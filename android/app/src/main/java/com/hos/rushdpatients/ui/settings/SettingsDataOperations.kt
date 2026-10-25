@@ -27,7 +27,6 @@ internal class SettingsDataOperations(
     private val format: (Long) -> String
 ) {
     private var rollbackReview: com.hos.rushdpatients.sync.CsvRollbackReview? = null
-    private var fetchAfterPublish = false
     private var publicationReview: CsvPublicationReview? = null
 
     fun invalidateReview() { publicationReview = null }
@@ -133,8 +132,7 @@ internal class SettingsDataOperations(
 
     /** Prepare only: no publication occurs until the reviewed snapshot is confirmed. */
 
-    fun uploadCurrent(thenFetch: Boolean = false) {
-        fetchAfterPublish = thenFetch
+    fun uploadCurrent() {
         if (_state.value.syncing || _state.value.backupBusy || _state.value.exportingCsv) return
         publicationReview = null
         _state.update { it.copy(syncing = true, publicationReviewText = null, snackbar = null, retryAction = null,
@@ -143,7 +141,7 @@ internal class SettingsDataOperations(
             try {
                 check(NetworkStatus.isOnline(context)) { uiText(R.string.ui_settings_data_operations_004) }
                 val shiftId = shiftRepository.getLatest()?.id ?: error(uiText(R.string.ui_settings_data_operations_005))
-                val review = syncService.prepareCsvPublication(shiftId, forceLocal = true)
+                val review = syncService.prepareCsvPublication(shiftId)
                 publicationReview = review
                 _state.update { it.copy(publicationReviewText = review.text) }
             } catch (e: CancellationException) {
@@ -169,12 +167,10 @@ internal class SettingsDataOperations(
         publicationReview = null
         _state.update { it.copy(syncing = true, publicationReviewText = null, snackbar = null, retryAction = null) }
         viewModelScope.launch {
-            var published = false
             try {
                 check(NetworkStatus.isOnline(context)) { uiText(R.string.ui_settings_data_operations_007) }
-                val result = syncService.uploadReviewedCsv(review, forceLocal = true).getOrThrow()
-                published = true
-                _state.update { it.copy(snackbar = uiText(R.string.ui_settings_data_operations_008, result.patientCount),
+                val result = syncService.uploadReviewedCsv(review).getOrThrow()
+                _state.update { it.copy(snackbar = if (result.localBookkeepingFailed) uiText(R.string.sync_publication_bookkeeping_warning) else uiText(R.string.ui_settings_data_operations_008, result.patientCount),
                     syncIssue = null, syncRecovery = null, syncRetryAction = null,
                     lastOperation = uiText(R.string.ui_settings_data_operations_009)) }
             } catch (e: CancellationException) {
@@ -185,10 +181,6 @@ internal class SettingsDataOperations(
                     retryAction = SettingsRetryAction.UPLOAD) }
             } finally {
                 _state.update { it.copy(syncing = false) }
-            }
-            if (published && fetchAfterPublish) {
-                fetchAfterPublish = false
-                bringLatest()
             }
         }
     }

@@ -63,7 +63,7 @@ internal class WardSaveGuard(
 
     suspend fun saveAction(
         onSuccess: () -> Unit,
-        onStale: suspend (Exception) -> Boolean = { false },
+        onUnavailable: suspend (Exception) -> Boolean = { false },
         action: suspend () -> Unit
     ) {
         if (_state.value.saving) return
@@ -78,7 +78,7 @@ internal class WardSaveGuard(
         } catch (e: Exception) {
             _state.update { it.copy(saving = false) }
             try {
-                if (!onStale(e)) showError(com.hos.rushdpatients.ui.components.failureText(uiText, e) ?: uiText(R.string.ui_ward_save_guard_004))
+                if (!onUnavailable(e)) showError(com.hos.rushdpatients.ui.components.failureText(uiText, e) ?: uiText(R.string.ui_ward_save_guard_004))
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (reloadError: Exception) {

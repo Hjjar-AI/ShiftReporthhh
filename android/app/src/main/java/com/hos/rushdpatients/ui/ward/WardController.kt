@@ -1,7 +1,6 @@
 package com.hos.rushdpatients.ui.ward
 
 import com.hos.rushdpatients.data.model.Patient
-import com.hos.rushdpatients.data.model.Shift
 import com.hos.rushdpatients.domain.sort.GroupByMode
 import com.hos.rushdpatients.domain.sort.SortSpec
 import kotlinx.coroutines.flow.StateFlow
@@ -38,7 +37,7 @@ internal interface WardController {
     fun setPriority(patient: Patient, priority: Boolean, onSuccess: () -> Unit = {})
     fun setTwoColumn(enabled: Boolean)
     fun movePatientToTop(patient: Patient) {}
-    fun updatePatient(patient: Patient, onStale: (Patient?) -> Unit = {},
+    fun updatePatient(patient: Patient, onUnavailable: (Patient?) -> Unit = {},
         onSuccess: () -> Unit = {})
 }
 
@@ -73,5 +72,5 @@ internal class LiveWardController(private val viewModel: WardViewModel) : WardCo
     override fun setPriority(patient: Patient, priority: Boolean, onSuccess: () -> Unit) { viewModel.setPriority(patient, priority, onSuccess) }
     override fun setTwoColumn(enabled: Boolean) { viewModel.setTwoColumn(enabled) }
     override fun movePatientToTop(patient: Patient) { viewModel.movePatientToTop(patient) }
-    override fun updatePatient(patient: Patient, onStale: (Patient?) -> Unit, onSuccess: () -> Unit) { viewModel.updatePatient(patient, onStale, onSuccess) }
+    override fun updatePatient(patient: Patient, onUnavailable: (Patient?) -> Unit, onSuccess: () -> Unit) { viewModel.updatePatient(patient, onUnavailable, onSuccess) }
 }

@@ -60,6 +60,7 @@ data class ReportUiState(
     val pdfReviewGeneration: Long = 0L,
     val pdfShareUri: Uri? = null,
     val sending: Boolean = false,
+    val publicationWarning: String? = null,
     val publicationOutcome: ReportStepOutcome? = null,
     val deliveryRecords: List<ReportDeliveryRecord> = emptyList(),
     val deliveryOutcome: ReportStepOutcome? = null,

@@ -158,7 +158,7 @@ fun SettingsScreen(
         title = { Text(uiText(R.string.ui_ward_data_review_dialogs_001)) },
         text = { Text(uiText(R.string.sync_fetch_review_body)) },
         confirmButton = { Column {
-            AppTextButton(onClick = { confirmFetch = false; viewModel.dismissFetchChoice(); viewModel.publishAndFetch() }) { Text(uiText(R.string.sync_publish_fetch)) }
+            AppTextButton(onClick = { confirmFetch = false; viewModel.dismissFetchChoice(); viewModel.reviewPendingPublication() }) { Text(uiText(R.string.sync_review_publish)) }
             AppTextButton(onClick = { confirmFetch = false; viewModel.dismissFetchChoice(); viewModel.replaceAndFetch() }) { Text(uiText(R.string.sync_replace_fetch)) }
         } },
         dismissButton = { AppTextButton(onClick = { confirmFetch = false; viewModel.dismissFetchChoice() }) { Text(uiText(R.string.ui_cancel)) } })

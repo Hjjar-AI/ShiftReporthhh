@@ -1,5 +1,8 @@
 package com.hos.rushdpatients.sync
 
+import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
+import com.hos.rushdpatients.R
 import com.hos.rushdpatients.config.Topics
 import com.hos.rushdpatients.network.telegram.TelegramClient
 import com.hos.rushdpatients.network.telegram.TelegramException
@@ -12,6 +15,7 @@ import javax.inject.Singleton
 /** Serializes pinned-state updates within this process; Telegram remains last-write-wins across devices. */
 @Singleton
 class RemoteSyncStateStore @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val telegram: TelegramClient,
     private val topics: Topics,
     private val json: Json
@@ -33,7 +37,7 @@ class RemoteSyncStateStore @Inject constructor(
 
     private fun PinnedState.recognizedOrNull(): SyncState? = when (this) {
         PinnedState.Absent -> null
-        PinnedState.Unrecognized -> error("فهرس المشروع غير معروف أو يتطلب إصداراً أحدث؛ لن يُستبدل التثبيت")
+        PinnedState.Unrecognized -> error(context.getString(R.string.sync_index_unrecognized))
         is PinnedState.Valid -> state
     }
 
@@ -49,10 +53,10 @@ class RemoteSyncStateStore @Inject constructor(
                                transform: (SyncState) -> SyncState): SyncState = remoteStateMutex.withLock {
         val pinned = readPinnedState()
         val current = pinned.recognizedOrNull()
-        require(!requireExisting || current != null) { "فهرس المشروع غير متاح؛ أعد الجلب" }
+        require(!requireExisting || current != null) { context.getString(R.string.sync_index_unavailable_fetch) }
         val updated = transform(current ?: SyncState()).copy(v = SyncState.CURRENT_VERSION)
         writeState(updated, pinned as? PinnedState.Valid, replaceCsvHistory)
-        requireNotNull(readState()) { "تعذر تأكيد فهرس المشروع" }
+        requireNotNull(readState()) { context.getString(R.string.sync_index_confirmation_failed) }
     }
 
     private suspend fun writeState(state: SyncState, existing: PinnedState.Valid?, replaceCsvHistory: Boolean) {

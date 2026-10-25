@@ -738,10 +738,10 @@ private fun WardWorkspaceContent(
     if (viewModel.liveProject) WardDataReviewDialogs(state, viewModel, confirmLatest,
         onDismissLatest = { confirmLatest = false })
 
-    fun saveEdited(p: Patient, draft: Patient, onStale: (Patient?) -> Unit, advance: Boolean) {
+    fun saveEdited(p: Patient, draft: Patient, onUnavailable: (Patient?) -> Unit, advance: Boolean) {
         // Capture the displayed successor before saving can change filters/order.
         val nextId = if (advance) patientRoundsNavigation(roundsPatients.map { it.id }, p.id)?.nextId else null
-        viewModel.updatePatient(draft, onStale) {
+        viewModel.updatePatient(draft, onUnavailable) {
             val current = viewModel.state.value
             val next = nextId?.takeIf { !current.isReadOnly && current.shift?.id == state.shift?.id }
                 ?.let { id -> current.patients.firstOrNull { it.id == id && !it.isDeleted } }

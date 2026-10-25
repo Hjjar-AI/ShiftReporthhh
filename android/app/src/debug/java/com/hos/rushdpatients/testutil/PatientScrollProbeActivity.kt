@@ -38,8 +38,8 @@ class PatientScrollProbeActivity : ComponentActivity() {
                     Surface {
                         WardPatientGrid(state, patients, false, grid, 48.dp, emptyList(), emptyList(), {}, {},
                             controlsContent = { Text("بيانات تجريبية — 200 مريض") }, headerContent = {},
-                            patientCard = { patient, modifier -> PatientCard(PatientCardState(patient,
-                                taskNowEpochMillis = 100), PatientCardActions.None, modifier) })
+                            patientCard = { patient, modifier -> PatientCard(PatientCardState(patient),
+                                PatientCardActions.None, modifier) })
                     }
                 }
             }
