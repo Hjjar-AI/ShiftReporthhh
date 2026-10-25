@@ -6,7 +6,7 @@ from desktop_protocol import require, current_date
 from desktop_tasks import read_tasks, ordered_for_display, task_text
 
 PAPERS = {'A4': (595, 842), 'A5': (420, 595)}
-DEFAULT_OPTIONS = dict(layout='table', paper='A4', orientation='portrait', color='teal', dark=False,
+DEFAULT_OPTIONS = dict(layout='cards', paper='A5', orientation='portrait', color='teal', dark=False,
                        separate=False, ward='', rule_weight='medium', rule_contrast='medium', row_shading='auto')
 
 RULE_WEIGHTS = {'thin': .75, 'medium': 1.5, 'thick': 2.25}

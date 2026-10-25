@@ -1,5 +1,18 @@
 # Completed work
 
+## Splash entrance and simpler dismissal — 25 October 2026
+
+- Staggered fade/rise for emblem, title, subtitle and credits, plus subtle emblem scale; settles within one second. Reduced motion displays contents immediately; saved entrance state prevents replay after recreation.
+- Removed countdown/timing/gesture footer and hold-to-pause behavior at owner request. Five-second launch deadline still includes loading and survives recreation; tap skips.
+- Source/call-site review and Git whitespace checks only; no build, tests or device visual/runtime checks.
+
+## Splash, A5 defaults and patient totals — 25 October 2026
+
+- Removed splash version; existing Help→About remains the version location. Splash credits/logo/timing unchanged.
+- Unset Android/desktop PDF preferences now choose A5 cards with linked index; saved choices and legacy A3/Letter→A4 remain. Android options/state defaults also use A5.
+- A5 index on both clients and Android report preview show a larger bold total, with psychiatric title/count inline in brackets; desktop classic summary also brackets that subtotal.
+- Source-only XML parsing, selected desktop Python grammar and Git whitespace checks passed. No build, tests, device or rendered PDF checks performed for this follow-up.
+
 ## Direct report previews and ordered actions — 25 October 2026
 
 - Shared live/demo report footer has one full-width primary action: Next→next required preview→combined upload/send, with secondary Cancel/Previous below. Every selected General/supervisor report has a direct top-of-review preview button and opened status/count; removed the extra supervisor-preview chooser dialog.

@@ -540,7 +540,9 @@
     <string name="ui_report_preview_screen_031" formatted="false">"إرسال كملف PDF"</string>
     <string name="ui_report_preview_screen_032" formatted="false">"ملخص التقرير"</string>
     <string name="ui_report_preview_screen_033">"%1$s مريض · %2$s مرافق · %3$s"</string>
-    <string name="ui_report_preview_screen_034">"حالات نفسية: %1$s"</string>
+    <string name="ui_report_preview_screen_034">"(حالات نفسية: %1$s)"</string>
+    <string name="report_total_patients">"إجمالي المرضى: %1$s"</string>
+    <string name="report_escorts_and_date">"%1$s مرافق · %2$s"</string>
     <string name="ui_report_preview_screen_035" formatted="false">"يوجد تسليم غير مؤكد محفوظ على هذا الجهاز؛ احسمه من السجل قبل الإعادة إلى الوجهة نفسها."</string>
     <string name="ui_report_preview_screen_036" formatted="false">"سبب التعذر والخطوة التالية"</string>
     <string name="ui_report_preview_screen_037" formatted="false">"معاينة PDF مجدداً"</string>

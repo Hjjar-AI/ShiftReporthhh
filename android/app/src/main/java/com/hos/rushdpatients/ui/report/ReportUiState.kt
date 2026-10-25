@@ -48,7 +48,7 @@ data class ReportUiState(
     val summary: ReportSummary? = null,
     val previewMarkdown: String = "",
     val reportAsPdf: Boolean = true,
-    val pdfStyle: com.hos.rushdpatients.pdf.PdfStyle = com.hos.rushdpatients.pdf.PdfStyle.CLASSIC,
+    val pdfStyle: com.hos.rushdpatients.pdf.PdfStyle = com.hos.rushdpatients.pdf.PdfStyle.CARDS,
     val pdfOptions: com.hos.rushdpatients.pdf.PdfExportOptions = com.hos.rushdpatients.pdf.PdfExportOptions(),
     val savingPdfOptions: Boolean = false,
     val previewingPdf: Boolean = false,

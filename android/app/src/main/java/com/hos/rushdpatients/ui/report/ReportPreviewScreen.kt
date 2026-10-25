@@ -323,8 +323,20 @@ internal fun ReportWorkspace(
                 if (step == ReportFlowStep.PREVIEW) {
                     state.summary?.let { summary ->
                         AppSection(title = uiText(R.string.ui_report_preview_screen_032)) {
-                            Text(uiText(R.string.ui_report_preview_screen_033, uiNumber(summary.patientCount), uiNumber(summary.escortCount), uiNumber(summary.shiftDate)))
-                            if (summary.psychoCount > 0) Text(uiText(R.string.ui_report_preview_screen_034, uiNumber(summary.psychoCount)), style = MaterialTheme.typography.bodySmall)
+                            val subtotalStyle = androidx.compose.ui.text.SpanStyle(
+                                fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.Normal,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(androidx.compose.ui.text.buildAnnotatedString {
+                                append(uiText(R.string.report_total_patients, uiNumber(summary.patientCount)))
+                                append(" ")
+                                pushStyle(subtotalStyle)
+                                append(uiText(R.string.ui_report_preview_screen_034, uiNumber(summary.psychoCount)))
+                                pop()
+                            }, style = MaterialTheme.typography.titleLarge,
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                            Text(uiText(R.string.report_escorts_and_date, uiNumber(summary.escortCount), uiNumber(summary.shiftDate)),
+                                style = MaterialTheme.typography.bodySmall)
                         }
                     }
 

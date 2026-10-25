@@ -312,8 +312,10 @@ class _Cards:
 
     def render(self):
         self.new_page(index=True)
-        self.index_text('{} · {} مريض · {} حالة نفسية · {} مرافق'.format(self.report_day.isoformat(), len(self.patients),
-            sum(p.get('diagnosisType', 'PSYCHIATRIC') in {'PSYCHIATRIC', 'DUAL'} for p in self.patients),
+        self.index_text('إجمالي المرضى: {} (حالات نفسية: {})'.format(len(self.patients),
+            sum(p.get('diagnosisType', 'PSYCHIATRIC') in {'PSYCHIATRIC', 'DUAL'} for p in self.patients)),
+            _Paint(15, self.colors['title'], True))
+        self.index_text('{} · {} مرافق'.format(self.report_day.isoformat(),
             sum(p.get('hasCompanion') == 'Y' for p in self.patients)), self.body)
         doctors = [self.client.doctors[key] for key in self.shift['meta'].get('doctors', '').split(',') if key in self.client.doctors]
         if doctors:

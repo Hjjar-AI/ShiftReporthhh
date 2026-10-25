@@ -107,7 +107,9 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
         try {
             newPage(documentLabel, index = true)
             val metadataPaint = Paint(body).apply { textSize = 11.5f }
-            indexText("${summary.shiftDate} · ${summary.patientCount} مريض · ${summary.psychoCount} حالة نفسية · ${summary.escortCount} مرافق", metadataPaint, documentLabel)
+            val totalPaint = Paint(heading).apply { textSize = 15f }
+            indexText("إجمالي المرضى: ${summary.patientCount} (حالات نفسية: ${summary.psychoCount})", totalPaint, documentLabel)
+            indexText("${summary.shiftDate} · ${summary.escortCount} مرافق", metadataPaint, documentLabel)
             if (doctors.isNotEmpty()) indexText(ReportRosterLabel.forDoctors(doctors) + ": " +
                 doctors.joinToString(" / ") { it.fullName }, metadataPaint, documentLabel)
             val indexGap = 5f

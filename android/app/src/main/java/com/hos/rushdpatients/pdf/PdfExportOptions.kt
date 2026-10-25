@@ -18,7 +18,10 @@ enum class PdfPaperSize(
 
     companion object {
         fun fromSetting(value: String?): PdfPaperSize =
-            entries.firstOrNull { it.name == value } ?: A4
+            when (value) {
+                null -> A5
+                else -> entries.firstOrNull { it.name == value } ?: A4
+            }
     }
 }
 
@@ -64,7 +67,7 @@ enum class PdfPresentationPreset(
 data class PdfExportOptions(
     // Retired options retained for source compatibility; renderers always use portrait/light.
     val orientation: PdfOrientation = PdfOrientation.PORTRAIT,
-    val paperSize: PdfPaperSize = PdfPaperSize.A4,
+    val paperSize: PdfPaperSize = PdfPaperSize.A5,
     val colorPreset: PdfColorPreset = PdfColorPreset.TEAL,
     val darkMode: Boolean = false,
     val patientCardStyle: PatientCardStyle = PatientCardStyle.BADGE_HEADER,

@@ -45,14 +45,10 @@ internal const val introOriginalAuthorName = "الطبيب الاختصاصي ن
 @Composable
 fun IntroAboutScreen(
     splash: Boolean,
-    onBack: (() -> Unit)? = null,
-    remainingSeconds: Int = 3,
-    splashHeld: Boolean = false,
-    onSplashHeldChange: (Boolean) -> Unit = {}
+    onBack: (() -> Unit)? = null
 ) {
     if (splash) {
-        SplashIntroScreen(onSkip = { onBack?.invoke() }, remainingSeconds = remainingSeconds,
-            held = splashHeld, onHeldChange = onSplashHeldChange)
+        SplashIntroScreen(onSkip = { onBack?.invoke() })
         return
     }
     Scaffold(topBar = {

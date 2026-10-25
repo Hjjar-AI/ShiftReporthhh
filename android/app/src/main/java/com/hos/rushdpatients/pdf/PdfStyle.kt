@@ -6,6 +6,6 @@ enum class PdfStyle(val arabicLabel: String) {
 
     companion object {
         fun fromSetting(value: String?): PdfStyle =
-            entries.firstOrNull { it.name == value } ?: CLASSIC
+            entries.firstOrNull { it.name == value } ?: CARDS
     }
 }

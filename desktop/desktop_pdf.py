@@ -163,7 +163,7 @@ def _render_report(client, shift, supervisor, font_path, options, now, report_da
     roster=' / '.join(client.doctors.get(key,{}).get('name','طبيب محفوظ') for key in shift['meta'].get('doctors','').split(',') if key)
     roster_heading=roster_label([client.doctors.get(key,{}) for key in shift['meta'].get('doctors','').split(',') if key])
     pending=pending_task_count(patients)
-    summary='عدد المرضى: {} · حالات نفسية: {} · المرافقون: {} · مهام معلقة: {}'.format(
+    summary='إجمالي المرضى: {} (حالات نفسية: {}) · المرافقون: {} · مهام معلقة: {}'.format(
         len(patients),sum(p['diagnosisType'] in {'PSYCHIATRIC','DUAL'} for p in patients),
         sum(p['hasCompanion']=='Y' for p in patients),pending)
     story=[]
