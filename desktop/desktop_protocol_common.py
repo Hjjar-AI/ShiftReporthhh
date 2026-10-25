@@ -10,7 +10,7 @@ try:
 except ImportError:  # Python 3.8 / Windows 7 distribution.
     from backports.zoneinfo import ZoneInfo
 
-COLUMNS = 'externalId,admitNum,admitDate,gender,name,birthDate,hasCompanion,diagnosisType,initialDiagnosis,treatmentPlan,followUp,labs,responsibleResidentId,responsibleSupervisorId,warningFlags,warningDetails,isPriority,lastEditedByDoctorId,lastEditedBy,updatedAt,revision,tasksJson'.split(',')
+COLUMNS = 'externalId,admitNum,admitDate,gender,name,birthDate,hasCompanion,diagnosisType,initialDiagnosis,treatmentPlan,followUp,labs,responsibleResidentId,responsibleSupervisorId,warningFlags,warningDetails,isPriority,lastEditedByDoctorId,lastEditedBy,updatedAt,revision,tasksJson,assignmentChangedOn'.split(',')
 
 EDITABLE = [key for key in COLUMNS[:17] if key != 'warningFlags'] + ['tasksJson']
 
@@ -49,8 +49,8 @@ def fingerprint(value):
     return hashlib.sha256(packed(value).encode()).hexdigest()
 
 
-def current_date(zone):
-    now = datetime.now(ZoneInfo(zone))
+def current_date(zone, now=None):
+    now = datetime.now(ZoneInfo(zone)) if now is None else now.astimezone(ZoneInfo(zone))
     return (now - timedelta(days=1) if (now.hour, now.minute) < (8, 30) else now).date().isoformat()
 
 

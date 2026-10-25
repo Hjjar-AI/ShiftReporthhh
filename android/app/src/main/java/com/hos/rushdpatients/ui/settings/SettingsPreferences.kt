@@ -98,30 +98,29 @@ internal class SettingsPreferences(
         }
     }
 
-    fun setAppearance(value: AppAppearance) {
-        _state.update { it.copy(appearance = value) }
-        viewModelScope.launch { settingsRepository.put(AppConstants.SETTING_APP_APPEARANCE, value.name) }
-    }
-
-    fun setAppTheme(value: AppThemePreset) {
+    private fun saveAppearanceSetting(key: String, value: String, onSaved: (SettingsUiState) -> SettingsUiState) {
         viewModelScope.launch {
-            settingsRepository.put(AppConstants.SETTING_APP_THEME, value.name)
-            _state.update { it.copy(appTheme = value) }
+            try {
+                uiPreferencesWrites.withLock {
+                    settingsRepository.put(key, value)
+                    _state.update(onSaved)
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                _state.update { it.copy(snackbar = uiText(R.string.ui_interface_save_failed)) }
+            }
         }
     }
 
-    fun setFontScale(value: AppFontScale) {
-        viewModelScope.launch {
-            settingsRepository.put(AppConstants.SETTING_FONT_SCALE, value.name)
-            _state.update { it.copy(fontScale = value) }
-        }
-    }
+    fun setAppearance(value: AppAppearance) =
+        saveAppearanceSetting(AppConstants.SETTING_APP_APPEARANCE, value.name) { it.copy(appearance = value) }
 
+    fun setAppTheme(value: AppThemePreset) =
+        saveAppearanceSetting(AppConstants.SETTING_APP_THEME, value.name) { it.copy(appTheme = value) }
 
-
-
-
-
+    fun setFontScale(value: AppFontScale) =
+        saveAppearanceSetting(AppConstants.SETTING_FONT_SCALE, value.name) { it.copy(fontScale = value) }
 
     fun setReportWardName(value: String) {
         viewModelScope.launch {

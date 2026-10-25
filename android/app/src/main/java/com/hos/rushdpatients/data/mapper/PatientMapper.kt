@@ -38,6 +38,7 @@ object PatientMapper {
         sortOrder = patient.sortOrder,
         revision = patient.revision,
         updatedAtEpochMillis = patient.updatedAt.toEpochMilli(),
+        assignmentChangedOnEpochDay = patient.assignmentChangedOn?.toEpochDay(),
         deletedAtEpochMillis = patient.deletedAt?.toEpochMilli()
     )
 
@@ -65,6 +66,7 @@ object PatientMapper {
         sortOrder = entity.sortOrder,
         revision = entity.revision,
         updatedAt = Instant.ofEpochMilli(entity.updatedAtEpochMillis),
+        assignmentChangedOn = entity.assignmentChangedOnEpochDay?.let(LocalDate::ofEpochDay),
         deletedAt = entity.deletedAtEpochMillis?.let(Instant::ofEpochMilli)
         )
     }

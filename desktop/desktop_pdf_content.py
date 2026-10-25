@@ -1,8 +1,8 @@
 """Logical PDF content and Android's current palette; no shaping or saved-data edits."""
 from __future__ import annotations
-from datetime import datetime
+from datetime import date, datetime
 from desktop_model import patient_name, DIAGNOSIS, GENDER, badges_decode
-from desktop_protocol import require
+from desktop_protocol import require, current_date
 from desktop_tasks import read_tasks, ordered_for_display, task_text
 
 PAPERS = {'A4': (595, 842), 'A5': (420, 595)}
@@ -74,8 +74,8 @@ def palette(options):
                 page='#FFFFFF', text='#1E293B', border='#E2E8F0', zebra='#F8FAFC', cream='#FFFFFF', groups=groups, **rules)
 
 
-def context_lines(client, shift, options, now, include_shift_date=True):
-    return ['تاريخ المناوبة: '+shift['meta']['shiftDate']] if include_shift_date else []
+def context_lines(client, shift, options, now, include_shift_date=True, report_day=None):
+    return ['تاريخ المناوبة: '+(report_day or current_date(client.zone,now))] if include_shift_date else []
 
 
 def created_at(now):
@@ -87,28 +87,32 @@ def assignment_groups(shift, doctors):
     from desktop_teams import resident_ids, validate_teams
     validate_teams(doctors)
     groups={}
+    highlight_dates={}
     for patient in shift['patients']:
         supervisor=patient.get('responsibleSupervisorId') or None
         groups.setdefault(supervisor,[]).append(patient_name(patient))
+        highlight_dates.setdefault(supervisor,[]).append(patient.get('assignmentChangedOn') or '')
     for key,doctor in doctors.items():
         if doctor['clinicalRole']=='SUPERVISOR':groups.setdefault(key,[])
     return [dict(supervisorId=supervisor,
                  supervisor=doctors.get(supervisor,{}).get('name','مشرف محفوظ' if supervisor else 'بدون مشرف'),
                  residentIds=resident_ids(doctors,supervisor),
-                 residents=[doctors[key]['name'] for key in resident_ids(doctors,supervisor)],patients=names)
+                 residents=[doctors[key]['name'] for key in resident_ids(doctors,supervisor)],patients=names,
+                 assignmentDates=highlight_dates.get(supervisor,[]))
             for supervisor,names in groups.items()]
 
 
-def patient_content(row, doctors, zone, now):
+def patient_content(row, doctors, zone, now, report_day=None):
+    day=date.fromisoformat(report_day or current_date(zone,now))
     def doctor(key): return doctors.get(row.get(key), {}).get('name', 'طبيب محفوظ') if row.get(key) else ''
     personal = ('[أولوية] ' if row.get('isPriority')=='Y' else '')+patient_name(row)
     personal += '\n'+GENDER[row['gender']]
     if row.get('birthDate'):
-        personal += '\n{} · {} سنة'.format(row['birthDate'], now.year-int(row['birthDate'][:4]))
+        personal += '\n{} · {} سنة'.format(row['birthDate'], day.year-int(row['birthDate'][:4]))
     if row['hasCompanion']=='Y': personal+='\n(مرافق)'
     admit = row.get('admitNum','')
     if row.get('admitDate'):
-        admit += '\n---\nيوم {}\n{}'.format(max(0,(now.date()-datetime.fromisoformat(row['admitDate']).date()).days),row['admitDate'])
+        admit += '\n---\nيوم {}\n{}'.format(max(0,(day-datetime.fromisoformat(row['admitDate']).date()).days),row['admitDate'])
     diagnosis = [DIAGNOSIS[row['diagnosisType']]]
     for text, priority in badges_decode(row.get('warningDetails','')):
         level = {'low':'منخفضة','medium':'متوسطة','high':'عالية'}.get(priority)
@@ -118,11 +122,9 @@ def patient_content(row, doctors, zone, now):
     from desktop_teams import is_cross_team_cover
     if is_cross_team_cover(row,doctors):team+='\nتغطية من فريق آخر'
     tasks = read_tasks(row)
-    now_millis = int(now.timestamp()*1000)
     task_lines=[]
-    for task in ordered_for_display(tasks,now_millis):
-        task_lines.append(task_text(task, doctors, zone, now_millis,
-                                    include_unassigned=False, include_routine_priority=False))
+    for task in ordered_for_display(tasks):
+        task_lines.append(task_text(task))
     notes = '\n'.join(label+': '+value for label,value in
                      [('المتابعة',row.get('followUp','')),('المهام','\n'.join(task_lines)),('التحاليل',row.get('labs',''))] if value)
     return dict(personal=personal, admit=admit, diagnosis='\n'.join(filter(None,diagnosis)),team=team,

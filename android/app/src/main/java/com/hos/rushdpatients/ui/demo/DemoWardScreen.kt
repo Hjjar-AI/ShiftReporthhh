@@ -2,9 +2,9 @@ package com.hos.rushdpatients.ui.demo
 
 import com.hos.rushdpatients.ui.components.AppSnackbarHost
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -15,23 +15,22 @@ import androidx.compose.ui.unit.Density
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hos.rushdpatients.R
-import com.hos.rushdpatients.pdf.PdfStyle
 import com.hos.rushdpatients.ui.components.*
+import com.hos.rushdpatients.ui.doctors.DoctorsWorkspace
+import com.hos.rushdpatients.ui.report.ReportWorkspace
 import com.hos.rushdpatients.ui.theme.*
 import com.hos.rushdpatients.ui.ward.*
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.launch
 
-/** Only temporary settings/team/local-export chrome is demo-specific. The clinical workspace is real. */
+/** The session shell chooses isolated controllers; clinical/report/doctor screens are shared. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewModel()) {
     val uiText = rememberUiStrings()
     val state by viewModel.state.collectAsStateWithLifecycle()
     val ward by viewModel.controller.state.collectAsStateWithLifecycle()
+    val report by viewModel.report.state.collectAsStateWithLifecycle()
+    val busy = report.isBusy && !report.loading
     val pages = rememberSaveableStateHolder()
-    val drawer = rememberDrawerState(DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
     var tab by rememberSaveable { mutableStateOf(DemoDestination.PATIENTS) }
     var appearance by rememberSaveable { mutableStateOf(AppAppearance.LIGHT) }
@@ -41,70 +40,90 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
     var font by rememberSaveable { mutableStateOf(AppFontScale.NORMAL) }
     var showExit by remember { mutableStateOf(false) }
     var showReset by remember { mutableStateOf(false) }
-    var showDoctors by remember { mutableStateOf(false) }
+    var showActor by remember { mutableStateOf(false) }
     var showRecycle by remember { mutableStateOf(false) }
+    var reviewPatientIds by remember { mutableStateOf<Set<String>?>(null) }
     val main = tab == DemoDestination.PATIENTS || tab == DemoDestination.DASHBOARD
     val baseDensity = LocalDensity.current
     val density = remember(baseDensity, font) {
         Density(baseDensity.density, (baseDensity.fontScale * font.multiplier).coerceIn(.92f, 2f))
     }
-    fun navigate(destination: DemoDestination) { tab = destination }
+    fun openReport() { viewModel.report.load(); tab = DemoDestination.REPORT }
     @Composable
     fun DemoMenu(close: (after: () -> Unit) -> Unit) {
-        DemoDrawer(state, tab, onNavigate = { close { navigate(it) } },
-            onRecycle = { close { showRecycle = true } },
+        DemoDrawer(state, ward, busy, onAction = { action -> close {
+            when (action) {
+                WardDrawerAction.REPORT -> openReport()
+                WardDrawerAction.SETTINGS -> tab = DemoDestination.SETTINGS
+                WardDrawerAction.ADMIN -> tab = DemoDestination.TEAM
+                WardDrawerAction.RECYCLE_BIN -> showRecycle = true
+                WardDrawerAction.DATA_MANAGEMENT -> viewModel.controller.bringLatestData()
+                else -> viewModel.message(uiText(R.string.ui_demo_local_only))
+            }
+        } }, onUndoFetch = if (viewModel.canUndoFetch) ({ viewModel.undoFetch() }) else null, onActor = { close { showActor = true } },
             onReset = { close { showReset = true } }, onExit = { close { showExit = true } })
     }
     val navigation = WardNavigation(
-        onOpenReport = { navigate(DemoDestination.REPORT) },
-        onOpenAdmin = { navigate(DemoDestination.TEAM) },
-        onOpenDoctors = { navigate(DemoDestination.TEAM) },
-        onOpenSettings = { navigate(DemoDestination.SETTINGS) },
+        onOpenReport = { openReport() },
+        onOpenAdmin = { tab = DemoDestination.TEAM },
+        onOpenDoctors = { tab = DemoDestination.TEAM },
+        onOpenSettings = { tab = DemoDestination.SETTINGS },
         onOpenAbout = { viewModel.message(uiText(R.string.ui_demo_local_only)) },
         onOpenProject = { viewModel.message(uiText(R.string.ui_demo_local_only)) },
-        onOpenDataManagement = { viewModel.message(uiText(R.string.ui_demo_local_only)) },
-        onOpenWorkspace = { navigate(DemoDestination.SETTINGS) }
+        onOpenDataManagement = { viewModel.controller.bringLatestData() },
+        onOpenWorkspace = { tab = DemoDestination.SETTINGS }
     )
-    val export = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")) {
-        viewModel.exportPreparedPdf(it)
-    }
-    BackHandler(enabled = !state.exporting && viewModel.editor.dialog == null) {
-        if (main && tab == DemoDestination.PATIENTS) showExit = true else tab = DemoDestination.PATIENTS
+    BackHandler(enabled = !busy && viewModel.editor.dialog == null && tab != DemoDestination.REPORT) {
+        if (main && tab == DemoDestination.PATIENTS) {
+            if (reviewPatientIds != null) { reviewPatientIds = null; openReport() } else showExit = true
+        } else tab = DemoDestination.PATIENTS
     }
     LaunchedEffect(state.message, main) {
         if (!main) state.message?.let { snackbar.showSnackbar(it); viewModel.dismissMessage() }
     }
+    // The label alone refreshes on foreground; patient contents never depend on a ticking task clock.
+    val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, viewModel) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_START) viewModel.refreshDayLabel()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        viewModel.refreshDayLabel()
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    LaunchedEffect(tab, state.shiftId) {
+        // Recreated demo sessions never retain a stale report or clinical state from saved navigation.
+        if (tab == DemoDestination.REPORT && report.shift?.id != state.shiftId) viewModel.report.load()
+    }
     RushdPatientsTheme(preset = accent, appearance = appearance, uiPreferences = uiPreferences) {
         AppSystemBars()
         CompositionLocalProvider(LocalDensity provides density) {
-            if (main) pages.SaveableStateProvider("ward") {
-                key(state.shiftId) {
-                    WardWorkspace(isAdmin = false, currentDoctorId = state.actorId, navigation = navigation,
-                        viewModel = viewModel.controller,
-                        initialView = if (tab == DemoDestination.DASHBOARD) WardViewMode.DASHBOARD else WardViewMode.ALL,
-                        onViewChanged = { tab = if (it == WardViewMode.DASHBOARD) DemoDestination.DASHBOARD else DemoDestination.PATIENTS },
-                        drawerContent = { close -> DemoMenu(close) })
+            when {
+                main -> pages.SaveableStateProvider("ward") {
+                    key(state.shiftId) {
+                        WardWorkspace(isAdmin = true, currentDoctorId = state.actorId, navigation = navigation,
+                            viewModel = viewModel.controller,
+                            initialView = if (tab == DemoDestination.DASHBOARD) WardViewMode.DASHBOARD else WardViewMode.ALL,
+                            onViewChanged = { tab = if (it == WardViewMode.DASHBOARD) DemoDestination.DASHBOARD else DemoDestination.PATIENTS },
+                            drawerContent = { close -> DemoMenu(close) }, patientFilterIds = reviewPatientIds,
+                            onBackToPreview = if (reviewPatientIds == null) null else ({ reviewPatientIds = null; openReport() }))
+                    }
                 }
-            } else ModalNavigationDrawer(drawerState = drawer, drawerContent = {
-                DemoMenu { after -> scope.launch { drawer.close(); after() } }
-            }) {
-                Scaffold(topBar = { AppTopBar(tab.title(uiText), onBack = { tab = DemoDestination.PATIENTS }) },
+                tab == DemoDestination.REPORT -> pages.SaveableStateProvider("report-${state.shiftId}") {
+                    ReportWorkspace(onBack = { tab = DemoDestination.PATIENTS },
+                        onOpenDoctors = { tab = DemoDestination.TEAM }, viewModel = viewModel.report,
+                        onReviewPatients = { _, ids -> reviewPatientIds = ids; tab = DemoDestination.PATIENTS })
+                }
+                tab == DemoDestination.TEAM -> pages.SaveableStateProvider("doctors-${state.shiftId}") {
+                    DoctorsWorkspace(onBack = { tab = DemoDestination.PATIENTS }, viewModel = viewModel.doctors)
+                }
+                else -> Scaffold(topBar = { AppTopBar(tab.title(uiText), onBack = { tab = DemoDestination.PATIENTS }) },
                     snackbarHost = { AppSnackbarHost(snackbar) }) { padding ->
-                    pages.SaveableStateProvider(tab.name) {
-                        val modifier = Modifier.fillMaxSize().padding(padding).padding(UiPadding.screen)
-                        when (tab) {
-                            DemoDestination.TEAM -> DemoTeamContent(state, { showDoctors = true }, viewModel::selectActor, modifier)
-                            DemoDestination.SETTINGS -> DemoPreferencesContent(appearance, { appearance = it }, accent, { accent = it },
-                                font, { font = it }, ward.patientDetailsExpanded, ward.twoColumn, ward.compactCards,
-                                uiPreferences, { uiPreferencesSetting = it.encode() }, modifier)
-                            DemoDestination.REPORT -> DemoReportContent(state, { showDoctors = true }, onExport = { options, style ->
-                                viewModel.preparePdfExport(options, style == PdfStyle.CARDS)
-                                try { export.launch("ShiftReport_DEMO_${state.date}.pdf") }
-                                catch (e: CancellationException) { throw e }
-                                catch (e: Exception) { viewModel.exportPreparedPdf(null); viewModel.message(e.message ?: uiText(R.string.ui_demo_ward_screen_008)) }
-                            }, modifier = modifier)
-                            else -> Unit
-                        }
+                    pages.SaveableStateProvider("settings") {
+                        DemoPreferencesContent(appearance, { appearance = it }, accent, { accent = it },
+                            font, { font = it }, ward.patientDetailsExpanded, ward.twoColumn, ward.compactCards,
+                            uiPreferences, { uiPreferencesSetting = it.encode() },
+                            Modifier.fillMaxSize().padding(padding).padding(UiPadding.screen))
                     }
                 }
             }
@@ -113,11 +132,19 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
                 onConfirm = { showExit = false; viewModel.endSession(); onExit() }, onDismiss = { showExit = false })
             if (showReset) ConfirmDialog(uiText(R.string.ui_demo_ward_screen_011), uiText(R.string.ui_demo_ward_screen_012),
                 confirmText = uiText(R.string.ui_demo_ward_screen_013), destructive = true,
-                onConfirm = { viewModel.reset(); tab = DemoDestination.PATIENTS; showReset = false }, onDismiss = { showReset = false })
-            if (showDoctors) ShiftDoctorPicker(allDoctors = state.doctors, initialSelected = state.shiftDoctorIds, onConfirm = { ids ->
-                    viewModel.selectDoctors(ids); showDoctors = false
-                }, onDismiss = { showDoctors = false })
-            if (showRecycle) PatientRecycleBinDialog(state.deleted, readOnly = false,
+                onConfirm = { viewModel.reset(); reviewPatientIds = null; tab = DemoDestination.PATIENTS; showReset = false },
+                onDismiss = { showReset = false })
+            if (showActor) AppAlertDialog(onDismissRequest = { showActor = false },
+                title = { Text(uiText(R.string.ui_demo_secondary_screens_011)) }, text = {
+                    Column(Modifier.verticalScroll(rememberScrollState())) {
+                        Text(uiText(R.string.ui_demo_secondary_screens_012))
+                        state.doctors.forEach { doctor ->
+                            AppChoiceRow(label = doctor.fullName, selected = state.actorId == doctor.id,
+                                onClick = { viewModel.selectActor(doctor.id); showActor = false })
+                        }
+                    }
+                }, confirmButton = { AppTextButton(onClick = { showActor = false }) { Text(uiText(R.string.ui_close)) } })
+            if (showRecycle) PatientRecycleBinDialog(state.deleted, readOnly = busy, automaticCleanup = false,
                 onRestore = viewModel.controller::restorePatient, onDismiss = { showRecycle = false })
         }
     }

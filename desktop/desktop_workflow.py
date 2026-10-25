@@ -1,17 +1,15 @@
 """Local workflow status and read-only ward tasks; no automatic synchronization."""
 from __future__ import annotations
 import copy
-import time
 from enum import Enum
 from datetime import datetime
-from desktop_protocol import fingerprint, ZoneInfo, current_date, require
-from desktop_reports import report_content
-from desktop_tasks import read_tasks, pending, display_key, task_text
+from desktop_protocol import ZoneInfo, require, current_date
+from desktop_tasks import read_tasks, pending, task_text
 
 
 class WorkflowAction(Enum):
     DOWNLOAD = 'جلب البيانات'
-    REVIEW_PUBLICATION = 'مراجعة ونشر'
+    REVIEW_PUBLICATION = 'رفع للشبكة وإرسال تقرير'
     DELIVERY_HISTORY = 'سجل التسليم'
     DEMO = 'عرض تجريبي محلي'
 
@@ -22,7 +20,7 @@ def workflow_status(client, store, demo=False):
     shift=store.read();key=shift['meta']['shiftId']
     baseline=store.state.get('baseline') or {}
     remote=next((s for s in baseline.get('bundle',[]) if s['meta']['shiftId']==key),None)
-    dirty=remote is None or fingerprint(report_content(shift))!=fingerprint(report_content(remote))
+    dirty=False if demo else store.has_pending_changes()
     unknown=[row for _,row in store.receipts(status='UNKNOWN') if row[0]!='report' or len(row)<=9 or not row[9] or row[9]==key]
     downloaded=store.state.get('downloads',{}).get(key,{})
     stamp='غير معروف على هذا الجهاز'
@@ -33,19 +31,18 @@ def workflow_status(client, store, demo=False):
     entry=next((item for item in baseline.get('state',{}).get('publicationJournal',[])
                 if remote and item.get('snapshotId')==remote['meta'].get('snapshotId')),None)
     published=datetime.fromtimestamp(entry['at']/1000,ZoneInfo(client.zone)).strftime('%Y-%m-%d %H:%M') if entry and entry.get('at') else 'غير معروف'
-    text='مناوبة {} · {}\nآخر نشر معروف: {} · آخر جلب: {}'.format(shift['meta']['shiftDate'],label,published,stamp)
+    text='مناوبة {} · {}\nآخر نشر معروف: {} · آخر جلب: {}'.format(current_date(client.zone),label,published,stamp)
     if unknown:text+=' · {} عمليات غير محسومة'.format(len(unknown))
     return text, WorkflowAction.DEMO if demo else WorkflowAction.DELIVERY_HISTORY if unknown else WorkflowAction.REVIEW_PUBLICATION if dirty else WorkflowAction.DOWNLOAD
 
 
-def pending_tasks(shift, supervisor=None, resident=None, now=None):
-    now=int(time.time()*1000) if now is None else now
+def pending_tasks(shift, supervisor=None, resident=None):
     rows=[]
     for patient in shift['patients']:
         if supervisor and patient.get('responsibleSupervisorId')!=supervisor:continue
         if resident and patient.get('responsibleResidentId')!=resident:continue
         rows.extend((patient,task) for task in pending(read_tasks(patient)))
-    return sorted(rows,key=lambda pair:display_key(pair[1],now))
+    return rows
 
 
 def task_board(owner):
@@ -69,11 +66,10 @@ def task_board(owner):
     def show():
         current=current_shift()
         for child in area.winfo_children():child.destroy()
-        now=int(time.time()*1000)
-        rows=pending_tasks(current,supervisor(),resident(),now)
+        rows=pending_tasks(current,supervisor(),resident())
         ctk.CTkLabel(area,text='{} مهمة معلقة · الإتمام من ملف المريض بعد المراجعة والحفظ.'.format(len(rows)),wraplength=680,justify='right').pack(fill='x',padx=8,pady=5)
         for patient,task in rows:
-            label=patient['name']+'\n'+task_text(task,owner.client.doctors,owner.client.zone,now)
+            label=patient['name']+'\n'+task_text(task)
             def open_patient(key=patient['externalId']):
                 # Resolve current identity rather than opening an old copied patient snapshot.
                 current=current_shift()

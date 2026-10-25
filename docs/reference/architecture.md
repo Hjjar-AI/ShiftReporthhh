@@ -26,9 +26,13 @@ Android pin override binds reviewed pin/config/live first-admin authority and re
 
 ## Clinical and presentation boundaries
 
+Hidden assignment day is business metadata for assignment-PDF highlighting: stamp local creation/actual supervisor changes at Save, preserve on unrelated edits/fetch/restore, compare to captured report day. Nullable date persists in approved DB6/optional CSV7 column; no editor control or author stamp. Publication equality includes it; ordinary report delivery identity excludes it and freezes legacy receipt serialization.
+
 Plain checklist tasks; legacy owner/deadline/priority fields remain compatible wire/storage only. No new completion/editor identity or time stamps; old fields remain readable. Teams independent of patient cover; CSV retains omitted active doctors. Backup/restore never publishes; transactional live responsible-doctor role checks protect Save/recycle/replacement. Restore advances revisions; rejection rolls back clinical/pending state.
 
-Shared fields/tokens standardize presentation; callers own drafts/validation/busy/selection/review. RTL/growing48dp/adaptive layouts, clinical-first edit/demographic-first create, labs and fixed keyboard-safe actions. Appearance exposes theme/text size/spacing/reduced motion with consistent remaining defaults; A4/A5 remain. Appearance/accent/severity/PDF independent; saved text unchanged. Brief individual/immediate bulk or reduced motion. Stable visible IDs define rounds; buttons supplement gestures. [UI guide](../guides/android-ui.md).
+Shared fields/tokens standardize presentation; callers own drafts/validation/busy/selection/review. Report review exposes each selected artifact directly and derives opened counts/next preview/send gating from one readiness projection; its fixed primary action advances through Next/Preview/Upload-send, with secondary navigation below. Resident/supervisor pickers always use full-width stacked rows with natural wrapped-value height, preserving the user's font size. RTL/growing48dp/adaptive layouts, clinical-first edit/demographic-first create, labs and fixed keyboard-safe actions. Appearance exposes four accent choices/text size/normal spacing/reduced motion with consistent remaining defaults; A4/A5 remain. Appearance/accent/severity/PDF independent; saved text unchanged. Brief individual/immediate bulk or reduced motion. Stable visible IDs define rounds; buttons supplement gestures. [UI guide](../guides/android-ui.md).
+
+Desktop follows the simplified clinical workflow: two main transfer actions, plain clinical text, four accent families. Report review owns a captured08:30 day across render/confirmation/transport; it never replaces stored snapshot dates/IDs. Daily idle recycle retention works through the existing IO executor, with a grace week for undated entries and no OS service. Retired task-time/audit computation is removed while old encrypted metadata stays compatible.
 
 ## Reviewed PDF and delivery identity
 
@@ -40,7 +44,7 @@ Android/desktop A5 cards share canvas/fonts/sections and full-page links preserv
 
 ## Isolation and platform choices
 
-Demo injects memory-only state into real forms/cards/renderer; explicit every-page-labelled PDF only, reset/exit discards, no production store/session/transport. [Demo](../guides/android-demo.md).
+Shared Ward/Report/Doctors workspaces depend on controller state/actions; production adapters forward to existing Hilt ViewModels, while demo adapters use one memory-only repository/fake snapshot and receipts. Shared drawer/appearance/forms/cards/readiness/text/PDF prevent separate demo UI drift. Explicit simulation notices and every-page DEMO PDFs; no production store/session/transport or entered identity/PIN retention. Reset/exit discards. Sample scenarios/action adapters remain maintenance points. [Demo](../guides/android-demo.md).
 
 Desktop fingerprint-bound AES-GCM before SQLite, DPAPI/Linux-passphrase keys and platform path/lock/PDF adapters. Logical Arabic input/caret/clipboard/Save separate from shaping; unfinished drafts/cached enrollment/shared authority distinct. [Operations](../../desktop/README.md).
 

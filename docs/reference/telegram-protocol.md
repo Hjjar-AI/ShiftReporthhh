@@ -9,13 +9,13 @@ Contract for the standalone `desktop_protocol.py`, `desktop_store.py` and `deskt
 | Join | `.srjoin.json`, `format=ShiftReportJoin`, encrypted `RUSHDJOIN1` payload, inner version 1 |
 | Shared pointer | Pinned JSON `kind=shift-report-sync-state`, version 4 |
 | Patient document | Bundle 1, `# rushdShiftBundle=1`, boundary `#==RUSHD_SHIFT_BOUNDARY_7F3A9C==` |
-| Shift CSV | Schema 7, exact 22 columns and full quoted metadata field |
+| Shift CSV | Schema 7, 22 legacy columns plus optional final `assignmentChangedOn` ISO date; full quoted metadata field |
 | Doctor Telegram wire | Ten columns including teamSupervisorId; distinct from schema-1 spreadsheet CSV |
 | Encrypted file | `SRDATA1` + 12-byte nonce + AES-GCM ciphertext/tag |
 | Encrypted text | `SRMSG1:` + Base64 of encrypted gzip text |
 | Portable shift backup | `.rpb`: `RUSHDBK1` + 16-byte salt + 12-byte nonce + AES-GCM ciphertext/tag; single CSV7 document; password PBKDF2-HMAC-SHA256/210000/256-bit, no AAD |
 
-The desktop accepts the current contract only. No schema renumbering or old-schema conversion was added. The Android metadata-quoting fix preserves roster commas, sort JSON, snapshot/base IDs and revisions without altering clinical columns or the decoder. Android must rebuild/republish before shared use.
+Updated desktop accepts the current contract with or without the optional assignment-date column. Blank/missing dates remain unknown; retrieval/import never stamps them as new. Android DB5→6 adds the nullable epoch-day column with explicit owner approval. Updated clients are required to preserve assignment highlighting: older Android writers omit the date, and older desktop readers reject the extended header. No schema renumbering or old-schema conversion was added. The Android metadata-quoting fix preserves roster commas, sort JSON, snapshot/base IDs and revisions without altering clinical columns or the decoder. Android must rebuild/republish before shared use.
 
 ## Connection, crypto and identity
 

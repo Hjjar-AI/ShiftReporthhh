@@ -1,37 +1,35 @@
 # Android demo workspace
 
-Choose Demo on setup: real ward UI with isolated temporary data, no project join/create.
+Choose Demo on setup to use the app screens with isolated temporary data, without joining or creating a project.
 
-## Navigation
+## Shared screens
 
-| Destination | Behavior |
+| Destination | Shared behavior |
 |---|---|
-| Patients/Dashboard | Real compact bar/rail, search/count/filter/cards/details/forms/metrics; options group filters/layout/sort, no demo grouping or sync/admin Activity. |
-| Shift doctors | Roster plus tree-named actor; changes My patients, never real login. |
-| Report review | Roster first, scope/destination/layout then Advanced; explicit local picker PDF export only, no Telegram publication. |
-| Settings | Temporary shared appearance/font controls, dummy preview. |
-| Recycle/reset/exit | Drawer actions; confirmed reset restores dummy data, confirmed exit returns to setup/discards session. |
+| Patients/Dashboard | Production `WardWorkspace`: navigation, search/filter/cards/details/forms/tasks/sort/dashboard, including simulated transfer controls and canonical pending counts. |
+| Doctors | Production `DoctorsWorkspace`: search/filter/cards/Add/Edit/delete/team management and registry review. Registry Publish/Fetch are memory-only; CSV import/export are disabled. |
+| Report | Production `ReportWorkspace`: shift doctors, General/supervisor selection, PDF/text preview, readiness links, final confirmation and receipt display. Publish/send only update the in-memory snapshot/receipts. |
+| Appearance | Production `SettingsAppearanceSection`, palette/font/reduced-motion controls and patient preview; preferences stay temporary. Connection/security/project administration is outside the demo. |
+| Drawer | Production `WardDrawer` with a demo-only session slot for actor selection, download Undo, reset and exit. |
 
-Persistent compact demo strip identifies the workspace.
+The ward, report and doctor screens display demo identification. Report screens explicitly state that transfer/delivery is simulated. Shared UI changes apply automatically in both modes; sample scenarios and demo adapters still need updates when action contracts change.
 
-## Shared behavior
+## Isolation and lifecycle
 
-Real cards/fullscreen forms/task editor/details/rounds/roster/sort/dashboard/theme/PDF; one draft including labs. Compact/two-column cards, brief individual/immediate bulk expansion. Stored order drives PDF; filters never drop report patients. Navigation retains viewport/expanded/pinned/per-page state; saved patients reveal/highlight or explain hidden filters. Adaptive/fold-aware labelled controls and report-action clearance.
+`DemoWardViewModel` injects `InMemoryDemoWardRepository`, pure text/PDF builders and an explicit PDF saver. It never constructs production clinical/settings/session/Telegram services. `WardController`, `ReportController` and `DoctorsController` select production or demo operations below the shared UI; production authorization and durable delivery rules stay in their existing ViewModels/services.
 
-## Isolation and data
+Beverage patients/tree doctors, actor/roster/teams, drafts, fake remote snapshot and delivery receipts exist only in memory. Entered doctor PIN/Telegram identity values are discarded. Fetch uses the fake published snapshot; pending replacement uses the production chooser/review dialogs, with local demo Undo. Reset/exit/process death discards the session. The day label refreshes at08:30/foreground; report review captures its own day.
 
-`DemoWardViewModel`: memory-only clinical/roster/actor; no real repository/settings/login/session/Telegram. Beverage patients/tree doctors, plain checklist tasks, valid-value/assignment checks and no new completion attribution.
+## Explicit local files
 
-Explicit PDF only: options survive recreation, cancellation clears pending request; snapshot/file work off-main, cancellation preserved, bytes verified, DEMO every page. Reset/exit clears selection and is blocked during export. Process death starts fresh, never loads clinical state.
+PDF preview uses the production renderer with **DEMO on every page**, including Cards. Save/Share copies the opened general preview; supervisor Save requires each supervisor preview to have been opened. PDF generation/copy runs off-main; private previews are removed on invalidation/reset/exit/ViewModel disposal. User-saved copies remain. No CSV exports, real assignment/admin exports, real upload or Telegram delivery.
 
-## Source organization
+## Source ownership
 
-- [Screen coordinator](../../android/app/src/main/java/com/hos/rushdpatients/ui/demo/DemoWardScreen.kt): navigation, view state, list and shared form/detail callbacks.
-- [Drawer and options](../../android/app/src/main/java/com/hos/rushdpatients/ui/demo/DemoNavigation.kt).
-- [Secondary screens](../../android/app/src/main/java/com/hos/rushdpatients/ui/demo/DemoSecondaryScreens.kt): report review, roster/actor selection and local preferences.
-- [ViewModel](../../android/app/src/main/java/com/hos/rushdpatients/ui/demo/DemoWardViewModel.kt): memory-only mutations and explicit PDF export.
-- [Dummy data](../../android/app/src/main/java/com/hos/rushdpatients/ui/demo/DemoData.kt).
+- [Coordinator](../../android/app/src/main/java/com/hos/rushdpatients/ui/demo/DemoWardScreen.kt) and [drawer adapter](../../android/app/src/main/java/com/hos/rushdpatients/ui/demo/DemoNavigation.kt): session navigation, appearance and reset/exit.
+- [Ward adapter](../../android/app/src/main/java/com/hos/rushdpatients/ui/demo/DemoWardViewModel.kt), [report adapter](../../android/app/src/main/java/com/hos/rushdpatients/ui/demo/DemoReportController.kt), [doctor adapter](../../android/app/src/main/java/com/hos/rushdpatients/ui/demo/DemoDoctorsController.kt).
+- [Memory repository](../../android/app/src/main/java/com/hos/rushdpatients/ui/demo/InMemoryDemoWardRepository.kt) and [dummy data](../../android/app/src/main/java/com/hos/rushdpatients/ui/demo/DemoData.kt).
 
-## Verification
+## Evidence
 
-Earlier demo checks predate checklist/editor simplification; no current suite/device/PDF acceptance claim. [Results](../status/current-state.md#verification-and-limits) · [Remaining checks](../status/testing-handoff.md).
+Source completion does not establish runtime isolation, device UI or every-page PDF acceptance. [Current evidence](../status/current-state.md#verification-and-limits) · [Remaining checks](../status/testing-handoff.md).

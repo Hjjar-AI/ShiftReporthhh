@@ -1147,7 +1147,7 @@
     <string name="ui_app_appearance_004" formatted="false">"ليلي أسود · Night"</string>
     <string name="ui_app_theme_preset_001" formatted="false">"لازورد · Lapis"</string>
     <string name="ui_app_theme_preset_002" formatted="false">"زمرد · Emerald"</string>
-    <string name="ui_app_theme_preset_003" formatted="false">"سوسن · Iris"</string>
+    <string name="ui_app_theme_preset_003" formatted="false">"ورد · Rose"</string>
     <string name="ui_app_theme_preset_004" formatted="false">"زعفران · Saffron"</string>
     <string name="ui_app_theme_preset_005" formatted="false">"تنين وردي · Dragonfruit"</string>
     <string name="ui_app_theme_preset_006" formatted="false">"فيروز · Turquoise"</string>
@@ -1284,4 +1284,15 @@
     <string name="ui_recovery_reload_report">تحديث التقرير بعد معالجة سجل الأطباء</string>
     <string name="ui_recovery_ask_admin">اطلب من مدير المشروع معالجة سجل الأطباء، ثم أعد المحاولة.</string>
     <string name="ui_ward_shift_operations_005" formatted="false">"المناوبة غير موجودة"</string>
+    <string name="demo_simulation_notice">DEMO — بيانات وهمية؛ الجلب والرفع والإرسال محاكاة داخل الذاكرة فقط.</string>
+    <string name="demo_document_label">DEMO — عرض تجريبي ببيانات وهمية وغير طبية</string>
+    <string name="demo_fetch_complete">DEMO — اكتمل الجلب التجريبي؛ لم يتم الاتصال بالشبكة.</string>
+    <string name="demo_publish_complete">DEMO — اكتمل الرفع التجريبي داخل الذاكرة.</string>
+    <string name="demo_send_complete">DEMO — تمت محاكاة رفع البيانات وإرسال التقرير؛ لم يتم إرسال شيء إلى تيليجرام.</string>
+    <string name="demo_publish_review">DEMO — ستُحفظ القائمة الحالية كلقطة شبكة تجريبية داخل الذاكرة فقط. لن يُرفع أي ملف.</string>
+    <string name="demo_review_changed">تغيّرت البيانات التجريبية؛ افتح التقرير وراجعه مجدداً.</string>
+    <string name="demo_registry_pending">تغييرات أطباء تجريبية لم تُرفع إلى اللقطة الوهمية بعد.</string>
+    <string name="demo_doctor_duplicate">الاسم موجود مسبقاً في القائمة التجريبية.</string>
+    <string name="demo_doctor_in_use">الطبيب مستخدم في التعيينات أو الحساب التجريبي الحالي؛ انقل التعيينات أولاً.</string>
+    <string name="demo_undo_fetch">التراجع عن الجلب التجريبي</string>
 </resources>

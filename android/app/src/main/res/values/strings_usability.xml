@@ -46,7 +46,6 @@
     <string name="pin_incorrect">الرقم السري غير صحيح</string>
     <string name="pin_account_changed">تغير حساب الطبيب أو رقمه السري؛ أعد اختيار اسمك</string>
     <string name="priority_changed">تم تغيير أولوية المريض</string>
-    <string name="ui_comfortable_spacing">مسافات مريحة</string>
     <string name="report_send_shared_copy">ستُنشر نسخة المرضى المراجعة كاملة، ثم يُرسل التقرير إلى الوجهات المحددة.</string>
     <string name="publication_history_title">سجل النسخ المنشورة</string>
     <string name="publication_history_error">تعذر تحميل سجل النسخ المنشورة</string>
@@ -71,4 +70,14 @@
     <string name="sync_publication_complete">تم نشر النسخة المراجعة</string>
     <string name="report_shift_settings_changed">تغيّر ترتيب القائمة أو أطباء المناوبة</string>
     <string name="sync_publication_bookkeeping_warning">تم النشر في تليجرام، لكن تعذر تحديث سجل المزامنة المحلي. لا تُعد النشر تلقائياً؛ راجع الحالة قبل العملية التالية.</string>
+    <string name="dashboard_pending_changes">%1$s تعديلات لم تُنشر</string>
+    <string name="recycle_bin_retention">تُحذف العناصر نهائياً من سلة هذا الجهاز بعد نحو أسبوع. قد يتأخر التنظيف في الخلفية.</string>
+    <string name="recycle_bin_loading">جارٍ تحميل المحذوفات…</string>
+    <string name="recycle_bin_load_failed">تعذّر تحميل سلة المحذوفات. أعد المحاولة.</string>
+    <string name="pdf_assignment_highlight_legend">المظلّل: مريض جديد أو تغيّر المشرف المسؤول</string>
+    <string name="patient_draft_save_failed">تعذّر حفظ المسودة تلقائياً. أبقِ النموذج مفتوحاً واضغط حفظ لحفظ المريض.</string>
+    <string name="patient_draft_load_failed">تعذّر استعادة المسودة المحفوظة. أبقِ النموذج مفتوحاً وأعد المحاولة.</string>
+    <string name="report_preview_destination">معاينة: %1$s</string>
+    <string name="report_preview_progress">تمت معاينة %1$s من %2$s</string>
+    <string name="report_preview_opened">تم فتح المعاينة</string>
 </resources>

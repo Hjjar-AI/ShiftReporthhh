@@ -27,9 +27,12 @@ cd desktop
 
 1. Put administrator's protected `.srjoin.json` beside source/EXE or select it; enter password interactively. Discovery does not validate connection. Publish current Android registry/CSV first for existing projects; older malformed metadata must be republished, not schema-converted.
 2. Open bot→Start; select yourself in **الطبيب الحالي**, request private Telegram code and verify. First verification enrolls optional local PIN; shared actions always require fresh authority.
-3. **جلب مناوبة** retrieves current ward. Select roster; edit patients/tasks/badges. Save/roster/order/delete commits encrypted local draft; unfinished forms stay private, Cancel confirms discard. Saved drafts reopen offline.
-4. **مراجعة ونشر** reviews complete replacement including deletions/order/roster. Changed draft/actor/pointer/registry invalidates desktop review; no automatic upload/merge/retry.
-5. Choose general/supervisor destination→**إرسال تقرير**→open/review actual PDF→confirm. Pending publication precedes delivery; cancel does not undo completed publication. Viewer-launch failure stops sending. Local export works offline; PDFs readable.
+3. **جلب البيانات** retrieves current ward. Select roster; edit patients/tasks/badges. Save/roster/order/delete commits encrypted local draft; unfinished forms stay private, Cancel confirms discard. Saved drafts reopen offline.
+4. **رفع للشبكة وإرسال تقرير** combines destination selection, complete-snapshot change review, actual PDF/text preview and final send confirmation. Changed draft/actor/pointer/registry invalidates review; no automatic upload/merge/retry. Pending publication precedes delivery; cancellation does not undo a completed publication. Viewer-launch failure stops sending.
+5. Data Management retains explicit reviewed publication without sending, recovery and backup tools. Local report export works offline; PDFs are readable.
+
+
+Appearance offers Turquoise, Lapis, Rose and Poppy; legacy saved accents map to these four choices. The08:30 report day is captured for review and kept across PDF/text generation, confirmation and sending without changing stored ward identities. Retired task-time/audit computation is removed; old stored metadata remains readable.
 
 ## Create a project
 
@@ -52,13 +55,13 @@ Verified live admin can export fresh `.srjoin.json` with password≥10, shared c
 
 ## Clinical, reports and administration
 
-Optional profiles/multiline clinical/labs, explicit text/done tasks, badges/priority, valid assignments; no new audit/editor/completion stamps. Legacy metadata retained.08:30 in selected IANA zone (default Asia/Damascus) labels continuing ward; no date browser/copy-forward. New publications one ward; old multi-list Fetch chooses newest. Fetch Undo/admin reviewed prior-publication rollback remain.
+Optional profiles/plain multiline diagnosis/treatment/follow-up/labs, explicit text/done tasks, badges/priority, valid assignments; no new audit/editor/completion stamps. Legacy metadata retained.08:30 in selected IANA zone (default Asia/Damascus) labels continuing ward; no date browser/copy-forward. New publications one ward; old multi-list Fetch chooses newest. Fetch Undo/admin reviewed prior-publication rollback remain.
 
 Grouping is presentation-only; manual/name/admission-duration/workbook sort presets persist order, priority first. Imported custom specs remain until changed. Manual arrows require unfiltered/ungrouped list. Local export includes saved unpublished edits; send reviews/publishes first. Resident team membership independent of cover, one active supervisor/resident; move members before unsafe supervisor changes. Cross-team cover never changes membership.
 
 | Action | Guard |
 |---|---|
-| Recycle/Undo | Full records/tasks/badges/positions encrypted; no duplicate overwrite, validate assignments/draft; publication separate. Undo retains baseline/receipts and rejects later saves. |
+| Recycle/Undo | Daily idle cleanup while the app is unlocked/open removes local recycle entries deleted at least seven days ago; catches up after reopening. Existing undated entries receive a full grace week from their first sweep. Full records/tasks/badges/positions encrypted; no duplicate overwrite, validate assignments/draft; publication separate. Undo retains baseline/receipts and rejects later saves. |
 | Doctors/teams/roles/routes | Full reviewed registry/live admin/pointers; protect permanent admins/ranks/references, retain stable IDs/omitted active doctors, read back exact publication. UNKNOWN before writes. |
 | CSV | Complete patient CSV7 export; live-admin schema1 doctor import/export, reviewed local commit/full registry publication. Missing rows do not delete; no PINs; reject unsupported options. Username/update/delete fields are CSV-only; exported update time is export time. Team in `extra_options=teamSupervisor:<id>`. |
 | Reports | Classic7-column/paragraphs/linked A5, full clinical/tasks/order, no routine/unassigned/last-edit labels. A5 geometry owned by [current state](../docs/status/current-state.md#reports-and-exports). Exact preview-byte ordinary save; supervisor files explicit local generation. Text encrypted document or UTF-16-bounded chunks. |

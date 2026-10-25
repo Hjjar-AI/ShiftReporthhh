@@ -26,33 +26,46 @@ internal fun PatientRecycleBinDialog(
     patients: List<Patient>,
     readOnly: Boolean,
     onRestore: (Patient) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    automaticCleanup: Boolean = true,
+    loading: Boolean = false,
+    loadFailed: Boolean = false,
+    onRetry: (() -> Unit)? = null
 ) {
     val uiText = rememberUiStrings()
     AppAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(uiText(R.string.ui_ward_review_dialogs_009)) },
         text = {
-            if (patients.isEmpty()) {
-                Text(uiText(R.string.ui_ward_review_dialogs_010))
-            } else {
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
-                    items(patients, key = { it.id }) { patient ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Column(Modifier.weight(1f)) {
-                                Text(patient.displayName, style = MaterialTheme.typography.bodyMedium)
-                                Text(
-                                    patient.admittanceNumber,
-                                    style = MaterialTheme.typography.labelSmall
-                                )
-                            }
-                            if (!readOnly) {
-                                AppTextButton(onClick = { onRestore(patient) }) {
-                                    AppActionLabel(UiAction.RESTORE)
+            Column(verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+                if (automaticCleanup) Text(uiText(R.string.recycle_bin_retention),
+                    style = MaterialTheme.typography.bodySmall)
+                if (loading) {
+                    Text(uiText(R.string.recycle_bin_loading))
+                } else if (loadFailed) {
+                    Text(uiText(R.string.recycle_bin_load_failed))
+                    if (onRetry != null) AppTextButton(onClick = onRetry) { Text(uiText(R.string.ui_retry)) }
+                } else if (patients.isEmpty()) {
+                    Text(uiText(R.string.ui_ward_review_dialogs_010))
+                } else {
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
+                        items(patients, key = { it.id }) { patient ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(Modifier.weight(1f)) {
+                                    Text(patient.displayName, style = MaterialTheme.typography.bodyMedium)
+                                    Text(
+                                        patient.admittanceNumber,
+                                        style = MaterialTheme.typography.labelSmall
+                                    )
+                                }
+                                if (!readOnly) {
+                                    AppTextButton(onClick = { onRestore(patient) }) {
+                                        AppActionLabel(UiAction.RESTORE)
+                                    }
                                 }
                             }
                         }

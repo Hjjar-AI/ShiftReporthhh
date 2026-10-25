@@ -52,9 +52,12 @@ def delete_patient(owner,key):
 
 def recycle_bin(owner):
     draft=owner.editable()
+    if not owner.demo:owner.io(owner.store.purge_recycle_bin)
     records=owner.io(owner.store.deleted_patients)
     require(records,'لا توجد سجلات محذوفة محليا لهذه المناوبة؛ الحذف على أجهزة أخرى لا يظهر في هذه السلة')
-    choice=owner.choose('استعادة مريض محذوف',[item['patient']['name']+' · '+item['patient']['admitNum'] for item in records])
+    choice=owner.choose('استعادة مريض محذوف',
+        [item['patient']['name']+' · '+item['patient']['admitNum'] for item in records],
+        notice=None if owner.demo else 'تُحذف عناصر السلة محلياً بعد نحو أسبوع. قد يتأخر التنظيف إذا كان التطبيق مغلقاً.')
     if choice is None:return
     row=records[choice]['patient']
     if not owner.text_dialog('مراجعة الاستعادة','استعادة إلى المسودة فقط؛ يلزم مراجعة النسخة الكاملة والنشر لاحقاً.\n\n'+patient_text(row,owner.client.doctors,owner.client.zone),True,'استعادة إلى المسودة'):return

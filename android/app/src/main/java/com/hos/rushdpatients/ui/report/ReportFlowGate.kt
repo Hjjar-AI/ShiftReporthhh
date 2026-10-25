@@ -3,10 +3,11 @@ package com.hos.rushdpatients.ui.report
 import androidx.annotation.StringRes
 import com.hos.rushdpatients.R
 
-/** Presentation readiness only; the ViewModel revalidates authorization, revisions and delivery. */
+/** Presentation readiness only; the controller revalidates authority, exact artifacts and delivery. */
 internal data class ReportFlowGate(
     val busy: Boolean, val previewReady: Boolean, val destinationReady: Boolean,
-    @StringRes val nextDisabledReason: Int?, @StringRes val sendDisabledReason: Int?
+    @StringRes val nextDisabledReason: Int?, @StringRes val sendDisabledReason: Int?,
+    val previewReadiness: Map<String, Boolean> = emptyMap()
 )
 
 internal fun reportFlowGate(
@@ -16,14 +17,17 @@ internal fun reportFlowGate(
 ): ReportFlowGate {
     val busy = state.isBusy
     val targets = if (supervisorMode) selectedTargets else emptyList()
-    val hasDestination = includeGeneral || targets.isNotEmpty()
-    val generalReady = !includeGeneral || if (state.reportAsPdf)
-        state.pdfReviewUris["general"]?.let { it in openedPdfUris } == true
-        else reviewedText == state.previewMarkdown
-    val supervisorsReady = targets.all { target ->
-        state.pdfReviewUris["supervisor:${target.doctorId}"]?.let { it in openedPdfUris } == true
+    val previewReadiness = buildMap {
+        if (includeGeneral) put("general", if (state.reportAsPdf)
+            state.pdfReviewUris["general"]?.let { it in openedPdfUris } == true
+            else reviewedText == state.previewMarkdown)
+        targets.forEach { target ->
+            val key = "supervisor:${target.doctorId}"
+            put(key, state.pdfReviewUris[key]?.let { it in openedPdfUris } == true)
+        }
     }
-    val previewReady = hasDestination && generalReady && supervisorsReady
+    val hasDestination = previewReadiness.isNotEmpty()
+    val previewReady = hasDestination && previewReadiness.values.all { it }
     val destinationReady = state.summary != null && hasDestination
     val nextDisabledReason = when {
         busy -> R.string.ui_report_preview_screen_001
@@ -43,5 +47,5 @@ internal fun reportFlowGate(
         !previewReady -> R.string.ui_report_preview_each_selected
         else -> null
     }
-    return ReportFlowGate(busy, previewReady, destinationReady, nextDisabledReason, sendDisabledReason)
+    return ReportFlowGate(busy, previewReady, destinationReady, nextDisabledReason, sendDisabledReason, previewReadiness)
 }

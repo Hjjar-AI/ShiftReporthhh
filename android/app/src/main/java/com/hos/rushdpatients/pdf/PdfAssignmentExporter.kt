@@ -7,6 +7,8 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import android.graphics.pdf.PdfDocument
 import android.text.BidiFormatter
 import android.text.TextDirectionHeuristics
+import com.hos.rushdpatients.R
+import com.hos.rushdpatients.domain.patient.PatientAssignmentChange
 import com.hos.rushdpatients.data.model.Patient
 import com.hos.rushdpatients.data.model.Doctor
 import com.hos.rushdpatients.data.model.ClinicalRole
@@ -26,7 +28,7 @@ class PdfAssignmentExporter @Inject constructor(
     private val adminAuthorizer: AdminAuthorizer,
     @ApplicationContext private val context: Context
 ) {
-    private data class Row(val lines: List<String>, val height: Float, val number: Int? = null)
+    private data class Row(val lines: List<String>, val height: Float, val number: Int? = null, val highlighted: Boolean = false)
     private data class Team(val supervisor: Row, val residents: Row, val patients: List<Row>) {
         val height: Float get() = supervisor.height + residents.height + patients.sumOf { it.height.toDouble() }.toFloat()
     }
@@ -51,25 +53,28 @@ class PdfAssignmentExporter @Inject constructor(
         val fonts = PdfFonts(context)
         val bidi = BidiFormatter.getInstance()
         val body = Paint(Paint.ANTI_ALIAS_FLAG).apply { typeface = fonts.regular; textSize = 9f; textAlign = Paint.Align.RIGHT; color = palette.text }
+        val highlightedPatient = Paint(body).apply { typeface = fonts.bold }
         val heading = Paint(body).apply { textSize = 10f; typeface = fonts.bold }
         val residentPaint = Paint(body).apply { textSize = 8.5f }
         val border = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeWidth = palette.ruleWidth; color = palette.ruleColor }
         val fill = Paint(Paint.ANTI_ALIAS_FLAG)
-        fun row(text: String, paint: Paint, availableWidth: Float, number: Int? = null): Row {
+        fun row(text: String, paint: Paint, availableWidth: Float, number: Int? = null, highlighted: Boolean = false): Row {
             val lines = PdfTextWrapper.wrap(text, paint, availableWidth - 2 * padding)
-            return Row(lines, lines.size * PdfTextWrapper.lineHeight(paint) + 2 * padding, number)
+            return Row(lines, lines.size * PdfTextWrapper.lineHeight(paint) + 2 * padding, number, highlighted)
         }
         val rosterNote = if (summary.shiftDate != com.hos.rushdpatients.util.ShiftDate.current())
             "مناوبة محفوظة · الفرق حسب السجل الحالي\n" else ""
         val documentTitlePaint = Paint(heading).apply { textSize = 18f; textAlign = Paint.Align.CENTER }
         val documentTitle = row("توزيع المرضى حسب المشرف", documentTitlePaint, 3 * tableWidth + 2 * columnGap)
-        val context = row(rosterNote +
+        val legendPaint = Paint(body).apply { textSize = 8f }
+        val legend = row(context.getString(R.string.pdf_assignment_highlight_legend), legendPaint, 3 * tableWidth + 2 * columnGap)
+        val reportContext = row(rosterNote +
             PdfReportContext.lines(summary, includeShiftDate = false).joinToString("\n"), body, 3 * tableWidth)
-        val contextHeight = if (rosterNote.isBlank()) 0f else context.height
+        val contextHeight = if (rosterNote.isBlank()) 0f else reportContext.height
         val timestampPaint = Paint(body).apply { textSize = 8.5f }
         val timestampGap = 30f
         val timestampSpace = timestampGap + PdfTextWrapper.lineHeight(timestampPaint)
-        val tableTop = top + documentTitle.height + contextHeight + gap
+        val tableTop = top + documentTitle.height + contextHeight + legend.height + gap
         val maxTableHeight = height - tableTop - 24f - timestampSpace
         val fragments = mutableListOf<Team>()
         var number = 1
@@ -86,7 +91,9 @@ class PdfAssignmentExporter @Inject constructor(
             var rows = mutableListOf<Row>()
             var used = supervisor.height + residentRow.height
             members.forEach { patient ->
-                val patientRow = row(patient.displayName, body, tableWidth - numberWidth, number++)
+                val highlighted = PatientAssignmentChange.highlighted(patient, summary.shiftDate)
+                val patientRow = row(patient.displayName, if (highlighted) highlightedPatient else body,
+                    tableWidth - numberWidth, number++, highlighted)
                 require(supervisor.height + residentRow.height + patientRow.height <= maxTableHeight) {
                     "اسم المريض أو أسماء الفريق أطول من مساحة جدول A4؛ راجع الأسماء قبل التصدير"
                 }
@@ -117,9 +124,15 @@ class PdfAssignmentExporter @Inject constructor(
                     baseline += PdfTextWrapper.lineHeight(documentTitlePaint)
                 }
                 baseline = top + documentTitle.height + padding - body.fontMetrics.top
-                (if (contextHeight > 0f) context.lines else emptyList()).forEach { line ->
+                (if (contextHeight > 0f) reportContext.lines else emptyList()).forEach { line ->
                     page.canvas.drawText(bidi.unicodeWrap(line, TextDirectionHeuristics.FIRSTSTRONG_LTR), width - margin, baseline, body)
                     baseline += PdfTextWrapper.lineHeight(body)
+                }
+                baseline = top + documentTitle.height + contextHeight + padding - legendPaint.fontMetrics.top
+                legend.lines.forEach { line ->
+                    page.canvas.drawText(bidi.unicodeWrap(line, TextDirectionHeuristics.FIRSTSTRONG_LTR),
+                        width - margin, baseline, legendPaint)
+                    baseline += PdfTextWrapper.lineHeight(legendPaint)
                 }
                 val footer = Paint(body).apply { textSize = 8f; textAlign = Paint.Align.CENTER }
                 page.canvas.drawText("$pageNumber", width / 2f, height - 10f, footer)
@@ -139,6 +152,10 @@ class PdfAssignmentExporter @Inject constructor(
                     fun draw(value: Row, paint: Paint, background: Int, textColor: Int) {
                         fill.color = background
                         canvas.drawRect(x, cellY, x + tableWidth, cellY + value.height, fill)
+                        if (value.highlighted) {
+                            fill.color = Color.rgb(255, 244, 184)
+                            canvas.drawRect(x, cellY, x + tableWidth - numberWidth, cellY + value.height, fill)
+                        }
                         val p = Paint(paint).apply { color = textColor; if (value.number == null) textAlign = Paint.Align.CENTER }
                         var baseline = cellY + padding - p.fontMetrics.top
                         value.lines.forEach { line ->
@@ -157,7 +174,7 @@ class PdfAssignmentExporter @Inject constructor(
                     draw(team.supervisor, heading, palette.titleHeader, Color.WHITE)
                     draw(team.residents, residentPaint, palette.teamSubheader, palette.text)
                     team.patients.forEachIndexed { i, patient ->
-                        draw(patient, body, if (options.rowShading == PdfRowShading.NONE || i % 2 == 0) palette.pageBackground else palette.zebra, palette.text)
+                        draw(patient, if (patient.highlighted) highlightedPatient else body, if (options.rowShading == PdfRowShading.NONE || i % 2 == 0) palette.pageBackground else palette.zebra, palette.text)
                     }
                     var fillerIndex = team.patients.size
                     while (cellY < y + rowHeight - .01f) {

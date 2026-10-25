@@ -285,6 +285,7 @@ class WardViewModel @Inject constructor(
     fun deletePatient(patient: Patient, onSuccess: (Patient) -> Unit = {}) = patientActions.deletePatient(patient, onSuccess)
 
     fun loadRecycleBin() = patientActions.loadRecycleBin()
+    fun stopRecycleBinObservation() = patientActions.stopRecycleBinObservation()
 
     fun restorePatient(patient: Patient) = patientActions.restorePatient(patient)
 

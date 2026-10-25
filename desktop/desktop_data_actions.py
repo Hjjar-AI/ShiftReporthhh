@@ -90,7 +90,7 @@ def review(owner):
     owner.ready();owner.plan=None
     local=owner.store.read(owner.client);draft_hash=fingerprint(local)
     plan=owner.io(lambda:owner.client.plan(local))
-    plan=owner.io(lambda:owner.client.prepare(plan,owner.store.restored_completions(),saved_patients=local['patients']))
+    plan=owner.io(lambda:owner.client.prepare(plan))
     require(fingerprint(owner.store.read(owner.client))==draft_hash,'تغير المسودة أثناء المراجعة؛ أعدها')
     if owner.show_review(publication_review(plan,owner.client.zone),publication_plan=plan):
         owner.client.approve(plan);owner.plan=plan;owner.raw_draft=draft_hash

@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.StateFlow
 
 /** Injected presentation boundary: production operations or an isolated in-memory demo. */
 internal interface WardController {
+    val synchronizationAvailable: Boolean get() = liveProject
     val liveProject: Boolean
     val state: StateFlow<WardUiState>
     val online: StateFlow<Boolean>
@@ -23,6 +24,8 @@ internal interface WardController {
     fun deletePatient(patient: Patient, onSuccess: (Patient) -> Unit = {})
     fun dismissSnackbar()
     fun loadRecycleBin()
+    // Memory-only controllers do not hold a database subscription.
+    fun stopRecycleBinObservation() {}
     fun restorePatient(patient: Patient)
     fun reloadWard() {}
     fun retryLastAction()
@@ -58,6 +61,7 @@ internal class LiveWardController(private val viewModel: WardViewModel) : WardCo
     override fun deletePatient(patient: Patient, onSuccess: (Patient) -> Unit) { viewModel.deletePatient(patient, onSuccess) }
     override fun dismissSnackbar() { viewModel.dismissSnackbar() }
     override fun loadRecycleBin() { viewModel.loadRecycleBin() }
+    override fun stopRecycleBinObservation() { viewModel.stopRecycleBinObservation() }
     override fun restorePatient(patient: Patient) { viewModel.restorePatient(patient) }
     override fun reloadWard() { viewModel.load() }
     override fun retryLastAction() { viewModel.retryLastAction() }

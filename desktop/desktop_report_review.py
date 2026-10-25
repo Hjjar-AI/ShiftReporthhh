@@ -56,9 +56,9 @@ def install_send_review(owner, window, area, actions, read_options, read_targets
             rows=[row for row in delivery.reviewed['patients'] if target is None or row.get('responsibleSupervisorId')==target]
             notes.append(name(target)+'\n'+readiness_notes(rows))
             if options['format']=='pdf':
-                path=owner.io(lambda t=target:render_report(owner.client,delivery.reviewed,t,font,options))
+                path=owner.io(lambda t=target:render_report(owner.client,delivery.reviewed,t,font,options,report_day=delivery.report_day))
                 files[target]=path;payloads[target]=owner.io(path.read_bytes)
-            else:payloads[target]=report_text(owner.client,delivery.reviewed,target)
+            else:payloads[target]=report_text(owner.client,delivery.reviewed,target,report_day=delivery.report_day)
         require(signature()==before,'تغيرت البيانات أو الخيارات أثناء إعداد المعاينة؛ أعدها')
         if not window.winfo_exists():return
         save_options(options)
@@ -83,7 +83,7 @@ def install_send_review(owner, window, area, actions, read_options, read_targets
             require(target in prepared['viewed'],'عاين ملف كل وجهة مختارة أولاً')
             require(owner.io(path.read_bytes)==prepared['payloads'][target],'تغير ملف PDF بعد المعاينة؛ أعدها')
         confirmation='هل تؤكد إرسال التقارير التي عاينتها إلى:\n'+'\n'.join(name(t) for t in prepared['targets'])
-        confirmation+='\nالمناوبة: '+delivery.reviewed['meta']['shiftDate']
+        confirmation+='\nالمناوبة: '+delivery.report_day
         if delivery.needs_publish:confirmation+='\nستُنشر النسخة الكاملة التي راجعتها أولاً، ثم يُرسل التقرير. فشل التسليم لا يلغي نشر البيانات.'
         if delivery.needs_publish:confirmation+='\nتأكيدك يستبدل بيانات المناوبة المنشورة بالنسخة المحلية الكاملة التي راجعتها؛ آخر نشر ناجح هو المعتمد.'
         if not messagebox.askyesno('تأكيد رفع للشبكة وإرسال تقرير',confirmation,default='no'):return

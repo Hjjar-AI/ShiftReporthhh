@@ -14,7 +14,7 @@ from reportlab.platypus import Flowable, SimpleDocTemplate, Spacer, Table, Table
 from reportlab.platypus import HRFlowable
 from desktop_protocol import ZoneInfo, require
 from desktop_platform import default_pdf_fonts
-from desktop_model import patient_name, task_counts
+from desktop_model import patient_name, pending_task_count
 
 
 END_TIMESTAMP_GAP = 30  # Points between final report content and its creation date.
@@ -136,18 +136,20 @@ def styled_table(data, widths, colors, repeat=0, backgrounds=None):
     return table
 
 
-def render_report(client, shift, supervisor=None, font_path=None, options=None):
+def render_report(client, shift, supervisor=None, font_path=None, options=None, report_day=None):
     return _render_report(client, shift, supervisor, font_path, options,
-                          datetime.now(ZoneInfo(client.zone)))
+                          datetime.now(ZoneInfo(client.zone)), report_day)
 
 
-def _render_report(client, shift, supervisor, font_path, options, now):
+def _render_report(client, shift, supervisor, font_path, options, now, report_day=None):
+    from desktop_protocol import current_date
+    report_day=report_day or current_date(client.zone, now)
     from desktop_pdf_content import normalize_options, palette, PAPERS, context_lines, patient_content, row_backgrounds, roster_label, created_at
     options = normalize_options(options)
     colors = palette(options)
     if options['layout']=='cards':
         from desktop_pdf_cards import render_cards
-        return render_cards(client, shift, supervisor, font_path, options, now)
+        return render_cards(client, shift, supervisor, font_path, options, now, report_day)
     page_size = PAPERS[options['paper']]
     margin = 8.5
     width = page_size[0]-2*margin
@@ -157,10 +159,10 @@ def _render_report(client, shift, supervisor, font_path, options, now):
     text_color=HexColor(colors['text'])
     heading_color=HexColor(colors['title'])
     def text(value,size=11,color=None,**kwargs):return RTLText(value,size,color=color or text_color,**kwargs)
-    context=context_lines(client,shift,options,now)
+    context=context_lines(client,shift,options,now,report_day=report_day)
     roster=' / '.join(client.doctors.get(key,{}).get('name','طبيب محفوظ') for key in shift['meta'].get('doctors','').split(',') if key)
     roster_heading=roster_label([client.doctors.get(key,{}) for key in shift['meta'].get('doctors','').split(',') if key])
-    pending,overdue=task_counts(patients)
+    pending=pending_task_count(patients)
     summary='عدد المرضى: {} · حالات نفسية: {} · المرافقون: {} · مهام معلقة: {}'.format(
         len(patients),sum(p['diagnosisType'] in {'PSYCHIATRIC','DUAL'} for p in patients),
         sum(p['hasCompanion']=='Y' for p in patients),pending)
@@ -178,7 +180,7 @@ def _render_report(client, shift, supervisor, font_path, options, now):
         backgrounds=[colors['header']]
         stripes=row_backgrounds(patients,colors)
         for index,patient in enumerate(patients,1):
-            content=patient_content(patient,client.doctors,client.zone,now)
+            content=patient_content(patient,client.doctors,client.zone,now,report_day=report_day)
             cells=[str(index),content['personal'],content['diagnosis'],content['admit'],content['team'],content['treatment'],content['notes']]
             data.append([[text(value,9)] for value in reversed(cells)])
             backgrounds.append(stripes[index-1])
@@ -189,7 +191,7 @@ def _render_report(client, shift, supervisor, font_path, options, now):
         story.extend([text('تقرير المناوبة',16,heading_color,bold=True,align='center'),text(' · '.join(context),9),
                       text(roster_heading+': '+roster,11),text(summary,10)])
         for index,patient in enumerate(patients,1):
-            content=patient_content(patient,client.doctors,client.zone,now)
+            content=patient_content(patient,client.doctors,client.zone,now,report_day=report_day)
             divider=HRFlowable(width='100%',thickness=colors['rule_width'],color=HexColor(colors['rule']),spaceBefore=8,spaceAfter=6)
             divider.keepWithNext=True
             story.extend([divider,text(str(index)+': '+patient_name(patient),14,heading_color,bold=True)])
@@ -205,7 +207,7 @@ def _render_report(client, shift, supervisor, font_path, options, now):
     def page_background(canvas,doc):
         canvas.setFillColor(HexColor(colors['page']))
         canvas.rect(0,0,page_size[0],page_size[1],fill=1,stroke=0)
-        footer=text('{}{} · صفحة {}'.format('DEMO — ' if getattr(client,'demo',False) else '',shift['meta']['shiftDate'],doc.page),8)
+        footer=text('{}{} · صفحة {}'.format('DEMO — ' if getattr(client,'demo',False) else '',report_day,doc.page),8)
         footer.wrap(width,30);footer.drawOn(canvas,margin,10)
     document.build(story,onFirstPage=page_background,onLaterPages=page_background)
     return path
@@ -228,15 +230,14 @@ def render_assignments(client,shift,font_path=None,options=None):
     gap,top=12,20
     def text(value,size=9,color=None,align='right',bold=False):return RTLText(value,size,color=HexColor(color or colors['text']),align=align,bold=bold)
     from desktop_protocol import current_date
-    roster_note='مناوبة محفوظة · الفرق حسب السجل الحالي\n' if shift['meta']['shiftDate']!=current_date(client.zone) else ''
+    report_day=current_date(client.zone)
     context_title=text('توزيع المرضى حسب المشرف',18,align='center',bold=True)
     context_title.wrap(3*table_width+2*column_gap,100000)
-    context=text(roster_note+'\n'.join(context_lines(client,shift,options,datetime.now(ZoneInfo(client.zone)),include_shift_date=False)),8.5)
-    context.wrap(3*table_width+2*column_gap,100000)
-    context_height=context.height if roster_note else 0
     timestamp=text(created_at(datetime.now(ZoneInfo(client.zone))),8.5)
     timestamp.wrap(3*table_width+2*column_gap,100000)
-    table_top=height-top-context_title.height-context_height-gap
+    legend=text('المظلّل: مريض جديد أو تغيّر المشرف المسؤول',8)
+    legend.wrap(3*table_width+2*column_gap,100000)
+    table_top=height-top-context_title.height-legend.height-gap
     available=table_top-24-timestamp.height-END_TIMESTAMP_GAP
     subheader = '#' + ''.join('{:02X}'.format(int(int(colors['title'][i:i+2],16)*.12 +
                         int(colors['page'][i:i+2],16)*.88)) for i in (1,3,5))
@@ -244,7 +245,7 @@ def render_assignments(client,shift,font_path=None,options=None):
     def team_table(group,rows,row_heights=None):
         data=[[text(group['supervisor'],11,'#FFFFFF',align='center',bold=True),''],
               [text('، '.join(group['residents']) or 'لم يُحدد مقيم',9,align='center'),'']]
-        data += [[text(name),text(str(number),align='center') if number else ''] for number,name in rows]
+        data += [[text(name,bold=highlighted),text(str(number),align='center') if number else ''] for number,name,highlighted in rows]
         backgrounds=[colors['title'], subheader]
         backgrounds += [colors['page'] if options['row_shading']=='none' or i%2==0 else colors['zebra'] for i in range(len(rows))]
         table=styled_table(data,[table_width-number_width,number_width],colors,backgrounds=backgrounds)
@@ -255,12 +256,14 @@ def render_assignments(client,shift,font_path=None,options=None):
                 ('LEFTPADDING',(0,0),(-1,-1),3),('RIGHTPADDING',(0,0),(-1,-1),3),
                 ('TOPPADDING',(0,0),(-1,-1),3),('BOTTOMPADDING',(0,0),(-1,-1),3),
             ]+ [('BACKGROUND',(0,i),(-1,i),HexColor(color)) for i,color in enumerate(backgrounds)]))
-        table.setStyle(TableStyle([('SPAN',(0,0),(1,0)),('SPAN',(0,1),(1,1))]))
+        table.setStyle(TableStyle([('SPAN',(0,0),(1,0)),('SPAN',(0,1),(1,1))]+
+            [('BACKGROUND',(0,i+2),(0,i+2),HexColor('#FFF4B8'))
+             for i,(_,_,highlighted) in enumerate(rows) if highlighted]))
         table.wrap(table_width,1000000)
         return table
     numbered=[];number=1
     for group in groups:
-        rows=[(number+i,name) for i,name in enumerate(group['patients'])]
+        rows=[(number+i,name,group['assignmentDates'][i]==report_day) for i,name in enumerate(group['patients'])]
         number+=len(rows)
         numbered.append((group,rows))
     bands=[]
@@ -268,7 +271,7 @@ def render_assignments(client,shift,font_path=None,options=None):
         band=numbered[start:start+3]
         # Rows of each logical band align, including wrapped names and filler rows.
         count=max(1,max(len(rows) for _,rows in band))
-        padded=[(group,rows+[(None,'')]*(count-len(rows))) for group,rows in band]
+        padded=[(group,rows+[(None,'',False)]*(count-len(rows))) for group,rows in band]
         measured=[team_table(group,rows) for group,rows in padded]
         heights=[max(table._rowHeights[i] for table in measured) for i in range(count+2)]
         header=heights[:2];offset=0
@@ -289,7 +292,7 @@ def render_assignments(client,shift,font_path=None,options=None):
         page+=1
         canvas.setFillColor(HexColor(colors['page']));canvas.rect(0,0,width,height,fill=1,stroke=0)
         context_title.drawOn(canvas,margin,height-top-context_title.height)
-        if context_height:context.drawOn(canvas,margin,height-top-context_title.height-context_height)
+        legend.drawOn(canvas,margin,height-top-context_title.height-legend.height)
         canvas.setFont('Arabic',8);canvas.setFillColor(HexColor(colors['text']))
         canvas.drawCentredString(width/2,10,('DEMO — ' if getattr(client,'demo',False) else '')+str(page))
     new_page();y=table_top

@@ -29,7 +29,8 @@ object CsvSchema {
         "lastEditedBy",
         "updatedAt",
         "revision",
-        "tasksJson"
+        "tasksJson",
+        "assignmentChangedOn"
     )
 
     const val COL_EXTERNAL_ID = "externalId"
@@ -54,6 +55,7 @@ object CsvSchema {
     const val COL_UPDATED_AT = "updatedAt"
     const val COL_REVISION = "revision"
     const val COL_TASKS = "tasksJson"
+    const val COL_ASSIGNMENT_CHANGED_ON = "assignmentChangedOn"
 
     const val META_SHIFT_DATE = "shiftDate"
     const val META_SHIFT_ID = "shiftId"

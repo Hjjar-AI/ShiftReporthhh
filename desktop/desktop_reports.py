@@ -166,13 +166,13 @@ def report_destination(client, doctors, supervisor=None):
     return doctor['destination'], None
 
 
-def report_text(client, shift, supervisor=None):
+def report_text(client, shift, supervisor=None, report_day=None):
     selected = copy.deepcopy(shift)
     selected['patients'] = [row for row in shift['patients'] if not supervisor or row.get('responsibleSupervisorId') == supervisor]
     require(selected['patients'], 'لا يوجد مرضى في التقرير المختار')
     return ('المشفى: '+client.config['hospitalName']+'\nعدد المرضى: '+str(len(selected['patients']))+
             '\nعدد المرافقين: '+str(sum(row.get('hasCompanion')=='Y' for row in selected['patients']))+
-            '\n'+shift_text(selected, client.doctors, client.zone))
+            '\n'+shift_text(selected, client.doctors, client.zone, report_day))
 
 
 def export_supervisor_pdfs(owner, shift, supervisor, font, options):
@@ -181,25 +181,27 @@ def export_supervisor_pdfs(owner, shift, supervisor, font, options):
     from pathlib import Path
     import re
     import uuid
+    from desktop_protocol import current_date, ZoneInfo
     from tkinter import filedialog
     from desktop_pdf import render_report
     folder = filedialog.askdirectory(title='مجلد حفظ ملفات المشرفين')
     if not folder:return
+    report_day=current_date(owner.client.zone)
     def prepare_and_save():
         groups = {}
         for patient in shift['patients']:
             key = patient.get('responsibleSupervisorId') or None
             if supervisor is None or key == supervisor:groups.setdefault(key, []).append(patient)
         require(groups, 'لا يوجد مرضى في التقرير المختار')
-        stamp = datetime.now().strftime('%Y%m%d_%H%M%S')+'_'+uuid.uuid4().hex[:8]
+        stamp = datetime.now(ZoneInfo(owner.client.zone)).strftime('%Y%m%d_%H%M%S')+'_'+uuid.uuid4().hex[:8]
         files = []
         for index,(key,patients) in enumerate(groups.items(),1):
             subset = copy.deepcopy(shift);subset['patients']=copy.deepcopy(patients)
             if key:subset['meta']['doctors']=key
             name = owner.client.doctors.get(key,{}).get('name','مشرف محفوظ' if key else 'بدون مشرف')
             safe = re.sub(r'[^\w-]+','_',name,flags=re.UNICODE)[:60]
-            path = render_report(owner.client,subset,font_path=font,options=options)
-            target = Path(folder)/('Rushd_Report_{}_{}_{}_{}.pdf'.format(shift['meta']['shiftDate'],stamp,index,safe))
+            path = render_report(owner.client,subset,font_path=font,options=options,report_day=report_day)
+            target = Path(folder)/('Rushd_Report_{}_{}_{}_{}.pdf'.format(report_day,stamp,index,safe))
             files.append((target,path.read_bytes()))
         created = []
         try:
@@ -231,14 +233,22 @@ def text_chunks(text, limit=3500):
 def report_content(shift):
     """Clinical/order identity, excluding publication bookkeeping."""
     return dict(meta={key:shift['meta'].get(key,'') for key in ('shiftId','shiftDate','doctors','sortSpec')},
-                patients=shift['patients'])
+                patients=[{key:value for key,value in row.items() if key!='assignmentChangedOn'}
+                          for row in shift['patients']])
 
 
-def prepare_delivery(client, local, restored):
+def publication_content(shift):
+    """Assignment highlighting travels with snapshots, independently of report delivery keys."""
+    result = report_content(shift)
+    result['assignmentChanges'] = [row.get('assignmentChangedOn') or '' for row in shift['patients']]
+    return result
+
+
+def prepare_delivery(client, local):
     from desktop_protocol import fingerprint
-    plan=client.prepare(client.plan(local),restored,saved_patients=local['patients'])
+    plan=client.prepare(client.plan(local))
     remote=next((shift for shift in plan.bundle if shift['meta']['shiftId']==plan.shift['meta']['shiftId']),None)
-    needs_publish=remote is None or fingerprint(report_content(remote))!=fingerprint(report_content(plan.shift))
+    needs_publish=remote is None or fingerprint(publication_content(remote))!=fingerprint(publication_content(plan.shift))
     return plan,plan.shift if needs_publish else remote,needs_publish
 
 

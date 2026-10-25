@@ -24,7 +24,7 @@ internal object DemoData {
             .mapIndexed { index, name ->
                 Patient(
                     id = "demo-patient-$index", name = name, admittanceNumber = (100 + index).toString(),
-                    admittanceDate = LocalDate.now().minusDays(index.toLong()),
+                    admittanceDate = com.hos.rushdpatients.util.ShiftDate.current().minusDays(index.toLong()),
                     birthDate = LocalDate.of(1980 + index * 4, 1, 1),
                     gender = if (index % 2 == 0) Gender.FEMALE else Gender.MALE,
                     hasCompanion = index % 3 == 0,

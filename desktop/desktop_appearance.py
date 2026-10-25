@@ -5,14 +5,12 @@ import customtkinter as native
 from desktop_protocol import require
 
 PALETTES={
-    'SYSTEM':('لازورد · Lapis','#2346B5'),
-    'SAGE':('زمرد · Emerald','#006B3F'),
-    'COASTAL':('سوسن · Iris','#7026A0'),
-    'SUNSET':('زعفران · Saffron','#795900'),
-    'FUCHSIA':('تنين وردي · Dragonfruit','#A01575'),
     'VANILLA':('فيروز · Turquoise','#006B72'),
-    'CHOCOLATE':('غرافيت · Graphite','#455364'),
+    'SYSTEM':('لازورد · Lapis','#2346B5'),
+    'COASTAL':('ورد · Rose','#A01575'),
     'CREAM':('خشخاش · Poppy','#AD3D12')}
+
+LEGACY_ACCENTS={'SAGE':'VANILLA','SUNSET':'CREAM','FUCHSIA':'COASTAL','CHOCOLATE':'SYSTEM'}
 
 SIZES={1.0:'عادي',1.15:'كبير',1.3:'أكبر'}
 
@@ -20,6 +18,7 @@ SIZES={1.0:'عادي',1.15:'كبير',1.3:'أكبر'}
 def preferences(owner):
     value=dict(mode=owner.settings.get('APPEARANCE') or 'Light',accent='VANILLA',scale=1.0,density='عادية')
     value.update(owner.store.state.get('appearance',{}))
+    value['accent']=LEGACY_ACCENTS.get(value['accent'],value['accent'])
     return value
 
 
@@ -29,6 +28,7 @@ def validate(value):
 
 
 def set_palette_theme(accent='VANILLA'):
+    accent=LEGACY_ACCENTS.get(accent,accent)
     native.set_default_color_theme('blue')
     theme=copy.deepcopy(native.ThemeManager.theme)
     normal=PALETTES[accent][1]
@@ -48,6 +48,7 @@ def set_palette_theme(accent='VANILLA'):
 
 
 def apply(owner,value):
+    value=dict(value,accent=LEGACY_ACCENTS.get(value['accent'],value['accent']))
     validate(value)
     old=copy.deepcopy(native.ThemeManager.theme)
     set_palette_theme(value['accent'])

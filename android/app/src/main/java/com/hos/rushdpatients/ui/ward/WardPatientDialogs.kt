@@ -31,6 +31,7 @@ internal fun WardPatientDialogs(
                 onLoadDraft = onLoadEditDraft, onDraftChanged = onEditDraftChanged, onDiscardDraft = onDiscardEditDraft,
                 doctors = state.doctors,
                 saving = state.saving,
+                draftWarning = state.draftSaveIssue?.takeIf { it.patientId == p.id }?.message,
                 onConfirm = { draft, onUnavailable -> onSaveEdited(p, draft, onUnavailable, false) },
                 onConfirmAndNext = if (patientRoundsNavigation(roundsPatientIds, p.id)?.nextId != null)
                     { draft, onUnavailable -> onSaveEdited(p, draft, onUnavailable, true) } else null,

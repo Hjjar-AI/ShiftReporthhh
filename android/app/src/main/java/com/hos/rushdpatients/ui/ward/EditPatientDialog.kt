@@ -15,6 +15,7 @@ internal fun EditPatientDialog(
     patient: Patient,
     doctors: List<Doctor>,
     saving: Boolean = false,
+    draftWarning: String? = null,
     retainedState: EditPatientState? = null,
     onConfirm: (Patient, (Patient?) -> Unit) -> Unit,
     onConfirmAndNext: ((Patient, (Patient?) -> Unit) -> Unit)? = null,
@@ -48,6 +49,7 @@ internal fun EditPatientDialog(
         stateStore = session.form,
         doctors = doctors,
         saving = saving,
+        draftWarning = draftWarning,
         reviewAction = {
             roundsNavigation?.let { navigation ->
                 Text(uiText(R.string.ui_patient_rounds_navigation_002, com.hos.rushdpatients.ui.components.uiNumber(navigation.index + 1), com.hos.rushdpatients.ui.components.uiNumber(navigation.total)),

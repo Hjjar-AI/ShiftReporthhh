@@ -28,7 +28,8 @@ data class Patient(
     val sortOrder: Int = 0,
     val revision: Long = 0,
     val updatedAt: Instant = Instant.EPOCH,
-    val deletedAt: Instant? = null
+    val deletedAt: Instant? = null,
+    val assignmentChangedOn: LocalDate? = null
 ) {
     val displayName: String get() = name.ifBlank { if (admittanceNumber.isNotBlank()) "مريض · $admittanceNumber" else "مريض ${sortOrder.coerceAtLeast(1)}" }
 

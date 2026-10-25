@@ -130,7 +130,7 @@ class ReportPreviewViewModel @Inject constructor(
         if (_state.value.isBusy) return
         clearPdfReviews()
         reviewedReport = null
-        _state.update { it.copy(loading = true, summary = null, error = reviewNotice) }
+        _state.update { it.copy(loading = true, summary = null, error = null, reviewNotice = reviewNotice) }
         viewModelScope.launch {
             try {
                 check(shiftId.isNotBlank()) { uiText(R.string.report_shift_id_missing) }
@@ -355,7 +355,7 @@ class ReportPreviewViewModel @Inject constructor(
             _state.update { it.copy(error = uiText(R.string.report_offline_retained), retryAction = ReportRetryAction.SEND) }
             return
         }
-        _state.update { it.copy(sending = true, error = null, doctorRegistryAction = null, retryAction = null,
+        _state.update { it.copy(sending = true, error = null, reviewNotice = null, doctorRegistryAction = null, retryAction = null,
             publicationOutcome = ReportStepOutcome.NOT_STARTED, deliveryOutcome = ReportStepOutcome.NOT_STARTED) }
         viewModelScope.launch {
             var delivered = 0

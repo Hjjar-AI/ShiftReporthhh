@@ -62,7 +62,8 @@ internal fun WardDrawer(
     isAdmin: Boolean,
     isPermanentAdmin: Boolean,
     online: Boolean,
-    onAction: (WardDrawerAction) -> Unit
+    onAction: (WardDrawerAction) -> Unit,
+    additionalActions: @Composable () -> Unit = {}
 ) {
     val uiText = rememberUiStrings()
     val dayLabel = LocalWardDayLabel.current
@@ -130,6 +131,7 @@ internal fun WardDrawer(
                     if (isAdmin) {
                         WardDrawerRow(uiText(R.string.ui_admin_screen_001), AppIcons.AdminPanelSettings) { onAction(WardDrawerAction.ADMIN) }
                     }
+                    additionalActions()
                     DrawerToolGroup(uiText(R.string.ui_ward_drawer_026), AppIcons.HelpOutline, helpMenuExpanded,
                         onToggle = { helpMenuExpanded = !helpMenuExpanded }) {
                         WardDrawerRow(uiText(R.string.ui_ward_drawer_027), AppIcons.Build) { onAction(WardDrawerAction.DIAGNOSTICS) }

@@ -23,5 +23,6 @@ class RushdApplication : Application() {
         pdfCacheCleanup = com.hos.rushdpatients.pdf.ClinicalPdfCache.clear(this)
         // Stop any previously scheduled job; synchronization is now manual only.
         WorkManager.getInstance(this).cancelUniqueWork("patient_csv_auto_sync")
+        com.hos.rushdpatients.data.maintenance.RecycleBinCleanupWorker.schedule(this)
     }
 }

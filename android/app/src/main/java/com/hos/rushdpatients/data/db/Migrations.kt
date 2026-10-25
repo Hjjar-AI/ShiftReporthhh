@@ -31,5 +31,12 @@ object Migrations {
         }
     }
 
-    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_4_5)
+    private val MIGRATION_5_6 = object : Migration(5, 6) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // Existing patients remain unknown; no inferred assignment history.
+            db.execSQL("ALTER TABLE `patients` ADD COLUMN `assignmentChangedOnEpochDay` INTEGER")
+        }
+    }
+
+    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_4_5, MIGRATION_5_6)
 }

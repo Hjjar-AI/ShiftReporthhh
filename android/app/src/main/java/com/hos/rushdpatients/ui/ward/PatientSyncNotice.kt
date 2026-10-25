@@ -12,6 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
+import com.hos.rushdpatients.ui.components.AppTextButton
 import com.hos.rushdpatients.ui.components.AppNotice
 import com.hos.rushdpatients.ui.components.NoticeKind
 
@@ -39,16 +40,21 @@ internal fun PatientSyncNotice(
             append(status.arabicLabel(uiText))
         }, kind = kind, icon = icon, compact = compact,
             actionLabel = when {
-                onDetails != null -> uiText(R.string.ui_patient_sync_notice_002)
                 canShowDetails -> if (expanded) uiText(R.string.ui_patient_card_027) else uiText(R.string.ui_patient_sync_notice_003)
+                onDetails != null -> uiText(R.string.ui_patient_sync_notice_002)
                 else -> null
             }, onAction = when {
-                onDetails != null -> onDetails
                 canShowDetails -> ({ expanded = !expanded })
+                onDetails != null -> onDetails
                 else -> null
             })
-        if (expanded) Text(freshnessLabel, style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (expanded) {
+            Text(freshnessLabel, style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (onDetails != null) AppTextButton(onClick = onDetails) {
+                Text(uiText(R.string.ui_patient_sync_notice_002))
+            }
+        }
     }
 
 }

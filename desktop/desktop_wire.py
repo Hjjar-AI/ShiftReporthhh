@@ -44,6 +44,9 @@ def validate_wire_patient(patient):
             patient['diagnosisType'] in {'PSYCHIATRIC', 'ADDICTION', 'DUAL'} and
             patient.get('isPriority', 'N') in {'Y', 'N'}, 'تصنيف مريض غير صالح')
     if patient['admitDate']:date.fromisoformat(patient['admitDate'])
+    if patient.get('assignmentChangedOn'):
+        require(re.fullmatch(r'[0-9]{4}-[0-9]{2}-[0-9]{2}', patient['assignmentChangedOn']), 'تاريخ تغيير توزيع المريض غير صالح')
+        date.fromisoformat(patient['assignmentChangedOn'])
     if patient['birthDate']:
         require(re.fullmatch(r'[0-9]{4}', patient['birthDate']), 'سنة الميلاد غير صالحة')
         require(1900 <= int(patient['birthDate']) <= 2100, 'سنة الميلاد غير صالحة')
@@ -65,7 +68,7 @@ def parse_bundle(raw):
         for part in parts:
             rows = list(csv.reader(io.StringIO(part.strip(), newline='')))
             meta = dict(token.split('=', 1) for token in rows[0][0].lstrip('# ').split(' ') if '=' in token)
-            require(meta.get('schemaVersion') == '7' and rows[1] == COLUMNS, 'مطلوب CSV المرضى الحالي بإصدار 7')
+            require(meta.get('schemaVersion') == '7' and rows[1] in (COLUMNS, COLUMNS[:-1]), 'مطلوب CSV المرضى الحالي بإصدار 7')
             require(all(key in meta for key in ['shiftDate','shiftId','doctors','sortSpec','shiftRevision','snapshotId','baseSnapshotId','deviceId']), 'بيانات تعريف CSV ناقصة؛ أعد النشر من Android بعد إصلاح اقتباس metadata')
             require(re.fullmatch(r'[0-9]{4}-[0-9]{2}-[0-9]{2}',meta['shiftDate']) is not None,'تاريخ المناوبة يجب أن يكون YYYY-MM-DD')
             date.fromisoformat(meta['shiftDate'])
@@ -74,8 +77,9 @@ def parse_bundle(raw):
             for row in rows[2:]:
                 if not row or not any(row):
                     continue
-                require(len(row) == len(COLUMNS), 'سطر مرضى غير مكتمل')
-                patient = dict(zip(COLUMNS, row))
+                require(len(row) == len(rows[1]), 'سطر مرضى غير مكتمل')
+                patient = dict(zip(rows[1], row))
+                patient.setdefault('assignmentChangedOn', '')
                 validate_wire_patient(patient)
                 patient['tasksJson'] = packed(json.loads(patient['tasksJson'] or '[]'))
                 patients.append(patient)

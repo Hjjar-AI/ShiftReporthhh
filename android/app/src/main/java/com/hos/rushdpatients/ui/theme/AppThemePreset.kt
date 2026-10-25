@@ -18,8 +18,19 @@ enum class AppThemePreset(@StringRes private val arabicLabelRes: Int) {
     CREAM(R.string.ui_app_theme_preset_008);
 
     companion object {
+        val availablePresets = listOf(VANILLA, SYSTEM, COASTAL, CREAM)
+
         fun fromSetting(value: String?): AppThemePreset =
-            entries.firstOrNull { it.name == value } ?: VANILLA
+            (entries.firstOrNull { it.name == value } ?: VANILLA).simplified()
+    }
+
+    /** Keep stored IDs readable while merging neighboring color families. */
+    fun simplified(): AppThemePreset = when (this) {
+        SAGE -> VANILLA
+        SUNSET -> CREAM
+        FUCHSIA -> COASTAL
+        CHOCOLATE -> SYSTEM
+        else -> this
     }
 
     fun arabicLabel(uiText: UiStrings): String = uiText(arabicLabelRes)

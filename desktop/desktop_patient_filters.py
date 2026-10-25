@@ -4,8 +4,8 @@ import re
 import time
 import unicodedata
 from desktop_model import badges_decode
-from desktop_protocol import ZoneInfo
-from desktop_tasks import read_tasks, pending as pending_tasks, counts
+from desktop_protocol import ZoneInfo, current_date
+from desktop_tasks import read_tasks, pending as pending_tasks
 
 CLINICAL_FILTERS = ['الكل', 'أولوية', 'شارات', 'غير مسند', 'عاجل', 'دخول اليوم']
 TASK_FILTERS = ['كل المهام', 'مهام معلقة']
@@ -23,7 +23,6 @@ def matches_patient(row, query='', clinical='الكل', tasks='كل المهام
     now = int(time.time()*1000) if now is None else now
     entries = read_tasks(row)
     pending = pending_tasks(entries)
-    totals = counts(entries,now)
     if mine and (not actor or not (actor in (row.get('responsibleResidentId'), row.get('responsibleSupervisorId')))):return False
     badges = badges_decode(row.get('warningDetails', ''))
     if clinical == 'أولوية' and row.get('isPriority') != 'Y':return False
@@ -31,7 +30,7 @@ def matches_patient(row, query='', clinical='الكل', tasks='كل المهام
     if clinical == 'غير مسند' and row.get('responsibleResidentId') and row.get('responsibleSupervisorId'):return False
     if clinical == 'عاجل' and row.get('isPriority') != 'Y' and not any(level == 'high' for _, level in badges):return False
     if clinical == 'دخول اليوم':
-        today = datetime.fromtimestamp(now/1000, ZoneInfo(zone)).date()
+        today = date.fromisoformat(current_date(zone,datetime.fromtimestamp(now/1000, ZoneInfo(zone))))
         try:
             if date.fromisoformat(row.get('admitDate', '')) != today:return False
         except ValueError:return False

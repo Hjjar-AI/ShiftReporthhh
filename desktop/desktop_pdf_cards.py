@@ -9,7 +9,7 @@ from reportlab.lib.colors import HexColor
 from desktop_protocol import require
 from desktop_model import patient_name, DIAGNOSIS, GENDER, badges_decode
 from desktop_pdf_content import palette, roster_label
-from desktop_tasks import read_tasks, ordered_for_display, status_label, metadata, overdue
+from desktop_tasks import read_tasks, ordered_for_display, status_label
 
 
 WIDTH, HEIGHT = 420, 595
@@ -35,7 +35,9 @@ class _Paint:
 
 
 class _Cards:
-    def __init__(self, target, client, shift, patients, options, now, total):
+    def __init__(self, target, client, shift, patients, options, now, total, report_day=None):
+        from desktop_protocol import current_date
+        self.report_day=date.fromisoformat(report_day or current_date(client.zone,now))
         from desktop_pdf import visual
         def directed(value):
             # Match Android FIRSTSTRONG_LTR, including Latin-first DEMO footers.
@@ -49,7 +51,6 @@ class _Cards:
         self.visual = directed
         self.client, self.shift, self.patients = client, shift, patients
         self.now, self.total = now, total
-        self.now_ms = int(now.timestamp() * 1000)
         self.colors = palette(options)
         title = self.colors['title']
         self.body = _Paint(11.5, self.colors['text'])
@@ -281,7 +282,7 @@ class _Cards:
         personal = GENDER.get(row.get('gender', 'M'), 'ذكر')
         birth = row.get('birthDate')
         if birth:
-            personal += '\n{} • {} سنة'.format(birth[:4], max(0, self.now.year - int(birth[:4])))
+            personal += '\n{} • {} سنة'.format(birth[:4], max(0, self.report_day.year - int(birth[:4])))
         if row.get('isPriority') == 'Y':
             personal += '\n[أولوية]'
         if row.get('hasCompanion') == 'Y':
@@ -289,31 +290,29 @@ class _Cards:
         admit = row.get('admitNum', '') + '\n---\n'
         if row.get('admitDate'):
             admission = date.fromisoformat(row['admitDate'])
-            admit += 'يوم {}\n{}'.format(max(0, (self.now.date() - admission).days), admission)
+            admit += 'يوم {}\n{}'.format(max(0, (self.report_day - admission).days), admission)
         doctors = self.client.doctors
         team = '\n---\n'.join(doctors.get(row[key], {}).get('name') or 'طبيب محفوظ' for key in
                                 ['responsibleSupervisorId', 'responsibleResidentId'] if row.get(key))
         sections = [('التشخيص · ' + DIAGNOSIS[row.get('diagnosisType', 'PSYCHIATRIC')], row.get('initialDiagnosis', ''), False, False, True),
                     (TREATMENT_TITLE, row.get('treatmentPlan', ''), False, False, False),
                     ('المتابعة', row.get('followUp', ''), False, False, False)]
-        tasks = ordered_for_display(read_tasks(row), self.now_ms)
+        tasks = ordered_for_display(read_tasks(row))
         groups = {}
         for task in tasks:
-            groups.setdefault(status_label(task, self.now_ms), []).append(task)
+            groups.setdefault(status_label(task), []).append(task)
         task_lines = []
         for status, group in groups.items():
             task_lines.append('{} ({})'.format(status, len(group)))
             for task in group:
-                details = metadata(task, doctors, self.client.zone, include_unassigned=False, include_routine_priority=False)
-                task_lines.append('• ' + ' — '.join(filter(None, [task['description'], details])))
-        urgent = False
-        sections.append(('المهام ({})'.format(len(tasks)), '\n'.join(task_lines), urgent, True, False))
+                task_lines.append('• ' + task['description'])
+        sections.append(('المهام ({})'.format(len(tasks)), '\n'.join(task_lines), False, True, False))
         sections.append(('التحاليل', row.get('labs', ''), False, False, False))
         return personal, admit, team, sections
 
     def render(self):
         self.new_page(index=True)
-        self.index_text('{} · {} مريض · {} حالة نفسية · {} مرافق'.format(self.shift['meta']['shiftDate'], len(self.patients),
+        self.index_text('{} · {} مريض · {} حالة نفسية · {} مرافق'.format(self.report_day.isoformat(), len(self.patients),
             sum(p.get('diagnosisType', 'PSYCHIATRIC') in {'PSYCHIATRIC', 'DUAL'} for p in self.patients),
             sum(p.get('hasCompanion') == 'Y' for p in self.patients)), self.body)
         doctors = [self.client.doctors[key] for key in self.shift['meta'].get('doctors', '').split(',') if key in self.client.doctors]
@@ -424,13 +423,13 @@ class _Cards:
         return self.page
 
 
-def render_cards(client, shift, supervisor, font_path, options, now):
+def render_cards(client, shift, supervisor, font_path, options, now, report_day=None):
     from desktop_pdf import register_font, temporary_pdf
     register_font(font_path)
     patients = [p for p in shift['patients'] if supervisor is None or p.get('responsibleSupervisorId') == supervisor]
     require(patients, 'لا يوجد مرضى في التقرير المختار')
-    total = _Cards(BytesIO(), client, shift, patients, options, now, 0).render()
+    total = _Cards(BytesIO(), client, shift, patients, options, now, 0, report_day).render()
     path = temporary_pdf()
-    require(_Cards(str(path), client, shift, patients, options, now, total).render() == total,
+    require(_Cards(str(path), client, shift, patients, options, now, total, report_day).render() == total,
             'تغير عدد صفحات التقرير؛ أعد التصدير')
     return path

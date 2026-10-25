@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 from tkinter import filedialog
 from desktop_widgets import messagebox
-from desktop_protocol import BridgeError, require
+from desktop_protocol import BridgeError, require, current_date
 from desktop_model import doctor_label
 from desktop_reports import options_dialog, report_text, export_supervisor_pdfs, ReportAttempt
 from desktop_batch_reports import send_supervisor_reports
@@ -81,14 +81,15 @@ def _report(owner,export_only=False,separate=False):
     if font and not Path(font).is_absolute():font=str(BASE/font)
     from desktop_pdf import render_report
     if export_only:
+        report_day=current_date(owner.client.zone)
         if options['format']=='pdf' and separate:
             export_supervisor_pdfs(owner,local,supervisor,font,options)
             return
         if options['format']=='text':
-            raw=report_text(owner.client,local,supervisor).encode('utf-8')
+            raw=report_text(owner.client,local,supervisor,report_day).encode('utf-8')
             extension='.txt'
         else:
-            path=owner.io(lambda:render_report(owner.client,local,supervisor,font,options))
+            path=owner.io(lambda:render_report(owner.client,local,supervisor,font,options,report_day=report_day))
             raw=owner.io(path.read_bytes);extension='.pdf'
             from desktop_platform import open_pdf
             owner.io(lambda:open_pdf(path))

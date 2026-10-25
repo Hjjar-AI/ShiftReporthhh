@@ -3,14 +3,14 @@ import copy
 import tkinter as tk
 from desktop_tokens import ButtonStyle, button_options, CLINICAL_URGENT, CLINICAL_WARNING, CLINICAL_PENDING, STATUS_EDGE
 import desktop_widgets as ctk
-from desktop_model import patient_name, DIAGNOSIS, patient_text, task_counts, badges_decode
+from desktop_model import patient_name, DIAGNOSIS, patient_text, pending_task_count, badges_decode
 
 
 def patient_card(owner, parent, row, index, total, movement_allowed, preview_style=None):
     row=copy.deepcopy(row)
     width=max(240,owner.content.winfo_width()-40)
     key=row['externalId']
-    pending,overdue=task_counts([row])
+    pending=pending_task_count([row])
     style=preview_style or {}
     scale=style.get('scale',1.0)
     compact=style.get('density',getattr(owner,'card_density',None).get() if hasattr(owner,'card_density') else 'عادية')=='مضغوطة'

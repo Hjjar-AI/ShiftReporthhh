@@ -26,6 +26,7 @@ internal fun AddPatientDialog(
     draft: PatientDraft? = null,
     stateStore: PatientFormStateStore? = null,
     saving: Boolean = false,
+    draftWarning: String? = null,
     position: String = "",
     positionLimit: Int? = null,
     onPositionChange: (String) -> Unit = {},
@@ -41,6 +42,7 @@ internal fun AddPatientDialog(
         stateStore = stateStore,
         doctors = doctors,
         saving = saving,
+        draftWarning = draftWarning,
         entryOptionsSummary = position.takeIf { positionLimit != null && it.isNotBlank() }?.let {
             uiText(R.string.ui_add_patient_dialog_002) + uiNumber(it)
         },

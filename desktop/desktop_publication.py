@@ -2,10 +2,9 @@
 from __future__ import annotations
 import copy
 from dataclasses import dataclass, field
-import json
 import uuid
 from typing import Optional
-from desktop_protocol_common import EDITABLE, require, packed, fingerprint, current_date, pointer, doctor_pointer
+from desktop_protocol_common import require, packed, fingerprint, pointer, doctor_pointer
 from desktop_wire import encode_bundle, validate_wire_patient
 
 
@@ -41,7 +40,7 @@ def plan(owner, shift, choices=None):
     return plan
 
 
-def prepare(owner, plan, restored_completions=None, saved_patients=None):
+def prepare(owner, plan):
     require(not plan.conflicts, 'راجع كل التعارضات أولا')
     owner.authorize(plan.remote['doctors'])
     doctors = plan.remote['doctors']
@@ -49,25 +48,22 @@ def prepare(owner, plan, restored_completions=None, saved_patients=None):
     from desktop_sort import ordered
     ordered(shift, doctors, owner.zone)
     latest = next((s for s in plan.bundle if s['meta']['shiftDate'] == shift['meta']['shiftDate']), None)
-    previous = {r['externalId']: r for r in latest['patients']} if latest else {}
+    previous = {row['externalId']: row for row in latest['patients']} if latest else {}
     require(len(shift['patients']) <= 200, 'الحد الأقصى للمناوبة 200 مريض')
     roster = shift['meta'].get('doctors', '').split(',')
     require(roster and all(d in doctors for d in roster), 'حدد أطباء مناوبة نشطين')
     require(len(set(roster)) == len(roster), 'طبيب مكرر في المناوبة')
-    from desktop_model import validate_patient, badges_decode, patient_edit_content
-    from desktop_tasks import read_tasks, resolve_owner, COMPLETION
-    saved_rows = {row['externalId']:row for row in (saved_patients or [])}
+    from desktop_model import validate_patient, badges_decode
+    from desktop_tasks import read_tasks, COMPLETION
     for row in shift['patients']:
         validate_patient(row, doctors, owner.zone)
-        old = previous.get(row['externalId'], {})
-        old_tasks = {t['id']: t for t in json.loads(old.get('tasksJson') or '[]')}
-        for entry in (restored_completions or []):
-            if entry['shiftId']!=shift['meta']['shiftId'] or entry['patientId']!=row['externalId']:continue
-            for task in entry['tasks']:
-                task.update(dict.fromkeys(COMPLETION))
+        tasks = read_tasks(row)
+        for task in tasks:
+            task.update(dict.fromkeys(COMPLETION))
         row['tasksJson'] = packed(tasks)
         row['warningFlags'] = '|'.join(level for _,level in badges_decode(row.get('warningDetails', '')) if level != 'none')
         validate_wire_patient(row)
+        old = previous.get(row['externalId'], {})
         row.update(lastEditedByDoctorId='', lastEditedBy='', updatedAt='0',
                    revision=str(max(int(row.get('revision') or 0), int(old.get('revision') or 0)+1)))
     meta = shift['meta']

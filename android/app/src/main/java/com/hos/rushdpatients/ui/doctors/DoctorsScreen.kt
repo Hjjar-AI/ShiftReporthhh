@@ -69,6 +69,12 @@ fun DoctorsScreen(
     onBack: () -> Unit,
     viewModel: DoctorsViewModel = hiltViewModel()
 ) {
+    DoctorsWorkspace(onBack, remember(viewModel) { LiveDoctorsController(viewModel) })
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun DoctorsWorkspace(onBack: () -> Unit, viewModel: DoctorsController) {
     val uiText = rememberUiStrings()
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
@@ -159,6 +165,9 @@ fun DoctorsScreen(
                         .padding(horizontal = UiSpacing.medium),
                     verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
                 ) {
+                    if (viewModel.simulation) item {
+                        com.hos.rushdpatients.ui.components.AppNotice(uiText(R.string.demo_simulation_notice))
+                    }
                     if (busy) item {
                         AppLoadingState(when {
                             state.importing -> uiText(R.string.ui_doctors_screen_002)
@@ -206,7 +215,7 @@ fun DoctorsScreen(
                                 ) { Text(uiText(R.string.ui_doctors_screen_006)) }
                                 AppOutlinedButton(
                                     onClick = { importLauncher.launch(arrayOf("*/*")) },
-                                    enabled = !busy, modifier = Modifier.fillMaxWidth()
+                                    enabled = !busy && viewModel.fileTransfers, modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Icon(AppIcons.FolderOpen, contentDescription = null)
                                     Text(uiText(R.string.ui_doctors_screen_015), Modifier.padding(start = UiSpacing.small))
@@ -225,7 +234,7 @@ fun DoctorsScreen(
                                         Text(uiText(R.string.ui_team_management_dialog_002))
                                     }
                                     AppOutlinedButton(onClick = viewModel::prepareDoctorExport,
-                                        enabled = !busy, modifier = Modifier.fillMaxWidth()) {
+                                        enabled = !busy && viewModel.fileTransfers, modifier = Modifier.fillMaxWidth()) {
                                         Text(uiText(R.string.ui_doctors_screen_016))
                                     }
                                 }

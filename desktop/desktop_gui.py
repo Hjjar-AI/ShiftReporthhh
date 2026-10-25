@@ -43,6 +43,9 @@ class Window:
         self.closed=False;self.demo=demo;self.locked=False;self.access=None;self.local_actor=None
         self.last_activity=time.monotonic();self.io_depth=0
         self.clock_after_id = None
+        self.recycle_cleanup_store = None
+        self.recycle_cleanup_due = 0
+        self.rendered_day = None
         self.actor_ids, self.destinations = [], [None]
         self.project_creator = None
         desktop_shell_layout.build_window(self, root, settings, demo)
@@ -101,10 +104,28 @@ class Window:
         self.settings_window.lift()
         self.settings_window.focus_set()
 
+    def cleanup_recycle_bin(self):
+        if self.demo or self.store is None:return
+        if self.recycle_cleanup_store is not self.store:
+            self.recycle_cleanup_store=self.store
+            self.recycle_cleanup_due=0
+        if time.monotonic()<self.recycle_cleanup_due:return
+        self.busy=True
+        try:
+            self.io(self.store.purge_recycle_bin)
+            self.recycle_cleanup_due=time.monotonic()+24*60*60
+        except Exception:
+            # A failed sweep preserves the encrypted workspace; retry when unlocked and idle.
+            self.recycle_cleanup_due=time.monotonic()+60*60
+            self.status.set('تعذّر تنظيف سلة المحذوفات؛ ستُعاد المحاولة لاحقاً.')
+        finally:self.busy=False
+
     def clock_tick(self):
         try:
             if not self.closed and not self.locked and not self.busy and not self.io_depth:
-                self.render()
+                self.cleanup_recycle_bin()
+                day=(self.client.project_id,current_date(self.client.zone)) if self.client else None
+                if day!=self.rendered_day:self.render()
         finally:
             if not self.closed:self.clock_after_id=self.root.after(60_000,self.clock_tick)
 
@@ -344,10 +365,11 @@ class Window:
                 self.status.set('هوية مؤكدة: '+doctor['name']+' — اجلب أو راجع المسودة المحلية.');return
             messagebox.showerror('رمز التحقق','الرمز غير صحيح')
 
-    def choose(self,title,values):
+    def choose(self,title,values,notice=None):
         from desktop_input import ArabicEntry
         from desktop_patient_filters import normalize_search
         window=modal(self,title,'760x500')
+        if notice:ctk.CTkLabel(window,text=notice,anchor='e',justify='right',wraplength=680).pack(fill='x',padx=10,pady=6)
         controls=ctk.CTkFrame(window);controls.pack(side='bottom',fill='x')
         query=tk.StringVar()
         ArabicEntry(window,textvariable=query,justify='right',height=48,placeholder_text='بحث في الخيارات').pack(fill='x',padx=10,pady=6)
@@ -373,7 +395,8 @@ class Window:
         return desktop_data_actions.undo_download(self)
 
     def render(self):
-        return desktop_patient_list.render(self)
+        desktop_patient_list.render(self)
+        self.rendered_day=(self.client.project_id,current_date(self.client.zone)) if self.client else None
 
     def update_patient_list(self,display,movement_allowed,draft):
         return desktop_patient_list.update_patient_list(self, display, movement_allowed, draft)
@@ -399,7 +422,7 @@ class Window:
         self.ready(False)
         _,action=workflow_status(self.client,self.store,self.demo)
         if action is WorkflowAction.DELIVERY_HISTORY:self.resolve()
-        elif action is WorkflowAction.REVIEW_PUBLICATION:self.publish()
+        elif action is WorkflowAction.REVIEW_PUBLICATION:self.report()
         else:self.download()
 
     def details(self,row):

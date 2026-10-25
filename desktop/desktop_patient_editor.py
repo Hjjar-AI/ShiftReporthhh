@@ -4,10 +4,8 @@ import copy
 from datetime import datetime
 import json
 from desktop_widgets import messagebox
-import uuid
 import desktop_widgets as ctk
 from desktop_protocol import ZoneInfo, packed, require
-from desktop_tasks import task_text
 from desktop_model import LABELS, GENDER, YES, DIAGNOSIS, BADGE_PRIORITY, badges_decode, badges_encode, validate_patient
 from desktop_form_controls import button, dialog_actions, section_heading, entry, combo, modal, guarded
 from desktop_doctor_picker import doctor_picker
@@ -54,13 +52,9 @@ def edit_patient(owner, source, is_new=False, allow_next=False):
     widgets, getters = {}, {}
     section_heading(areas['السريرية'],'التشخيص والعلاج')
     widgets['initialDiagnosis']=entry(areas['السريرية'],LABELS['initialDiagnosis'],row.get('initialDiagnosis',''),True)
-    from desktop_clinical_fields import ClinicalField
     section_heading(areas['السريرية'],'الخطة والمتابعة')
-    fields={}
     for key in ['treatmentPlan','followUp','labs']:
-        fields[key]=ClinicalField(areas['السريرية'],LABELS[key],row.get(key,''),allow_date=key=='labs',
-                                  today=datetime.now(ZoneInfo(owner.client.zone)).date())
-        widgets[key]=fields[key]
+        widgets[key]=entry(areas['السريرية'],LABELS[key],row.get(key,''),True)
     section_heading(areas['السريرية'],'الفريق المسؤول')
     for key, role in [('responsibleResidentId','RESIDENT'),('responsibleSupervisorId','SUPERVISOR')]:
         getters[key] = doctor_picker(areas['السريرية'],LABELS[key],owner.client.doctors,row.get(key,''),role=role)

@@ -31,13 +31,18 @@ enum class WardSyncRecovery { PUBLISH_DOCTORS, FETCH_DOCTORS, PUBLISH_PATIENTS }
 
 enum class WardRetryAction { FETCH_LATEST, EXPORT_CSV }
 
+data class PatientDraftIssue(val patientId: String?, val message: String)
+
 data class WardUiState(
     val hospitalName: String = "",
     val loading: Boolean = true,
     val shift: Shift? = null,
     val patients: List<Patient> = emptyList(),
     val deletedPatients: List<Patient> = emptyList(),
+    val recycleBinLoading: Boolean = true,
+    val recycleBinFailed: Boolean = false,
     val patientDraft: PatientDraft? = null,
+    val draftSaveIssue: PatientDraftIssue? = null,
     val groupedPatients: List<PatientGroup> = emptyList(),
     val doctors: List<Doctor> = emptyList(),
     val sortSpec: SortSpec = SortSpec.DEFAULT,

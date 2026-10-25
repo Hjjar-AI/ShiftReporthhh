@@ -116,6 +116,8 @@ object CsvCodec {
         append(p.revision)
         append(',')
         append(escape(PatientTaskCodec.encode(p.tasks)))
+        append(',')
+        append(p.assignmentChangedOn?.toString().orEmpty())
     }
 
     private fun escape(value: String): String {
@@ -270,6 +272,11 @@ object CsvCodec {
             ?.let(Instant::ofEpochMilli)
             ?: Instant.now()
 
+        val assignmentDateText = field(CsvSchema.COL_ASSIGNMENT_CHANGED_ON).trim()
+        val assignmentDate = if (assignmentDateText.isBlank()) null else
+            runCatching { LocalDate.parse(assignmentDateText) }.getOrElse {
+                throw IllegalArgumentException("السطر $rowNumber: تاريخ تغيير توزيع المريض غير صالح")
+            }
         val revision = field(CsvSchema.COL_REVISION).toLongOrNull() ?: 0L
         require(revision >= 0L) { "السطر $rowNumber: نسخة المريض غير صالحة" }
         return Patient(
@@ -288,6 +295,7 @@ object CsvCodec {
             tasks = PatientTaskCodec.decode(field(CsvSchema.COL_TASKS)),
             responsibleResidentId = residentId,
             responsibleSpecialistId = specialistId,
+            assignmentChangedOn = assignmentDate,
             badges = badges,
             isPriority = priority,
             lastEditedByDoctorId = field(CsvSchema.COL_LAST_EDITED_BY_DOCTOR_ID)

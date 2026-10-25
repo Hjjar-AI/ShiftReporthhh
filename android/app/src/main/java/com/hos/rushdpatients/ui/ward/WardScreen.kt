@@ -401,7 +401,6 @@ private fun WardWorkspaceContent(
                         WardDrawerAction.DIAGNOSTICS -> onOpenWorkspace(SettingsWorkspace.DIAGNOSTICS)
                         WardDrawerAction.DATA_MANAGEMENT -> onOpenDataManagement()
                         WardDrawerAction.RECYCLE_BIN -> {
-                            viewModel.loadRecycleBin()
                             showRecycleBin = true
                         }
                         WardDrawerAction.ADMIN -> onOpenAdmin()
@@ -467,7 +466,7 @@ private fun WardWorkspaceContent(
                     uiText(R.string.back_online_fetch), actionLabel = uiText(R.string.ui_patient_fetch_reminder_003),
                     onAction = { showBackOnline = false; confirmLatest = true },
                     actionEnabled = !state.loading && !state.saving && !state.syncing && !state.isReadOnly && editor.dialog == null && detailsTargetId == null)
-                if (viewModel.liveProject && patientDestination) WardTransferBar(
+                if (viewModel.synchronizationAvailable && patientDestination) WardTransferBar(
                     fetchEnabled = !state.loading && !state.isReadOnly && !state.syncing && !state.saving &&
                         editor.dialog == null && detailsTargetId == null && !confirmLatest,
                     reportEnabled = state.shift != null && !state.isReadOnly && !state.loading && !state.syncing && !state.saving &&
@@ -568,7 +567,7 @@ private fun WardWorkspaceContent(
                         Box(Modifier.fillMaxSize().padding(bottom = navigationClearance)) {
                             if (selectedPatient != null && editor.editTarget == null && editor.copyTarget == null) detailContent(true)
                             else WardSupportingPane(state, freshnessLabel, online, isAdmin = isAdmin,
-                                showSynchronization = viewModel.liveProject, onOpenSyncCenter = onOpenDataManagement,
+                                showSynchronization = viewModel.synchronizationAvailable, onOpenSyncCenter = onOpenDataManagement,
                                 onActivity = { viewMode = WardViewMode.ACTIVITY })
                         }
                     },
@@ -590,17 +589,18 @@ private fun WardWorkspaceContent(
                             HandoverDashboard(
                                 isAdmin = isAdmin,
                                 onReportStatus = { state.shift?.id?.let(onOpenReport) },
-                                reportStatus = if (!viewModel.liveProject) null else when {
+                                reportStatus = if (!viewModel.synchronizationAvailable) null else when {
                                     state.deliveryLogUnavailable -> uiText(R.string.dashboard_report_unknown)
                                     state.unresolvedDeliveries > 0 -> uiText(R.string.dashboard_report_uncertain)
                                     state.synchronization.lastReportAt != null -> uiText(R.string.dashboard_report_sent,
-                                        java.time.format.DateTimeFormatter.ofPattern("HH:mm").format(java.time.Instant.ofEpochMilli(
+                                        java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").format(java.time.Instant.ofEpochMilli(
                                             requireNotNull(state.synchronization.lastReportAt)).atZone(java.time.ZoneId.systemDefault())))
                                     else -> uiText(R.string.dashboard_report_not_sent)
                                 },
                                 patients = state.patients,
                                 currentDoctorId = currentDoctorId,
                                 syncStatus = state.syncStatus,
+                                pendingCount = state.synchronization.pendingCount,
                             online = online, freshnessLabel = freshnessLabel,
                                 dayLabel = dayLabel,
                                 bottomClearance = scrollBottomClearance,
@@ -609,7 +609,7 @@ private fun WardWorkspaceContent(
                                 onActivity = {
                                     viewMode = WardViewMode.ACTIVITY
                                 },
-                                modifier = Modifier.padding(UiPadding.screen), showSynchronization = viewModel.liveProject
+                                modifier = Modifier.padding(UiPadding.screen), showSynchronization = viewModel.synchronizationAvailable
                             )
                         } else if (state.patients.isEmpty()) {
                             EmptyWardPatients(isReadOnly = state.isReadOnly,
@@ -707,7 +707,7 @@ private fun WardWorkspaceContent(
                 listFraction = UiLayout.defaultListFraction, onListFractionChange = {},
                 modifier = Modifier.fillMaxWidth().appDialogBody(UiDialog.sheetMaxHeight), primary = {
                 WardSupportingPane(state, freshnessLabel, online, isAdmin = isAdmin,
-                    showSynchronization = viewModel.liveProject, onOpenSyncCenter = { showSupportingSheet = false; onOpenDataManagement() },
+                    showSynchronization = viewModel.synchronizationAvailable, onOpenSyncCenter = { showSupportingSheet = false; onOpenDataManagement() },
                     onActivity = { showSupportingSheet = false; viewMode = WardViewMode.ACTIVITY },
                     modifier = Modifier.fillMaxSize())
             })
@@ -720,6 +720,7 @@ private fun WardWorkspaceContent(
             doctors = state.doctors,
             draft = state.patientDraft,
             stateStore = editor.addForm,
+            draftWarning = state.draftSaveIssue?.takeIf { it.patientId == null }?.message,
             saving = state.saving,
             position = editor.insertionPosition,
             positionLimit = insertionPatients.size + 1,
@@ -735,7 +736,7 @@ private fun WardWorkspaceContent(
         )
     }
 
-    if (viewModel.liveProject) WardDataReviewDialogs(state, viewModel, confirmLatest,
+    if (viewModel.synchronizationAvailable) WardDataReviewDialogs(state, viewModel, confirmLatest,
         onDismissLatest = { confirmLatest = false })
 
     fun saveEdited(p: Patient, draft: Patient, onUnavailable: (Patient?) -> Unit, advance: Boolean) {
@@ -792,9 +793,16 @@ private fun WardWorkspaceContent(
         onClose = { showFilters = false; showSort = false })
 
     if (showRecycleBin) {
+        androidx.compose.runtime.DisposableEffect(viewModel, state.shift?.id) {
+            viewModel.loadRecycleBin()
+            onDispose { viewModel.stopRecycleBinObservation() }
+        }
         PatientRecycleBinDialog(
             patients = state.deletedPatients,
-            readOnly = state.isReadOnly,
+            loading = state.recycleBinLoading,
+            loadFailed = state.recycleBinFailed,
+            onRetry = viewModel::loadRecycleBin,
+            readOnly = state.isReadOnly || state.saving || state.syncing,
             onRestore = viewModel::restorePatient,
             onDismiss = { showRecycleBin = false }
         )

@@ -46,6 +46,7 @@ internal fun HandoverDashboard(
     modifier: Modifier = Modifier,
     bottomClearance: Dp = UiSpacing.screen,
     showSynchronization: Boolean = true,
+    pendingCount: Int? = null,
     reportStatus: String? = null, onReportStatus: () -> Unit = onSync
 ) {
     val uiText = rememberUiStrings()
@@ -99,6 +100,11 @@ internal fun HandoverDashboard(
         }
         if (showSynchronization) AppSection(title = uiText(R.string.ui_handover_dashboard_017)) {
             PatientSyncNotice(syncStatus, freshnessLabel, online, onDetails = onSync)
+            if (pendingCount != null && pendingCount > 0) {
+                Text(uiText(R.string.dashboard_pending_changes,
+                    com.hos.rushdpatients.ui.components.uiNumber(pendingCount)),
+                    style = MaterialTheme.typography.bodyMedium)
+            }
             Text(uiText(R.string.ui_handover_dashboard_018), style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }

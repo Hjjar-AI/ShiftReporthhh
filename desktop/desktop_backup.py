@@ -7,7 +7,6 @@ import secrets
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from desktop_protocol import BUNDLE, LIMIT, BridgeError, fingerprint, parse_bundle, require
 from desktop_csv import patient_csv
-from desktop_tasks import read_tasks
 
 MAGIC=b'RUSHDBK1'
 
@@ -56,20 +55,10 @@ def restore(workspace,client,shift,expected):
     validate_restore(workspace,client,shift,expected)
     candidate=copy.deepcopy(shift)
     workspace.export(workspace.path.with_suffix('.previous.srdraft'),replace=True)
-    from desktop_clinical import event,local_identity
-    # Explicit encrypted recovery becomes saved local evidence, including a
-    # completion newer than the last remotely published pending task.
-    evidence=[dict(shiftId=candidate['meta']['shiftId'],patientId=row['externalId'],local=True,
-                   tasks=copy.deepcopy([t for t in read_tasks(row) if t.get('done')])) for row in candidate['patients']]
     validate_restore(workspace,client,candidate,expected)
-    shift_id=candidate['meta']['shiftId']
-    other_restored=[item for item in workspace.state.get('restored',[]) if item['shiftId']!=shift_id]
-    other_local=[item for item in workspace.state.get('localCompletions',[]) if item['shiftId']!=shift_id]
     form=workspace.state.get('patientForm')
-    workspace.commit(draft=candidate,restored=other_restored+evidence,localCompletions=other_local,
-                     patientForm=form if form and form['shiftId']!=shift_id else None,
-                     clinicalActivity=workspace.state.get('clinicalActivity',[])+
-                     [event(candidate['meta']['shiftId'],local_identity(workspace,client),'draft_restored')])
+    workspace.commit(draft=candidate,
+                     patientForm=form if form and form['shiftId']!=candidate['meta']['shiftId'] else None)
 
 
 def backup_dialog(owner):

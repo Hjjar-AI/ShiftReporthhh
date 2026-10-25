@@ -62,5 +62,6 @@ data class PatientEntity(
     val sortOrder: Int,
     val revision: Long,
     val updatedAtEpochMillis: Long,
+    val assignmentChangedOnEpochDay: Long? = null,
     val deletedAtEpochMillis: Long?
 )

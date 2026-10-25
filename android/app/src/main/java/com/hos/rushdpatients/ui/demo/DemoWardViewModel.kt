@@ -9,11 +9,9 @@ import com.hos.rushdpatients.domain.sort.SortSpecCodec
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.delay
 import com.hos.rushdpatients.R
 
 import android.content.Context
-import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hos.rushdpatients.data.model.DiagnosisType
@@ -23,18 +21,13 @@ import com.hos.rushdpatients.domain.report.ReportSummary
 import com.hos.rushdpatients.domain.sort.PatientComparators
 import com.hos.rushdpatients.domain.sort.SortSpec
 import com.hos.rushdpatients.domain.task.PatientTasks
-import com.hos.rushdpatients.pdf.PdfExportOptions
 import com.hos.rushdpatients.pdf.PdfReportExporter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.io.File
 import java.time.Instant
 import java.time.LocalDate
 import javax.inject.Inject
@@ -45,16 +38,18 @@ internal data class DemoWardState(
     val deleted: List<Patient> = emptyList(),
     val shiftDoctorIds: List<String> = doctors.take(2).map { it.id },
     val sort: SortSpec = SortSpec(),
-    val date: LocalDate = LocalDate.now(),
-    val exporting: Boolean = false,
+    val date: LocalDate = com.hos.rushdpatients.util.ShiftDate.current(),
     val actorId: String = doctors.first().id,
     val message: String? = null,
     val shiftId: String = "demo-${java.util.UUID.randomUUID()}",
     val createdAt: Instant = Instant.now(),
     val revision: Long = 0,
     val expanded: Boolean = false, val twoColumn: Boolean = false, val compact: Boolean = false,
-    val groupBy: GroupByMode = GroupByMode.NONE, val draft: PatientDraft? = null
+    val groupBy: GroupByMode = GroupByMode.NONE, val draft: PatientDraft? = null,
+    val fetchChoiceRequired: Boolean = false, val fetchReviewText: String? = null
 ) {
+    val shift: Shift get() = Shift(id = shiftId, date = date, doctorIds = shiftDoctorIds,
+        createdAt = createdAt, updatedAt = createdAt, revision = revision, sortSpecJson = SortSpecCodec.encode(sort))
     val actor: Doctor get() = doctors.firstOrNull { it.id == actorId } ?: doctors.first()
     val names: Map<String, String> get() = doctors.associate { it.id to it.fullName }
     val shiftDoctors: List<Doctor> get() = shiftDoctorIds.mapNotNull { id -> doctors.find { it.id == id } }
@@ -69,19 +64,43 @@ internal data class DemoWardState(
 class DemoWardViewModel @Inject constructor(
     private val uiText: UiStrings,
     @ApplicationContext private val context: Context,
-    repository: InMemoryDemoWardRepository,
-    private val pdfExporter: PdfReportExporter
+    private val repository: InMemoryDemoWardRepository,
+    pdfExporter: PdfReportExporter,
+    mediaStoreSaver: com.hos.rushdpatients.pdf.MediaStoreSaver,
+    textReportBuilder: com.hos.rushdpatients.domain.report.TextReportBuilder
 ) : ViewModel() {
     internal val editor = com.hos.rushdpatients.ui.ward.WardEditorState()
     private val _state = repository.state
     internal val state = _state.asStateFlow()
     private val dayLabel = MutableStateFlow(com.hos.rushdpatients.util.ShiftDate.current())
     private val offline = MutableStateFlow(false)
+    internal val report = DemoReportController(context, uiText, viewModelScope, repository,
+        pdfExporter, mediaStoreSaver, textReportBuilder, ::selectDoctors)
+    internal val doctors = DemoDoctorsController(repository, viewModelScope, uiText)
+    internal val busy get() = report.busy && !report.state.value.loading
+    private var pendingPublication: DemoWardState? = null
+    private val editDrafts = mutableMapOf<String, PatientDraft>()
+    init {
+        viewModelScope.launch {
+            while (true) {
+                val boundary = com.hos.rushdpatients.util.ShiftDate.endOf(com.hos.rushdpatients.util.ShiftDate.current()).toEpochMilli()
+                kotlinx.coroutines.delay((boundary - System.currentTimeMillis()).coerceAtLeast(1_000L))
+                refreshDayLabel()
+            }
+        }
+    }
+    override fun onCleared() { report.reset(); super.onCleared() }
+    internal fun refreshDayLabel() { dayLabel.value = com.hos.rushdpatients.util.ShiftDate.current() }
+
     private fun wardState(snapshot: DemoWardState) = WardUiState(
         loading = false, hospitalName = uiText(R.string.ui_demo_navigation_001),
-        shift = Shift(id = snapshot.shiftId, date = snapshot.date, doctorIds = snapshot.shiftDoctorIds,
-            createdAt = snapshot.createdAt, updatedAt = snapshot.createdAt, revision = snapshot.revision,
-            sortSpecJson = SortSpecCodec.encode(snapshot.sort)),
+        shift = snapshot.shift,
+        recycleBinLoading = false,
+        fetchChoiceRequired = snapshot.fetchChoiceRequired, fetchReviewText = snapshot.fetchReviewText,
+        synchronization = repository.changes(snapshot).let { changes -> WardSynchronization(
+            pending = changes.pending, pendingCount = changes.count, selectedSnapshot = changes.state,
+            publishedAt = repository.publishedAt, downloadedAt = repository.downloadedAt,
+            lastReportAt = repository.receipts.value.lastOrNull()?.at) },
         patients = snapshot.ordered, doctors = snapshot.doctors, deletedPatients = snapshot.deleted,
         groupedPatients = groupPatients(uiText, snapshot.ordered, snapshot.doctors, snapshot.groupBy),
         sortSpec = snapshot.sort, groupByMode = snapshot.groupBy, patientDraft = snapshot.draft,
@@ -93,6 +112,7 @@ class DemoWardViewModel @Inject constructor(
 
     internal val controller: WardController = object : WardController {
         override val liveProject = false
+        override val synchronizationAvailable = true
         override val state get() = workspace
         override val online get() = offline
         override val dayLabel get() = this@DemoWardViewModel.dayLabel
@@ -157,15 +177,50 @@ class DemoWardViewModel @Inject constructor(
         override fun setGroupByMode(mode: GroupByMode) { _state.update { it.copy(groupBy = mode) } }
         override fun dismissSnackbar() { dismissMessage() }
         override fun loadRecycleBin() { }
-        override fun bringLatestData() { unavailable() }
-        override fun retryLastAction() { unavailable() }
+        override fun bringLatestData() {
+            refreshDayLabel()
+            if (repository.changes().pending) _state.update { it.copy(fetchChoiceRequired = true) }
+            else replaceAndFetch()
+        }
+        override fun replaceAndFetch(allowOlder: Boolean) {
+            repository.fetch()
+            message(uiText(R.string.demo_fetch_complete))
+        }
+        override fun reviewPendingPublication() {
+            pendingPublication = _state.value
+            _state.update { it.copy(fetchChoiceRequired = false, fetchReviewText = uiText(R.string.demo_publish_review)) }
+        }
+        override fun confirmPendingPublication() {
+            val snapshot = pendingPublication ?: return
+            if (repository.changes(snapshot) != repository.changes()) {
+                dismissFetchReview(); message(uiText(R.string.demo_review_changed)); return
+            }
+            repository.publish(snapshot)
+            dismissFetchReview()
+            message(uiText(R.string.demo_publish_complete))
+        }
+        override fun dismissFetchReview() {
+            pendingPublication = null
+            _state.update { it.copy(fetchChoiceRequired = false, fetchReviewText = null) }
+        }
+        override fun loadEditDraft(id: String, done: (PatientDraft?) -> Unit) { done(editDrafts[id]) }
+        override fun saveEditDraft(id: String, draft: PatientDraft) { editDrafts[id] = draft }
+        override fun discardEditDraft(id: String) { editDrafts.remove(id) }
+        override fun retryLastAction() { bringLatestData() }
     }
 
-    private var pendingExport: Pair<PdfExportOptions, Boolean>? = null
-    internal fun endSession() { editor.clear(); pendingExport = null; _state.value = DemoWardState() }
-    internal fun reset() {
-        if (!_state.value.exporting) { editor.clear(); pendingExport = null; _state.value = DemoWardState(message = uiText(R.string.ui_demo_ward_view_model_001)) }
+    internal fun endSession() {
+        editor.clear(); editDrafts.clear(); pendingPublication = null
+        report.reset(); repository.reset(); doctors.reset()
     }
+    internal fun reset() {
+        if (!busy) {
+            endSession()
+            message(uiText(R.string.ui_demo_ward_view_model_001))
+        }
+    }
+    internal fun undoFetch() { repository.undoFetch() }
+    internal val canUndoFetch get() = repository.undo != null
     internal fun selectActor(id: String) {
         if (_state.value.doctors.any { it.id == id && !it.isDeleted }) _state.update { it.copy(actorId = id) }
     }
@@ -188,7 +243,9 @@ class DemoWardViewModel @Inject constructor(
             onUnavailable(before)
             return false
         }
-        val prepared = patient.copy(
+        val prepared = com.hos.rushdpatients.domain.patient.PatientAssignmentChange.onSave(
+            patient, before, com.hos.rushdpatients.util.ShiftDate.current()
+        ).copy(
             revision = (before?.revision ?: 0) + 1, updatedAt = Instant.EPOCH,
             lastEditedByDoctorId = null, lastEditedByName = null,
             sortOrder = before?.sortOrder ?: current.patients.size + 1,
@@ -197,6 +254,7 @@ class DemoWardViewModel @Inject constructor(
             }
         )
         PatientTasks.requireValid(prepared.tasks)
+        com.hos.rushdpatients.domain.patient.PatientDoctorAssignments.requireValid(prepared, current.doctors.associateBy { it.id })
         _state.update { it.copy(patients = it.patients.filterNot { row -> row.id == prepared.id } + prepared,
             message = uiText(R.string.ui_demo_ward_view_model_002), revision = it.revision + 1) }
         return true
@@ -211,52 +269,4 @@ class DemoWardViewModel @Inject constructor(
             deleted = current.deleted.filterNot { it.id == patient.id }, revision = current.revision + 1, message = uiText(R.string.ui_demo_ward_view_model_004))
     }
 
-    internal fun preparePdfExport(options: PdfExportOptions, elegant: Boolean) {
-        if (!_state.value.exporting) pendingExport = options to elegant
-    }
-
-    internal fun exportPreparedPdf(uri: Uri?) {
-        val prepared = pendingExport
-        pendingExport = null
-        if (uri == null) return
-        if (prepared == null) { message(uiText(R.string.ui_demo_ward_view_model_005)); return }
-        exportPdf(uri, prepared.first, prepared.second)
-    }
-
-    private fun exportPdf(uri: Uri?, options: PdfExportOptions, elegant: Boolean) {
-        if (uri == null || _state.value.exporting) return
-        val snapshot = _state.value
-        if (snapshot.patients.isEmpty() || snapshot.shiftDoctors.isEmpty()) {
-            message(uiText(R.string.ui_demo_ward_view_model_006))
-            return
-        }
-        _state.update { it.copy(exporting = true) }
-        viewModelScope.launch {
-            try {
-                withContext(Dispatchers.IO) {
-                    val file = File.createTempFile("demo-report-", ".pdf", context.cacheDir)
-                    try {
-                        pdfExporter.export(patients = snapshot.ordered, doctors = snapshot.shiftDoctors,
-                            summary = snapshot.summary, residentNames = snapshot.names, supervisorNames = snapshot.names,
-                            options = options.copy(hospitalName = "مشفى تجريبي", wardName = "جناح تجريبي"), elegant = elegant, documentLabel = "عرض تجريبي — بيانات وهمية وغير طبية",
-                            outputFile = file)
-                        check(file.length() > 0) { uiText(R.string.ui_demo_ward_view_model_007) }
-                        context.contentResolver.openOutputStream(uri, "wt")?.use { output ->
-                            file.inputStream().use { it.copyTo(output) }
-                            output.flush()
-                        } ?: error(uiText(R.string.ui_demo_ward_view_model_008))
-                        val expected = file.readBytes()
-                        val saved = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                            ?: error(uiText(R.string.ui_demo_ward_view_model_009))
-                        check(saved.contentEquals(expected)) { uiText(R.string.ui_demo_ward_view_model_010) }
-                    } finally { file.delete() }
-                }
-                message(uiText(R.string.ui_demo_ward_view_model_011))
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                message(e.message ?: uiText(R.string.ui_demo_ward_view_model_012))
-            } finally { _state.update { it.copy(exporting = false) } }
-        }
-    }
 }

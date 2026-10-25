@@ -3,8 +3,8 @@ from __future__ import annotations
 import copy
 import time
 import desktop_widgets as ctk
-from desktop_protocol import is_admin
-from desktop_model import task_counts
+from desktop_protocol import is_admin, current_date
+from desktop_model import pending_task_count
 from desktop_sort import GROUPS, groups, sort_description, manual_move_allowed
 from desktop_workflow import WorkflowAction, workflow_status
 from desktop_layout import filter_summary
@@ -26,7 +26,6 @@ def render(owner):
         owner.login_button.configure(state='normal' if connected and not owner.busy else 'disabled')
         owner.fetch_button.configure(state='normal' if authenticated and not owner.busy else 'disabled')
         owner.send_report_button.configure(state='normal' if authenticated and has_shift and not owner.busy else 'disabled')
-        owner.publish_button.configure(state='normal' if authenticated and has_shift and not owner.busy else 'disabled')
     actor=owner.client.doctors.get(owner.client._actor) if owner.client else None
     if actor and is_admin(actor) and time.time()<owner.client._expires:
         if not owner.demo and not owner.admin_sidebar.winfo_manager():owner.admin_sidebar.pack(fill='x',padx=3,pady=3,before=owner.help_sidebar)
@@ -76,14 +75,14 @@ def render(owner):
     if owner.store is None or owner.store.state['draft'] is None:
         owner.update_patient_list([],False,None)
         owner.sort_status.configure(text='التجميع للعرض فقط؛ الترتيب المحفوظ يستخدم في التقارير وCSV.')
-        owner.metrics.configure(text='اجلب مناوبة منشورة، أو انسخ السابقة إلى اليوم. الجلب والنسخ عمليتان منفصلتان.');return
-    draft=owner.store.read(); rows=draft['patients']; pending,overdue=task_counts(rows)
+        owner.metrics.configure(text='اجلب بيانات الجناح المنشورة للبدء.');return
+    draft=owner.store.read(); rows=draft['patients']; pending=pending_task_count(rows)
     owner.cards.select((owner.client.project_id,draft['meta']['shiftId']),{row['externalId'] for row in rows})
     owner.sort_status.configure(text=sort_description(draft))
     display=owner.patient_display(draft)
     roster_names=[owner.client.doctors.get(key,{}).get('name','طبيب محفوظ') for key in draft['meta'].get('doctors','').split(',') if key]
     roster=' / '.join(roster_names[:2])+(' · +'+str(len(roster_names)-2) if len(roster_names)>2 else '')
-    owner.metrics.configure(text='{} · {} من {} مريض · مهام الجناح المعلقة {}\nأطباء المناوبة: {}'.format(draft['meta']['shiftDate'],len(display),len(rows),pending,roster or 'لم تحدد'))
+    owner.metrics.configure(text='{} · {} من {} مريض · مهام الجناح المعلقة {}\nأطباء المناوبة: {}'.format(current_date(owner.client.zone),len(display),len(rows),pending,roster or 'لم تحدد'))
     movement_allowed=owner.manual_movement_allowed()
     owner.update_patient_list(display,movement_allowed,draft)
 

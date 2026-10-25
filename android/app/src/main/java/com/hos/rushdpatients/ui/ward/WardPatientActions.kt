@@ -17,6 +17,8 @@ import com.hos.rushdpatients.domain.sort.SortSpecCodec
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.serialization.json.Json
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -35,6 +37,7 @@ internal class WardPatientActions(
     private val saveGuard: WardSaveGuard
 ) {
     private var draftSaveJob: Job? = null
+    private var recycleBinJob: Job? = null
 
     private val editDraftJobs = mutableMapOf<String, Job>()
     fun loadEditDraft(id: String, done: (PatientDraft?) -> Unit) {
@@ -46,11 +49,29 @@ internal class WardPatientActions(
             catch (e: Exception) { saveGuard.showError(uiText(R.string.patient_edit_draft_unavailable)); done(null) }
         }
     }
+    private fun draftSaveFailed(patientId: String? = null) {
+        val message = uiText(R.string.patient_draft_save_failed)
+        _state.update { it.copy(draftSaveIssue = PatientDraftIssue(patientId, message), snackbar = message) }
+    }
+
+    private fun clearDraftSaveIssue(patientId: String?) {
+        _state.update { current ->
+            if (current.draftSaveIssue?.patientId == patientId) current.copy(draftSaveIssue = null) else current
+        }
+    }
+
     fun saveEditDraft(id: String, draft: PatientDraft) {
         editDraftJobs.remove(id)?.cancel()
         editDraftJobs[id] = viewModelScope.launch {
-            delay(350)
-            settingsRepository.put("patient_edit_draft:$id", json.encodeToString(PatientDraft.serializer(), draft))
+            try {
+                delay(350)
+                settingsRepository.put("patient_edit_draft:$id", json.encodeToString(PatientDraft.serializer(), draft))
+                clearDraftSaveIssue(id)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                draftSaveFailed(id)
+            }
         }
     }
     fun discardEditDraft(id: String) {
@@ -64,14 +85,21 @@ internal class WardPatientActions(
     private suspend fun clearEditDraft(id: String) {
         editDraftJobs.remove(id)?.cancel()
         settingsRepository.delete("patient_edit_draft:$id")
+        clearDraftSaveIssue(id)
     }
 
     fun loadDraft() {
         viewModelScope.launch {
-            val draft = settingsRepository.get(AppConstants.SETTING_PATIENT_DRAFT)
-                ?.let { runCatching { json.decodeFromString<PatientDraft>(it) }.getOrNull() }
-                ?.takeUnless { it.isEmpty }
-            _state.update { it.copy(patientDraft = draft) }
+            try {
+                val draft = settingsRepository.get(AppConstants.SETTING_PATIENT_DRAFT)
+                    ?.let { json.decodeFromString<PatientDraft>(it) }?.takeUnless { it.isEmpty }
+                _state.update { it.copy(patientDraft = draft) }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                val message = uiText(R.string.patient_draft_load_failed)
+                _state.update { it.copy(draftSaveIssue = PatientDraftIssue(null, message), snackbar = message) }
+            }
         }
     }
 
@@ -79,19 +107,24 @@ internal class WardPatientActions(
         _state.update { it.copy(patientDraft = draft.takeUnless { value -> value.isEmpty }) }
         draftSaveJob?.cancel()
         draftSaveJob = viewModelScope.launch {
-            delay(350)
-            if (draft.isEmpty) settingsRepository.delete(AppConstants.SETTING_PATIENT_DRAFT)
-            else settingsRepository.put(
-                AppConstants.SETTING_PATIENT_DRAFT,
-                json.encodeToString(PatientDraft.serializer(), draft)
-            )
+            try {
+                delay(350)
+                if (draft.isEmpty) settingsRepository.delete(AppConstants.SETTING_PATIENT_DRAFT)
+                else settingsRepository.put(AppConstants.SETTING_PATIENT_DRAFT,
+                    json.encodeToString(PatientDraft.serializer(), draft))
+                clearDraftSaveIssue(null)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                draftSaveFailed()
+            }
         }
     }
 
     private suspend fun clearDraft() {
         draftSaveJob?.cancel()
         settingsRepository.delete(AppConstants.SETTING_PATIENT_DRAFT)
-        _state.update { it.copy(patientDraft = null) }
+        _state.update { it.copy(patientDraft = null, draftSaveIssue = null) }
     }
 
     fun addPatient(patient: Patient, position: Int? = null, onSuccess: () -> Unit = {}) {
@@ -177,16 +210,41 @@ internal class WardPatientActions(
     }
 
     fun loadRecycleBin() {
-        val shiftId = _state.value.shift?.id ?: return
-        viewModelScope.launch {
-            _state.update { it.copy(deletedPatients = patientRepository.getSoftDeletedForShift(shiftId)) }
+        recycleBinJob?.cancel()
+        _state.update { it.copy(deletedPatients = emptyList(), recycleBinLoading = true, recycleBinFailed = false) }
+        val shiftId = _state.value.shift?.id ?: run {
+            _state.update { it.copy(recycleBinLoading = false, recycleBinFailed = true) }
+            return
         }
+        recycleBinJob = viewModelScope.launch {
+            try {
+                patientRepository.observeSoftDeletedForShift(shiftId).collect { patients ->
+                    _state.update { current ->
+                        if (current.shift?.id != shiftId) current else current.copy(
+                            deletedPatients = patients, recycleBinLoading = false, recycleBinFailed = false)
+                    }
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                _state.update { current ->
+                    if (current.shift?.id != shiftId) current else current.copy(
+                        deletedPatients = emptyList(), recycleBinLoading = false, recycleBinFailed = true)
+                }
+            }
+        }
+    }
+
+    fun stopRecycleBinObservation() {
+        recycleBinJob?.cancel()
+        recycleBinJob = null
+        _state.update { it.copy(deletedPatients = emptyList(), recycleBinLoading = true, recycleBinFailed = false) }
     }
 
     fun restorePatient(patient: Patient) {
         val shiftId = saveGuard.editableShiftId() ?: return
         viewModelScope.launch {
-            saveGuard.saveAction(onSuccess = { loadRecycleBin() }) {
+            saveGuard.saveAction(onSuccess = {}) {
                 saveGuard.requireEditableShift(shiftId)
                 wardMutations.restorePatient(patient, shiftId)
             }

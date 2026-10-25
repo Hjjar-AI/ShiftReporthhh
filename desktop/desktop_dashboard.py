@@ -1,9 +1,9 @@
 """Read-only handover summary using the ward's existing visibility rules."""
 import time
 from desktop_patient_filters import matches_patient
-from desktop_tasks import counts, read_tasks
+from desktop_tasks import pending_count, read_tasks
 from desktop_clinical import local_identity
-from desktop_protocol import require
+from desktop_protocol import require, current_date
 
 
 # Each action resets all three filter dimensions, so an old filter cannot hide matches.
@@ -15,21 +15,19 @@ FILTERS = {
     'unassigned': ('بحاجة إلى تعيين طبيب', 'غير مسند', 'كل المهام', False),
     'new': ('دخول اليوم', 'دخول اليوم', 'كل المهام', False),
     'pending': ('المهام المعلقة', 'الكل', 'مهام معلقة', False),
-    'overdue': ('المهام المتأخرة (ضمن المعلقة)', 'الكل', 'مهام متأخرة', False),
-    'task_unassigned': ('مهام معلقة غير معيّنة', 'الكل', 'مهام غير مسندة', False),
 }
 
 
 def summary(patients, actor=None, zone='Asia/Damascus', now=None):
     now = int(time.time()*1000) if now is None else now
-    totals = counts([task for patient in patients for task in read_tasks(patient)], now)
+    pending = pending_count([task for patient in patients for task in read_tasks(patient)])
     result = {}
     for key, (_, clinical, tasks, mine) in FILTERS.items():
         result[key] = sum(matches_patient(patient, clinical=clinical, tasks=tasks,
                                          mine=mine, actor=actor, zone=zone, now=now)
                           for patient in patients)
     # Task tiles count records; opening a tile shows the patients containing those tasks.
-    result.update(pending=totals.pending, overdue=totals.overdue, task_unassigned=totals.unassigned)
+    result.update(pending=pending)
     return result
 
 
@@ -98,7 +96,7 @@ def handover_dashboard(owner):
         shift = current()
         actor = local_identity(owner.store, owner.client)
         values = summary(shift['patients'], (actor or {}).get('uid'), owner.client.zone)
-        update(shift_label, 'مناوبة {} · الملخص يشمل جميع المرضى قبل التصفية'.format(shift['meta']['shiftDate']))
+        update(shift_label, 'مناوبة {} · الملخص يشمل جميع المرضى قبل التصفية'.format(current_date(owner.client.zone)))
         for key, tile in tiles.items():
             update(tile, '{}: {}'.format(FILTERS[key][0], values[key]))
             if key in {'urgent'}:

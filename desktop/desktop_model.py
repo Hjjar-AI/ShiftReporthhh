@@ -5,10 +5,9 @@ import copy
 from datetime import date, datetime
 import json
 import re
-import time
 import uuid
 from desktop_protocol import COLUMNS, EDITABLE, ZoneInfo, current_date, packed, require
-from desktop_tasks import (TASK_PRIORITY, read_tasks, counts, validate as validate_tasks,
+from desktop_tasks import (read_tasks, pending_count, validate as validate_tasks,
                            ordered_for_display, task_text)
 
 GENDER = {'M': 'ذكر', 'F': 'أنثى'}
@@ -26,9 +25,8 @@ def doctor_label(doctors, key):
     return doctors.get(key, {}).get('name', 'طبيب محفوظ') + ' [' + key + ']' if key else 'بدون'
 
 
-def task_counts(patients):
-    value = counts([task for patient in patients for task in read_tasks(patient)])
-    return value.pending, value.overdue
+def pending_task_count(patients):
+    return pending_count([task for patient in patients for task in read_tasks(patient)])
 
 
 def badges_decode(value):
@@ -74,7 +72,7 @@ def validate_patient(row, doctors, zone):
         value = row.get(key)
         require(not value or value in doctors and doctors[value]['clinicalRole'] == role, 'اختر طبيبا نشطا بالدور الصحيح')
     tasks = read_tasks(row)
-    validate_tasks(tasks, require_completion=False)
+    validate_tasks(tasks)
 
 
 def patient_text(row, doctors, zone, clinical_only=False):
@@ -96,14 +94,13 @@ def patient_text(row, doctors, zone, clinical_only=False):
     if is_cross_team_cover(row,doctors):lines.append('تغطية فردية من فريق آخر؛ عضوية الفريق الثابتة لا تتغير')
     for text, level in badges_decode(row.get('warningDetails', '')):
         lines.append('شارة: ' + text + ' · ' + BADGE_PRIORITY[level])
-    now = int(time.time()*1000)
-    for task in ordered_for_display(read_tasks(row), now):
-        lines.append('مهمة: ' + task_text(task, doctors, zone, now))
+    for task in ordered_for_display(read_tasks(row)):
+        lines.append('مهمة: ' + task_text(task))
     return '\n'.join(lines)
 
 
-def shift_text(shift, doctors, zone):
-    lines = ['تاريخ المناوبة: ' + shift['meta']['shiftDate'],
+def shift_text(shift, doctors, zone, report_day=None):
+    lines = ['تاريخ المناوبة: ' + (report_day or current_date(zone)),
              'أطباء المناوبة: ' + ' / '.join(doctor_label(doctors,key) for key in shift['meta'].get('doctors','').split(',') if key)]
     for index,row in enumerate(shift['patients'],1):
         lines += ['\n──────── {} ────────'.format(index), patient_text(row,doctors,zone)]

@@ -63,6 +63,7 @@ internal fun PatientFormDialog(
     stateStore: PatientFormStateStore? = null,
     doctors: List<Doctor>,
     saving: Boolean,
+    draftWarning: String? = null,
     reviewAction: @Composable () -> Unit = {},
     entryOptions: @Composable () -> Unit = {},
     entryOptionsSummary: String? = null,
@@ -160,35 +161,31 @@ internal fun PatientFormDialog(
             AppSectionHeader(
                 uiText(R.string.ui_patient_form_dialog_014)
             )
-            AppFieldPair(
-                minimumRowWidth = com.hos.rushdpatients.ui.theme.UiLayout.patientFieldPairMinWidth,
-                matchHeights = true,
+            Column(
                 modifier = Modifier.fillMaxWidth().bringIntoViewRequester(fieldRequests.getValue(PatientFormField.TEAM)),
-                first = { fieldModifier ->
-                    DoctorDropdown(
-                        label = uiText(R.string.ui_patient_form_dialog_015),
-                        isError = validationMessages.any { it.field == PatientFormField.TEAM },
-                        errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.TEAM }?.message,
-                        undefinedLabel = uiText(R.string.ui_patient_form_dialog_016),
-                        selectedId = residentId,
-                        doctors = residentDoctors, registry = doctors,
-                        onSelected = { residentId = it; clearFieldError(PatientFormField.TEAM) },
-                        modifier = fieldModifier
-                    )
-                },
-                second = { fieldModifier ->
-                    DoctorDropdown(
-                        label = uiText(R.string.ui_patient_form_dialog_017),
-                        isError = validationMessages.any { it.field == PatientFormField.TEAM },
-                        errorMessage = null,
-                        undefinedLabel = uiText(R.string.ui_patient_form_dialog_018),
-                        selectedId = specialistId,
-                        doctors = specialistDoctors, registry = doctors,
-                        onSelected = { specialistId = it; clearFieldError(PatientFormField.TEAM) },
-                        modifier = fieldModifier
-                    )
-                }
-            )
+                verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
+            ) {
+                DoctorDropdown(
+                    label = uiText(R.string.ui_patient_form_dialog_015),
+                    isError = validationMessages.any { it.field == PatientFormField.TEAM },
+                    errorMessage = validationMessages.firstOrNull { it.field == PatientFormField.TEAM }?.message,
+                    undefinedLabel = uiText(R.string.ui_patient_form_dialog_016),
+                    selectedId = residentId,
+                    doctors = residentDoctors, registry = doctors,
+                    onSelected = { residentId = it; clearFieldError(PatientFormField.TEAM) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                DoctorDropdown(
+                    label = uiText(R.string.ui_patient_form_dialog_017),
+                    isError = validationMessages.any { it.field == PatientFormField.TEAM },
+                    errorMessage = null,
+                    undefinedLabel = uiText(R.string.ui_patient_form_dialog_018),
+                    selectedId = specialistId,
+                    doctors = specialistDoctors, registry = doctors,
+                    onSelected = { specialistId = it; clearFieldError(PatientFormField.TEAM) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
 
             Text(uiText(R.string.ui_patient_form_dialog_019),
                 style = MaterialTheme.typography.bodySmall)
@@ -270,6 +267,10 @@ internal fun PatientFormDialog(
                         .verticalScroll(formScrollState),
                     verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
                 ) {
+                    draftWarning?.let { warning ->
+                        com.hos.rushdpatients.ui.components.AppNotice(warning,
+                            kind = com.hos.rushdpatients.ui.components.NoticeKind.WARNING)
+                    }
                     if (validationMessages.isNotEmpty()) {
                         com.hos.rushdpatients.ui.components.AppNotice(
                             message = uiText(R.string.ui_patient_form_dialog_003),

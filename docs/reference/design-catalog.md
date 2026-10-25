@@ -39,10 +39,10 @@ Keep purpose-specific tokens independent; whole-row controls own selection/toggl
 
 ## Internal profiles and local overrides
 
-Profile definitions remain internal/compatible; Appearance exposes theme/text size/normal-or-comfortable spacing/reduced motion. Retired overrides normalize to current profile, comfortable controls, visible navigation, compact Add and explicit expansion. `LocalUiStyle` owns spacing/motion; `UiPreferences` stays encrypted/device-local (demo memory). Accent/PDF independent; reduced motion zeroes app-owned animation, platform sheets/ripples follow Android.
+Profile definitions remain internal/compatible; Appearance exposes theme/text size/normal spacing/reduced motion. Retired overrides normalize to current profile, comfortable controls, visible navigation, compact Add and explicit expansion. `LocalUiStyle` owns spacing/motion; `UiPreferences` stays encrypted/device-local (demo memory). Accent/PDF independent; reduced motion zeroes app-owned animation, platform sheets/ripples follow Android.
 
 ```kotlin
-ProvideUiPreferences(UiPreferences(profile = "relaxed", density = UiDensity.RELAXED)) {
+ProvideUiPreferences(UiPreferences(reducedMotion = true)) {
     // Shared components consume LocalUiStyle/LocalUiPreferences.
 }
 ```

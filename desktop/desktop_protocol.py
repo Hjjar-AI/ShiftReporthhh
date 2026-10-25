@@ -126,8 +126,8 @@ class Client:
     def plan(self, shift, choices=None):
         return desktop_publication.plan(self, shift, choices)
 
-    def prepare(self, plan, restored_completions=None, saved_patients=None):
-        return desktop_publication.prepare(self, plan, restored_completions, saved_patients)
+    def prepare(self, plan):
+        return desktop_publication.prepare(self, plan)
 
     def approve(self, plan):
         return desktop_publication.approve(self, plan)
@@ -135,8 +135,8 @@ class Client:
     def publish(self, plan, before_upload):
         return desktop_publication.publish(self, plan, before_upload)
 
-    def send_pdf(self, raw, shift, supervisor, reviewed_pointer, reviewed_registry, before_send):
-        return desktop_report_transport.send_pdf(self, raw, shift, supervisor, reviewed_pointer, reviewed_registry, before_send)
+    def send_pdf(self, raw, shift, supervisor, reviewed_pointer, reviewed_registry, before_send, report_day=None):
+        return desktop_report_transport.send_pdf(self, raw, shift, supervisor, reviewed_pointer, reviewed_registry, before_send, report_day)
 
-    def send_text(self, text, shift, supervisor, reviewed_pointer, reviewed_registry, before_send):
-        return desktop_report_transport.send_text(self, text, shift, supervisor, reviewed_pointer, reviewed_registry, before_send)
+    def send_text(self, text, shift, supervisor, reviewed_pointer, reviewed_registry, before_send, report_day=None):
+        return desktop_report_transport.send_text(self, text, shift, supervisor, reviewed_pointer, reviewed_registry, before_send, report_day)

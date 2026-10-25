@@ -5,6 +5,8 @@ import com.hos.rushdpatients.data.db.AppDatabase
 import com.hos.rushdpatients.data.db.dao.PatientDao
 import com.hos.rushdpatients.data.mapper.PatientMapper
 import com.hos.rushdpatients.data.model.Patient
+import com.hos.rushdpatients.domain.patient.PatientAssignmentChange
+import com.hos.rushdpatients.util.ShiftDate
 import com.hos.rushdpatients.data.model.withoutTrackingMetadata
 import com.hos.rushdpatients.util.DispatcherProvider
 import kotlinx.coroutines.flow.Flow
@@ -65,7 +67,9 @@ class PatientRepository @Inject constructor(
             ) {
                 throw StalePatientEditException()
             }
-            val updated = patient.withoutTrackingMetadata().copy(
+            val updated = PatientAssignmentChange.onSave(
+                patient, PatientMapper.fromEntity(current), ShiftDate.current()
+            ).withoutTrackingMetadata().copy(
                 revision = current.revision + 1,
                 updatedAt = Instant.EPOCH,
                 lastEditedByDoctorId = null, lastEditedByName = null,
@@ -147,6 +151,10 @@ class PatientRepository @Inject constructor(
     suspend fun getSoftDeleted(): List<Patient> = withContext(dispatchers.io) {
         dao.getSoftDeleted().map(PatientMapper::fromEntity)
     }
+
+    fun observeSoftDeletedForShift(shiftId: String): Flow<List<Patient>> =
+        dao.observeSoftDeletedForShift(shiftId)
+            .map { rows -> rows.map(PatientMapper::fromEntity) }.flowOn(dispatchers.io)
 
     suspend fun getSoftDeletedForShift(shiftId: String): List<Patient> =
         withContext(dispatchers.io) {

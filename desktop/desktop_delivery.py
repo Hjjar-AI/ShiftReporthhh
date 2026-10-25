@@ -4,16 +4,17 @@ Callers own previews and final confirmation. This coordinator preserves exact
 payloads, publishes at most once and records uncertainty before each transport.
 """
 import copy
-from desktop_protocol import BridgeError, doctor_pointer, fingerprint, pointer, require
+from desktop_protocol import BridgeError, doctor_pointer, fingerprint, pointer, require, current_date
 from desktop_reports import prepare_delivery, report_content, report_destination
 
 
 class ReportDelivery:
     def __init__(self, owner, local):
         self.owner = owner
+        self.report_day = current_date(owner.client.zone)
         self.source_hash = fingerprint(local)
         self.plan, self.reviewed, self.needs_publish = owner.io(
-            lambda: prepare_delivery(owner.client, local, owner.store.restored_completions()))
+            lambda: prepare_delivery(owner.client, local))
         self.require_unchanged()
         self.snapshot = self.plan.remote
         owner.client.doctors = copy.deepcopy(self.snapshot['doctors'])
@@ -80,7 +81,7 @@ class ReportDelivery:
 
             send = owner.client.send_pdf if format_name == 'pdf' else owner.client.send_text
             result = owner.io(lambda: send(payload, self.reviewed, supervisor, pointer(self.snapshot['state']),
-                                          doctor_pointer(self.snapshot['state']), before))
+                                          doctor_pointer(self.snapshot['state']), before, report_day=self.report_day))
             owner.report_attempt.delivery = 'CONFIRMED'
             owner.show_report_attempt()
             outcome(supervisor, 'تليجرام أكد التسليم')

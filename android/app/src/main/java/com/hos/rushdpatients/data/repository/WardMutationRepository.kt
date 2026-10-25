@@ -2,6 +2,8 @@ package com.hos.rushdpatients.data.repository
 
 import com.hos.rushdpatients.domain.task.PatientTasks
 import androidx.room.withTransaction
+import com.hos.rushdpatients.domain.patient.PatientAssignmentChange
+import com.hos.rushdpatients.util.ShiftDate
 import com.hos.rushdpatients.domain.patient.PatientDoctorAssignments
 import com.hos.rushdpatients.config.AppConstants
 import com.hos.rushdpatients.data.db.AppDatabase
@@ -59,7 +61,7 @@ class WardMutationRepository @Inject constructor(
                 shifts.updateSortSpec(shiftId, SortSpecCodec.encode(SortSpec.EMPTY))
             }
             val order = position ?: ((current.maxOfOrNull { it.sortOrder } ?: 0) + 1)
-            val prepared = prepareTasks(patient)
+            val prepared = PatientAssignmentChange.onSave(prepareTasks(patient), null, ShiftDate.current())
             val added = prepared.copy(
                 sortOrder = order,
                 revision = 1,

@@ -15,6 +15,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextDirection
+import androidx.compose.ui.text.style.LineBreak
+import androidx.compose.ui.text.style.Hyphens
 
 @Composable
 fun AppPickerField(
@@ -46,7 +48,9 @@ fun AppPickerField(
             trailingIcon = { Icon(icon, contentDescription = null) },
             supportingText = if (supportingText == null) null else { { Text(supportingText) } },
             innerTextField = {
-                Text(value, style = MaterialTheme.typography.bodyLarge.copy(textDirection = valueTextDirection),
+                Text(value, modifier = Modifier.fillMaxWidth(), softWrap = true,
+                    style = MaterialTheme.typography.bodyLarge.copy(textDirection = valueTextDirection,
+                        lineBreak = LineBreak.Paragraph, hyphens = Hyphens.None),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = UiOpacity.content(active)))
             }
         )

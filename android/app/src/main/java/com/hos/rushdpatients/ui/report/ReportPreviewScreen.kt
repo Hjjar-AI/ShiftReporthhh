@@ -26,7 +26,6 @@ import com.hos.rushdpatients.ui.theme.UiSpacing
 import com.hos.rushdpatients.ui.components.AppTextButton
 import com.hos.rushdpatients.ui.components.AppOutlinedButton
 import com.hos.rushdpatients.ui.components.AppSection
-import com.hos.rushdpatients.ui.components.AppFieldPair
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.saveable.rememberSaveable
 import android.content.ActivityNotFoundException
@@ -80,6 +79,19 @@ fun ReportPreviewScreen(
     onReviewPatients: (String, Set<String>) -> Unit = { _, _ -> },
     refreshRequest: Boolean = false, onRefreshConsumed: () -> Unit = {}
 ) {
+    ReportWorkspace(onBack, onOpenDoctors, remember(viewModel) { LiveReportController(viewModel) },
+        onReviewPatients, refreshRequest, onRefreshConsumed)
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
+@Composable
+internal fun ReportWorkspace(
+    onBack: () -> Unit,
+    onOpenDoctors: () -> Unit,
+    viewModel: ReportController,
+    onReviewPatients: (String, Set<String>) -> Unit = { _, _ -> },
+    refreshRequest: Boolean = false, onRefreshConsumed: () -> Unit = {}
+) {
     LaunchedEffect(refreshRequest) {
         if (refreshRequest) { viewModel.load(); onRefreshConsumed() }
     }
@@ -88,7 +100,6 @@ fun ReportPreviewScreen(
     val snackbar = remember { SnackbarHostState() }
     var step by rememberSaveable { mutableStateOf(ReportFlowStep.DOCTORS) }
     val context = LocalContext.current
-    var supervisorMenuOpen by remember { mutableStateOf(false) }
     var generalSelected by rememberSaveable { mutableStateOf(true) }
     var showRosterDetails by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     var showTextPreview by remember { mutableStateOf(false) }
@@ -110,10 +121,23 @@ fun ReportPreviewScreen(
     val destinationReady = flowGate.destinationReady
     val nextDisabledReason = flowGate.nextDisabledReason?.let { uiText(it) }
     val sendDisabledReason = flowGate.sendDisabledReason?.let { uiText(it) }
-    fun openPreview() {
-        if (supervisorMode) supervisorMenuOpen = true
+    val previews = buildList {
+        if (generalSelected) add(ReportPreviewItem("general", uiText(R.string.ui_report_preview_screen_025),
+            flowGate.previewReadiness.getValue("general")))
+        selectedTargets.forEach { target ->
+            val key = "supervisor:${target.doctorId}"
+            add(ReportPreviewItem(key, target.doctorName, flowGate.previewReadiness.getValue(key)))
+        }
+    }
+    val nextPreview = previews.firstOrNull { !it.reviewed }
+    fun preview(item: ReportPreviewItem) {
+        if (busy || !destinationReady) return
+        if (item.key != "general") viewModel.previewSupervisorPdf(item.key.removePrefix("supervisor:"))
         else if (state.reportAsPdf) viewModel.previewPdf()
         else { reviewedText = state.previewMarkdown; showTextPreview = true }
+    }
+    fun openPreview() {
+        (nextPreview ?: previews.firstOrNull())?.let(::preview)
     }
     fun previousStep() {
         if (!busy) {
@@ -184,6 +208,7 @@ fun ReportPreviewScreen(
         topBar = {
             Column {
                 AppTopBar(title = uiText(R.string.ui_report_preview_screen_013, step.arabicLabel(uiText)), onBack = ::previousStep)
+                if (viewModel.simulation) AppNotice(uiText(R.string.demo_simulation_notice))
                 ReportFlowProgress(step)
             }
         },
@@ -193,34 +218,35 @@ fun ReportPreviewScreen(
                     verticalArrangement = Arrangement.spacedBy(UiSpacing.tiny)) {
                     val targetSummary = uiText(R.string.ui_report_selected_destinations,
                         uiNumber(selectedTargets.size + if (generalSelected) 1 else 0))
-                    val disabledReason = if (step == ReportFlowStep.PREVIEW) sendDisabledReason else nextDisabledReason
                     Text(targetSummary, style = MaterialTheme.typography.bodySmall)
-                    disabledReason?.let { reason ->
-                        AppNotice(reason, kind = NoticeKind.WARNING, actionLabel = uiText(R.string.report_open_required_step),
-                            onAction = {
-                                when {
-                                    state.doctors.isEmpty() -> { step = ReportFlowStep.DOCTORS; showShiftDoctors = true }
-                                    !destinationReady -> step = ReportFlowStep.DOCTORS
-                                    else -> { step = ReportFlowStep.PREVIEW; openPreview() }
-                                }
+                    val previewNeeded = step == ReportFlowStep.PREVIEW && !previewReady
+                    val disabledReason = when {
+                        step == ReportFlowStep.DOCTORS -> nextDisabledReason
+                        !destinationReady -> sendDisabledReason
+                        previewNeeded -> null // The primary action opens the next required preview directly.
+                        else -> sendDisabledReason
+                    }
+                    disabledReason?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+                    when {
+                        step == ReportFlowStep.DOCTORS -> AppButton(
+                            onClick = { step = step.next() }, enabled = nextDisabledReason == null,
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text(uiText(R.string.ui_report_preview_screen_017, step.next().arabicLabel(uiText))) }
+                        previewNeeded -> LoadingButton(
+                            text = if (state.previewingPdf) uiText(R.string.ui_progress_prepare_preview)
+                                else nextPreview?.let { uiText(R.string.report_preview_destination, it.label) }
+                                    ?: uiText(R.string.ui_report_preview_screen_058),
+                            loading = state.previewingPdf, enabled = !busy && destinationReady && nextPreview != null,
+                            modifier = Modifier.fillMaxWidth(), onClick = ::openPreview)
+                        else -> LoadingButton(text = UiAction.SEND_REPORT.label(uiText), loading = state.sending,
+                            modifier = Modifier.fillMaxWidth(), enabled = sendDisabledReason == null,
+                            onClick = {
+                                pendingDelivery = ReportDestinationReview(generalSelected, selectedTargets.toList(), state.reportAsPdf)
                             })
                     }
-                    AppFieldPair(first = { buttonModifier ->
-                        AppOutlinedButton(onClick = ::previousStep, enabled = !busy, modifier = buttonModifier) {
-                            Text(if (step == ReportFlowStep.DOCTORS) uiText(R.string.ui_cancel) else uiText(R.string.ui_previous))
-                        }
-                    }, second = { buttonModifier ->
-                        if (step == ReportFlowStep.PREVIEW) {
-                            LoadingButton(text = UiAction.SEND_REPORT.label(uiText), loading = state.sending,
-                                modifier = buttonModifier, enabled = sendDisabledReason == null,
-                                onClick = {
-                                    pendingDelivery = ReportDestinationReview(generalSelected, selectedTargets.toList(), state.reportAsPdf)
-                                })
-                        } else {
-                            AppButton(onClick = { step = step.next() }, enabled = nextDisabledReason == null,
-                                modifier = buttonModifier) { Text(uiText(R.string.ui_report_preview_screen_017, step.next().arabicLabel(uiText))) }
-                        }
-                    })
+                    AppTextButton(onClick = ::previousStep, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
+                        Text(if (step == ReportFlowStep.DOCTORS) uiText(R.string.ui_cancel) else uiText(R.string.ui_previous))
+                    }
                 }
             }
         },
@@ -244,6 +270,9 @@ fun ReportPreviewScreen(
                     .verticalScroll(contentScroll),
                 verticalArrangement = Arrangement.spacedBy(UiSpacing.small)
             ) {
+                if (step == ReportFlowStep.PREVIEW) {
+                    ReportPreviewList(previews, enabled = !busy && destinationReady, onPreview = ::preview)
+                }
                 if (step == ReportFlowStep.DOCTORS) {
                     AppSection(title = uiText(R.string.ui_shift_doctor_picker_001), colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer
@@ -311,6 +340,7 @@ fun ReportPreviewScreen(
                         kind = NoticeKind.WARNING, actionLabel = uiText(R.string.ui_ward_workflow_strip_007),
                         onAction = { showDeliveryLog = true }, actionEnabled = !busy)
                 }
+                state.reviewNotice?.let { notice -> AppNotice(notice, kind = NoticeKind.WARNING) }
                 state.error?.let { err ->
                     AppSection(title = uiText(R.string.ui_report_preview_screen_036)) {
                         AppNotice(when (state.doctorRegistryAction) {
@@ -432,15 +462,6 @@ fun ReportPreviewScreen(
                     }
                 }
 
-                if (step == ReportFlowStep.PREVIEW) {
-                    AppNotice(if (supervisorMode) uiText(R.string.ui_report_preview_screen_056)
-                        else uiText(R.string.ui_report_preview_screen_057))
-                    LoadingButton(text = if (state.previewingPdf) uiText(R.string.ui_progress_prepare_preview)
-                        else if (supervisorMode) uiText(R.string.ui_report_preview_screen_058) else if (state.reportAsPdf) uiText(R.string.ui_report_preview_screen_059) else uiText(R.string.ui_report_preview_screen_060),
-                        outlined = true, loading = state.previewingPdf, modifier = Modifier.fillMaxWidth(),
-                        enabled = !busy && destinationReady, onClick = ::openPreview)
-                    if (previewReady) Text(uiText(R.string.ui_report_preview_screen_061), style = MaterialTheme.typography.bodySmall)
-                }
                 if (step == ReportFlowStep.PREVIEW) AppSection(title = uiText(R.string.ui_report_preview_screen_062)) {
                     Text(uiText(R.string.ui_report_preview_screen_063) + state.doctors.joinToString(uiText(R.string.ui_patient_card_002)) { it.fullName })
                     if (generalSelected) Text(uiText(R.string.ui_report_preview_screen_065,
@@ -488,22 +509,6 @@ fun ReportPreviewScreen(
         AppAlertDialog(onDismissRequest = { showTextPreview = false }, title = { Text(uiText(R.string.ui_report_preview_screen_077)) },
             text = { Column(Modifier.appDialogBody().verticalScroll(rememberScrollState())) { Text(state.previewMarkdown) } },
             confirmButton = { AppTextButton(onClick = { showTextPreview = false }) { Text(uiText(R.string.ui_close)) } })
-    }
-    if (supervisorMenuOpen) {
-        AppAlertDialog(onDismissRequest = { supervisorMenuOpen = false }, title = { Text(uiText(R.string.ui_report_preview_screen_058)) }, text = {
-            Column(Modifier.appDialogBody().verticalScroll(rememberScrollState())) {
-                Text(uiText(R.string.ui_report_preview_screen_078))
-                if (generalSelected) AppTextButton(onClick = {
-                    if (state.reportAsPdf) viewModel.previewPdf()
-                    else { reviewedText = state.previewMarkdown; showTextPreview = true }
-                }, enabled = !busy) { Text(uiText(R.string.ui_report_preview_screen_025)) }
-                selectedTargets.forEach { target ->
-                    AppTextButton(onClick = { viewModel.previewSupervisorPdf(target.doctorId) }, enabled = !busy) {
-                        Text(uiText(R.string.ui_report_preview_screen_079, target.doctorName))
-                    }
-                }
-            }
-        }, confirmButton = { AppTextButton(onClick = { supervisorMenuOpen = false }) { Text(uiText(R.string.ui_report_preview_screen_080)) } })
     }
     if (showDeliveryLog) {
         AppAlertDialog(onDismissRequest = { showDeliveryLog = false }, title = { Text(uiText(R.string.ui_report_preview_screen_081)) }, text = {

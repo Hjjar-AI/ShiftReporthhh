@@ -42,7 +42,7 @@ data class UiPreferences(
     val expandPatientHeader: Boolean = false
 ) {
     fun simplified(): UiPreferences = copy(
-        profile = "current", density = if (density == UiDensity.RELAXED) UiDensity.RELAXED else UiDensity.NORMAL,
+        profile = "current", density = UiDensity.NORMAL,
         controlSize = UiControlSize.COMFORTABLE, autoHideNavigation = false,
         compactAddAction = true, expandPatientHeader = false
     )

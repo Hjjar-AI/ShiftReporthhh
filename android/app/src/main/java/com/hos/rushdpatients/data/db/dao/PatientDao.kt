@@ -9,6 +9,9 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface PatientDao {
 
+    @Query("DELETE FROM patients WHERE deletedAtEpochMillis IS NOT NULL AND deletedAtEpochMillis <= :cutoffEpochMillis")
+    suspend fun purgeSoftDeletedBefore(cutoffEpochMillis: Long): Int
+
     @Query("""
         SELECT * FROM patients
         WHERE shiftId = :shiftId AND deletedAtEpochMillis IS NULL
@@ -58,6 +61,13 @@ interface PatientDao {
         ORDER BY deletedAtEpochMillis DESC
     """)
     suspend fun getSoftDeletedForShift(shiftId: String): List<PatientEntity>
+
+    @Query("""
+        SELECT * FROM patients
+        WHERE shiftId = :shiftId AND deletedAtEpochMillis IS NOT NULL
+        ORDER BY deletedAtEpochMillis DESC
+    """)
+    fun observeSoftDeletedForShift(shiftId: String): Flow<List<PatientEntity>>
 
     @Query("SELECT * FROM patients")
     suspend fun getAll(): List<PatientEntity>
