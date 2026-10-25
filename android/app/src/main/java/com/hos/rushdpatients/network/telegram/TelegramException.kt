@@ -7,6 +7,8 @@ class TelegramException(
     cause: Throwable? = null
 ) : Exception(message, cause) {
 
+    val isDefiniteRejection: Boolean get() = code in setOf(400, 401, 403, 404, 429)
+
     val isRateLimited: Boolean get() = code == 429
     val isUnauthorized: Boolean get() = code == 401
     val isBadRequest: Boolean get() = code == 400

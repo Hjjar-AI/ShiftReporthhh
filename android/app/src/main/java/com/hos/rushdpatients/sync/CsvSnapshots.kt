@@ -23,32 +23,21 @@ internal fun SyncState.previousCsvSnapshot(): CsvSnapshot? {
  * Telegram documents are immutable. The current pointer can advance repeatedly during the
  * publication while retaining the immediately preceding publication for rollback.
  */
-internal fun SyncState.withPublishedCsv(
-    uploaded: CsvSnapshot,
-    rotateRecovery: Boolean
-): SyncState {
-    if (!rotateRecovery && currentCsvSnapshot() != null) {
-        return copy(
-            csvFileId = uploaded.fileId,
-            csvMessageId = uploaded.messageId,
-            csvDate = uploaded.date,
-            csvUpdatedAt = uploaded.updatedAt
-        )
-    }
-    val snapshots = listOfNotNull(currentCsvSnapshot(), previousCsvSnapshot(), uploaded)
-        .distinctBy { it.messageId }
-        .sortedByDescending { it.messageId }
-    val latest = snapshots.first()
-    val previous = snapshots.getOrNull(1)
+internal fun SyncState.withPublishedCsv(uploaded: CsvSnapshot): SyncState = withCsvHistory(
+    listOfNotNull(currentCsvSnapshot(), previousCsvSnapshot(), uploaded))
+
+internal fun SyncState.withCsvHistory(snapshots: List<CsvSnapshot>): SyncState {
+    val ordered = snapshots.distinctBy { it.messageId }.sortedByDescending { it.messageId }
+    val latest = ordered.firstOrNull()
+    val previous = ordered.getOrNull(1)
     return copy(
-        csvFileId = latest.fileId,
-        csvMessageId = latest.messageId,
-        csvDate = latest.date,
-        csvUpdatedAt = latest.updatedAt,
+        csvFileId = latest?.fileId,
+        csvMessageId = latest?.messageId,
+        csvDate = latest?.date,
+        csvUpdatedAt = latest?.updatedAt ?: 0L,
         previousCsvFileId = previous?.fileId,
         previousCsvMessageId = previous?.messageId,
         previousCsvDate = previous?.date,
         previousCsvUpdatedAt = previous?.updatedAt ?: 0L
     )
 }
-

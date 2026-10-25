@@ -80,7 +80,7 @@ class LocalDownloadUndo @Inject constructor(
                     sortSpecJson = saved?.sortSpecJson ?: SortSpecCodec.encode(SortSpec.EMPTY),
                     revision = current.revision + 1))
             }
-            settings.putBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, true)
+
             settings.delete(key)
             val actor = sessions.current()
             audit.record(actor?.doctorId, actor?.doctorName, "download_undone", "shifts=${entries.size}")

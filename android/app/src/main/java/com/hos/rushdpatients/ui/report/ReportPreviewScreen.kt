@@ -5,6 +5,7 @@ import com.hos.rushdpatients.ui.components.AppAlertDialog
 import com.hos.rushdpatients.ui.components.AppFilterChip
 import com.hos.rushdpatients.ui.components.uiLabel
 
+import com.hos.rushdpatients.domain.report.DeliveryStatus
 import com.hos.rushdpatients.R
 import com.hos.rushdpatients.ui.components.rememberUiStrings
 
@@ -166,10 +167,9 @@ fun ReportPreviewScreen(
         ShiftDoctorPicker(
             allDoctors = state.availableDoctors,
             initialSelected = state.shift?.doctorIds.orEmpty(),
-            initialRevision = state.shift?.revision ?: 0L,
             saving = state.savingDoctors,
-            onConfirm = { ids, revision, onStale ->
-                viewModel.setShiftDoctors(ids, revision, onStale) { showShiftDoctors = false }
+            onConfirm = { ids ->
+                viewModel.setShiftDoctors(ids) { showShiftDoctors = false }
             },
             onDismiss = { showShiftDoctors = false }
         )
@@ -257,10 +257,9 @@ fun ReportPreviewScreen(
                             }
                             if (showRosterDetails) state.doctors.forEach { Text("• ${it.fullName}") }
                         }
-                        if (!state.isReadOnly) AppOutlinedButton(
+                        AppOutlinedButton(
                             onClick = { pendingDelivery = null; showShiftDoctors = true },
-                            enabled = !state.savingPdfOptions && state.shift != null && !state.savingDoctors && !state.sending &&
-                                !state.previewingPdf && !state.exportingLocalPdf && !state.sharingPdf,
+                            enabled = !state.isBusy && state.shift != null,
                             modifier = Modifier.fillMaxWidth()
                         ) { Text(if (state.doctors.isEmpty()) uiText(R.string.ui_report_preview_screen_022) else uiText(R.string.ui_report_preview_screen_023)) }
                     }
@@ -305,7 +304,7 @@ fun ReportPreviewScreen(
                     ReportAttemptStatus(publication, state.deliveryOutcome ?: ReportStepOutcome.NOT_STARTED,
                         busy = busy, onHistory = { showDeliveryLog = true }, onBack = onBack)
                 }
-                if (state.deliveryRecords.any { it.status == "UNKNOWN" } &&
+                if (state.deliveryRecords.any { it.status == DeliveryStatus.UNKNOWN } &&
                     state.deliveryOutcome != ReportStepOutcome.UNCERTAIN && state.deliveryOutcome != ReportStepOutcome.PARTIAL &&
                     state.publicationOutcome != ReportStepOutcome.UNCERTAIN) {
                     AppNotice(uiText(R.string.ui_report_preview_screen_035),
@@ -351,15 +350,12 @@ fun ReportPreviewScreen(
                         }
                     }
                 }
-                state.deliveryRecords.filter { it.status == "UNKNOWN" }.forEach { receipt ->
+                state.deliveryRecords.filter { it.status == DeliveryStatus.UNKNOWN }.forEach { receipt ->
                     AppSection(title = receipt.label) {
                         DeliveryQuestion(receipt, !busy, viewModel::resolveDelivery)
                     }
                 }
                 state.lastOperation?.let { AppNotice(it) }
-                if (state.isReadOnly) {
-                    AppNotice(uiText(R.string.ui_report_preview_screen_045))
-                }
 
                 if (step == ReportFlowStep.PREVIEW) {
                     state.registryChangeSummary?.let { summary ->
@@ -514,14 +510,14 @@ fun ReportPreviewScreen(
                 Text(uiText(R.string.ui_report_preview_screen_082))
                 if (state.deliveryRecords.isEmpty()) Text(uiText(R.string.ui_report_preview_screen_083))
                 state.deliveryRecords.asReversed().forEach { row ->
-                    val label = when (row.status) { "UNKNOWN_COPY_ALLOWED" -> uiText(R.string.delivery_uncertain_copy_allowed); "UNKNOWN" -> uiText(R.string.ui_report_preview_screen_084); "SENT" -> uiText(R.string.ui_report_preview_screen_085); else -> uiText(R.string.ui_report_preview_screen_086) }
+                    val label = when (row.status) { DeliveryStatus.UNKNOWN_COPY_ALLOWED -> uiText(R.string.delivery_uncertain_copy_allowed); DeliveryStatus.UNKNOWN -> uiText(R.string.ui_report_preview_screen_084); DeliveryStatus.SENT -> uiText(R.string.ui_report_preview_screen_085); else -> uiText(R.string.ui_report_preview_screen_086) }
                     Text("${row.label} · ${row.format} · $label")
                     Text(java.time.Instant.ofEpochMilli(row.at).atZone(java.time.ZoneId.systemDefault())
                         .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")),
                         style = MaterialTheme.typography.bodySmall)
-                    if (row.status == "UNKNOWN") {
+                    if (row.status == DeliveryStatus.UNKNOWN) {
                         DeliveryQuestion(row, !busy, viewModel::resolveDelivery)
-                    } else if (row.status == "SENT") {
+                    } else if (row.status == DeliveryStatus.SENT) {
                         Text(uiText(R.string.ui_report_preview_screen_092), style = MaterialTheme.typography.bodySmall)
                         AppOutlinedButton(onClick = { deliveryDecision = row to DeliveryResolution.ALLOW_COPY }, enabled = !busy) {
                             Text(uiText(R.string.ui_report_preview_screen_089))
@@ -563,10 +559,10 @@ fun ReportPreviewScreen(
             patientCount = reportPatientIds.size,
             enabled = sendDisabledReason == null && targetsUnchanged && destinations.isNotEmpty(),
             unavailableReason = if (targetsUnchanged) sendDisabledReason else uiText(R.string.ui_report_preview_screen_096),
-            onConfirm = { forceLocal ->
+            onConfirm = {
                 pendingDelivery = null
                 viewModel.sendSelectedReports(review.includeGeneral,
-                    review.supervisors.mapTo(linkedSetOf()) { it.doctorId }, forceLocal)
+                    review.supervisors.mapTo(linkedSetOf()) { it.doctorId })
             }, onDismiss = { pendingDelivery = null })
     }
 }

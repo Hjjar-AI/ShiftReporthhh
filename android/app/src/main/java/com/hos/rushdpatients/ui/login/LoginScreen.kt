@@ -153,7 +153,7 @@ private fun PickDoctorList(
         }
         items(matchingDoctors, key = { it.id }) { doctor ->
             val enabled = doctor.telegramId != null
-            val hasPin = doctor.extraOptions.any { it.startsWith("pin:") }
+            val hasPin = doctor.options.pinHash != null
             AppCard(
                 modifier = Modifier
                     .fillMaxWidth()

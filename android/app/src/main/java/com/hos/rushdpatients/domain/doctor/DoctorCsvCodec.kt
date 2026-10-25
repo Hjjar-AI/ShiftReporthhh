@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.domain.doctor
 
+import com.hos.rushdpatients.data.model.DoctorOptions
 import com.hos.rushdpatients.config.AppConstants
 import com.hos.rushdpatients.data.model.ClinicalRole
 import com.hos.rushdpatients.data.model.Doctor
@@ -42,9 +43,7 @@ object DoctorCsvCodec {
         append(columns.joinToString(","))
         append('\n')
         doctors.forEach { doctor ->
-            val portableOptions = doctor.extraOptions.filterNot {
-                it.startsWith("pin:") || it.startsWith("syncAlias:")
-            }.sorted().joinToString(";")
+            val portableOptions = doctor.options.portable.sorted().joinToString(";")
             append(
                 listOf(
                     VERSION,
@@ -155,11 +154,7 @@ object DoctorCsvCodec {
                 customTitle = row.value("custom_title").ifBlank { null },
                 rank = rank,
                 isPermanentAdmin = permanent,
-                extraOptions = row.value("extra_options").split(';')
-                    .map(String::trim)
-                    .filter(String::isNotBlank)
-                    .filterNot { it.startsWith("pin:") || it.startsWith("syncAlias:") }
-                    .toSet(),
+                extraOptions = DoctorOptions.from(row.value("extra_options").split(';').map(String::trim).filter(String::isNotBlank).toSet()).portable,
                 updatedAt = updatedAt,
                 deletedAt = deletedAt
             )

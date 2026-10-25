@@ -35,7 +35,6 @@ data class WardUiState(
     val hospitalName: String = "",
     val loading: Boolean = true,
     val shift: Shift? = null,
-    val isReadOnly: Boolean = false,
     val patients: List<Patient> = emptyList(),
     val deletedPatients: List<Patient> = emptyList(),
     val patientDraft: PatientDraft? = null,
@@ -62,6 +61,7 @@ data class WardUiState(
     val fetchChoiceRequired: Boolean = false,
     val syncRecovery: WardSyncRecovery? = null
 ) {
+    val isReadOnly: Boolean get() = loading || error != null
     val syncStatus: PatientSyncStatus get() = synchronization.status(syncing)
     fun freshnessLabel(uiText: UiStrings): String = synchronization.description(uiText, syncing, shift?.csvMessageId)
     internal val workflowAction: WardWorkflowAction get() = synchronization.nextAction(isReadOnly)

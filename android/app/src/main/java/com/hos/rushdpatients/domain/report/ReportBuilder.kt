@@ -24,7 +24,7 @@ data class BuiltReport(
     val summary: ReportSummary,
     val textChunks: List<String>,
     val registryDoctors: List<Doctor> = doctors,
-    val registryChangeSummary: String? = null
+    val registryChangeSummary: com.hos.rushdpatients.domain.doctor.RegistryChangeSummary? = null
 )
 
 @Singleton
@@ -40,12 +40,14 @@ class ReportBuilder @Inject constructor(
     /**
      * Assemble all pieces required to render or send the report.
      */
-    suspend fun build(shiftId: String): BuiltReport = buildSnapshot(shiftId, requireRoster = true)
+    suspend fun build(shiftId: String, reportDate: java.time.LocalDate = com.hos.rushdpatients.util.ShiftDate.current()): BuiltReport =
+        buildSnapshot(shiftId, requireRoster = true, reportDate = reportDate)
 
     /** Names-only local export does not require the clinical report's shift roster. */
     suspend fun buildAssignments(shiftId: String): BuiltReport = buildSnapshot(shiftId, requireRoster = false)
 
-    private suspend fun buildSnapshot(shiftId: String, requireRoster: Boolean): BuiltReport = withContext(dispatchers.io) {
+    private suspend fun buildSnapshot(shiftId: String, requireRoster: Boolean,
+        reportDate: java.time.LocalDate = com.hos.rushdpatients.util.ShiftDate.current()): BuiltReport = withContext(dispatchers.io) {
         database.withTransaction {
             val shift = shiftRepository.getById(shiftId)
                 ?: error("Shift not found: $shiftId")
@@ -62,7 +64,6 @@ class ReportBuilder @Inject constructor(
                 .filterNot { it.isDeleted }
             val patients = PatientComparators.ordered(unsortedPatients, sortSpec, residentNames)
 
-            val reportDate = com.hos.rushdpatients.util.ShiftDate.current()
             val summary = ReportSummary(
                 patientCount = patients.size,
                 psychoCount = patients.count { isPsycho(it) },

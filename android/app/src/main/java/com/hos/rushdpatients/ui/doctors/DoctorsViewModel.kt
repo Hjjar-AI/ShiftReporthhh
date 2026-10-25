@@ -74,7 +74,7 @@ class DoctorsViewModel @Inject constructor(
                 settingsRepository.observe(AppConstants.SETTING_DOCTORS_BASE_REGISTRY)) { list, _, _ -> list }
                 .collect { list ->
                     val pending = doctorRepository.pendingSharedChangesSummary()
-                    _state.update { it.copy(loading = false, doctors = list, pendingRegistrySummary = pending) }
+                    _state.update { it.copy(loading = false, doctors = list, pendingRegistrySummary = pending?.message) }
                 }
         }
     }

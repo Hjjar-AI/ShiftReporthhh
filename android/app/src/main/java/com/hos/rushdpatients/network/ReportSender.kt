@@ -45,21 +45,21 @@ class ReportSender @Inject constructor(
     private val deliveryLedger: ReportDeliveryLedger
 ) {
 
-    suspend fun checkGeneralDelivery(shift: Shift, contentKey: String, pdf: Boolean) =
-        deliveryLedger.check(shift.id, topics.chatId, contentKey, if (pdf) "PDF" else "TEXT")
+    suspend fun checkGeneralDelivery(shift: Shift, contentKey: String, pdf: Boolean, legacyContentKey: String? = null) =
+        deliveryLedger.check(shift.id, topics.chatId, contentKey, if (pdf) "PDF" else "TEXT", legacyContentKey)
 
-    suspend fun checkSupervisorDelivery(shift: Shift, contentKey: String, chatId: Long) =
-        deliveryLedger.check(shift.id, chatId, contentKey, "PDF")
+    suspend fun checkSupervisorDelivery(shift: Shift, contentKey: String, chatId: Long, legacyContentKey: String? = null) =
+        deliveryLedger.check(shift.id, chatId, contentKey, "PDF", legacyContentKey)
 
     suspend fun sendTextReport(
-        shift: Shift, chunks: List<String>, actor: Doctor?, contentKey: String
+        shift: Shift, chunks: List<String>, actor: Doctor?, contentKey: String, legacyContentKey: String? = null
     ): SendResult = withContext(Dispatchers.IO) {
         require(chunks.isNotEmpty()) { "No chunks to send" }
         val file = if (dataCipher.enabled) File.createTempFile("text_report_", ".txt", context.cacheDir) else null
         val messageIds = mutableListOf<Long>()
         try {
             file?.writeText(chunks.joinToString("\n\n"), Charsets.UTF_8)
-            deliveryLedger.deliver(shift.id, topics.chatId, contentKey, "TEXT", "تقرير المناوبة العام", actor?.id) { receipt ->
+            deliveryLedger.deliver(shift.id, topics.chatId, contentKey, "TEXT", "تقرير المناوبة العام", actor?.id, legacyContentKey = legacyContentKey) { receipt ->
                 try {
                     if (file != null) {
                         val msg = uncertainDelivery { telegram.sendDocument(chatId = topics.chatId, file = file,
@@ -81,7 +81,7 @@ class ReportSender @Inject constructor(
                         catch (cancel: CancellationException) { throw cancel }
                         catch (_: Exception) { /* Partial cleanup is not proof of non-delivery. */ }
                     }
-                    if (messageIds.isNotEmpty() && e is com.hos.rushdpatients.network.telegram.TelegramException && e.isRateLimited)
+                    if (messageIds.isNotEmpty() && e is com.hos.rushdpatients.network.telegram.TelegramException && e.isDefiniteRejection)
                         throw ReportDeliveryUncertainException(e)
                     throw e
                 }
@@ -99,10 +99,11 @@ class ReportSender @Inject constructor(
         pdfFile: File,
         caption: String?,
         actor: Doctor?,
-        contentKey: String
+        contentKey: String,
+        legacyContentKey: String? = null
     ): SendResult = withContext(Dispatchers.IO) {
         require(pdfFile.isFile && pdfFile.length() > 0) { "ملف المعاينة غير موجود؛ أعد المعاينة" }
-        deliveryLedger.deliver(shift.id, topics.chatId, contentKey, "PDF", "تقرير المناوبة العام", actor?.id) { receipt ->
+        deliveryLedger.deliver(shift.id, topics.chatId, contentKey, "PDF", "تقرير المناوبة العام", actor?.id, legacyContentKey = legacyContentKey) { receipt ->
             val msg = uncertainDelivery { telegram.sendDocument(
                 chatId = topics.chatId,
                 file = pdfFile,
@@ -135,11 +136,12 @@ class ReportSender @Inject constructor(
         actor: Doctor?,
         supervisor: Doctor,
         chatId: Long,
-        contentKey: String
+        contentKey: String,
+        legacyContentKey: String? = null
     ): SendResult = withContext(Dispatchers.IO) {
         require(chatId < 0L) { "معرف مجموعة المشرف غير صالح" }
         require(pdfFile.isFile && pdfFile.length() > 0) { "ملف المعاينة غير موجود؛ أعد المعاينة" }
-        deliveryLedger.deliver(shift.id, chatId, contentKey, "PDF", supervisor.fullName, actor?.id) { receipt ->
+        deliveryLedger.deliver(shift.id, chatId, contentKey, "PDF", supervisor.fullName, actor?.id, legacyContentKey = legacyContentKey) { receipt ->
             val msg = uncertainDelivery { telegram.sendDocument(
                 chatId = chatId,
                 file = pdfFile,
@@ -181,7 +183,7 @@ class ReportSender @Inject constructor(
     } catch (e: CancellationException) {
         throw e
     } catch (e: Exception) {
-        if (e is com.hos.rushdpatients.network.telegram.TelegramException && e.isRateLimited) throw e
+        if (e is com.hos.rushdpatients.network.telegram.TelegramException && e.isDefiniteRejection) throw e
         throw ReportDeliveryUncertainException(e)
     }
 

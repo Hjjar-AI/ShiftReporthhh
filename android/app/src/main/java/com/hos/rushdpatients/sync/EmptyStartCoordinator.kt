@@ -134,7 +134,7 @@ class EmptyStartCoordinator @Inject constructor(
                     shifts.upsert(review.shift)
                     shifts.updatePublicationMetadata(review.shift, message.messageId)
                     settings.put(AppConstants.SETTING_PATIENT_PUBLISHED_AT_PREFIX + review.shift.id, at.toString())
-                    settings.putBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, false)
+
                     settings.put(AppConstants.SETTING_KNOWN_SHIFT_SNAPSHOT_PREFIX + review.shift.id,
                         CsvCodec.encode(review.shift, emptyList()))
                     sync.update(SyncChannel.CSV, at, message.messageId, fileId)

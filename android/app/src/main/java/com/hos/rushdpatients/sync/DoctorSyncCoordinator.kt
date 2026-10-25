@@ -78,8 +78,7 @@ class DoctorSyncCoordinator @Inject constructor(
             val actor = adminAuthorizer.requireAdmin()
             if (remoteStateBeforeUpload != null &&
                 (remoteStateBeforeUpload.doctorsFileId != null || remoteStateBeforeUpload.doctorsData != null)) {
-                val remoteDoctors = doctorRepository.normalizeRemoteRegistry(
-                    DoctorsRegistryCodec.decode(downloadDoctorsData(remoteStateBeforeUpload)).doctors)
+                val remoteDoctors = loadPublishedRegistry(remoteStateBeforeUpload)
                 val remoteActor = remoteDoctors.firstOrNull { it.id == actor.id && it.isAdmin && !it.isDeleted }
                 require(remoteActor != null && remoteActor.telegramId == actor.telegramId) {
                     "صلاحية المدير لم تعد متاحة في السجل المنشور"
@@ -91,7 +90,7 @@ class DoctorSyncCoordinator @Inject constructor(
                         "لا يمكن إزالة مدير دائم عبر استبدال السجل"
                     }
                     if (next == null || next.rank != current.rank || next.isPermanentAdmin != current.isPermanentAdmin) {
-                        require(remoteActor.isPermanentAdmin || !current.isPermanentAdmin && remoteActor.rank > current.rank) {
+                        require(canModify(remoteActor, current)) {
                             "لا يمكنك تغيير صلاحية مدير أعلى رتبة عبر استبدال السجل"
                         }
                     }
@@ -164,7 +163,7 @@ class DoctorSyncCoordinator @Inject constructor(
     /** Review captures portable registry bytes; later local edits stay pending. */
     suspend fun preparePendingPublication(source: SyncState, reviewedDoctors: List<Doctor>? = null): String? = withContext(dispatchers.io) {
         val doctors = reviewedDoctors ?: doctorRepository.getAll()
-        val published = doctorRepository.normalizeRemoteRegistry(DoctorsRegistryCodec.decode(downloadDoctorsData(source)).doctors)
+        val published = loadPublishedRegistry(source)
         if (registryData(doctors.filterNot { it.isDeleted }) == registryData(published.filterNot { it.isDeleted })) return@withContext null
         requirePublishedAdmin(source)
         validateDoctorRegistry(doctors)
@@ -227,12 +226,11 @@ class DoctorSyncCoordinator @Inject constructor(
 
     private suspend fun fetchAndApplyLatestDoctorsInternal(): Result<Int> = withContext(dispatchers.io) {
         try {
-            doctorRepository.pendingSharedChangesSummary()?.let { throw DoctorRegistryActionRequired(DoctorRegistryAction.PUBLISH, it) }
+            doctorRepository.pendingSharedChangesSummary()?.let { throw DoctorRegistryActionRequired(DoctorRegistryAction.PUBLISH, it.message) }
             val local = doctorRepository.getAllIncludingDeleted()
             val state = remoteState.readState()
                 ?: return@withContext Result.failure(IllegalStateException("لا يوجد سجل أطباء بعد"))
-            val remote = doctorRepository.normalizeRemoteRegistry(
-                DoctorsRegistryCodec.decode(downloadDoctorsData(state)).doctors)
+            val remote = loadPublishedRegistry(state)
             validateDoctorRegistry(remote)
             check(sameDoctorPointer(remoteState.readState(), state)) {
                 "تغيّر سجل الأطباء أثناء التنزيل؛ أعد جلب النسخة الكاملة"
@@ -261,8 +259,7 @@ class DoctorSyncCoordinator @Inject constructor(
     }
 
     suspend fun requireRegistryMatchesPublished(state: SyncState) = withContext(dispatchers.io) {
-        val published = doctorRepository.normalizeRemoteRegistry(
-            DoctorsRegistryCodec.decode(downloadDoctorsData(state)).doctors)
+        val published = loadPublishedRegistry(state)
         validateDoctorRegistry(published)
         if (registryData(doctorRepository.getAll()) != registryData(published)) {
             throw DoctorRegistryActionRequired(DoctorRegistryAction.FETCH,
@@ -272,8 +269,7 @@ class DoctorSyncCoordinator @Inject constructor(
 
     /** Forced patient publication does not publish or require unrelated registry edits. */
     suspend fun requirePublishedAssignments(state: SyncState, shift: Shift, patients: List<Patient>) = withContext(dispatchers.io) {
-        val registry = doctorRepository.normalizeRemoteRegistry(
-            DoctorsRegistryCodec.decode(downloadDoctorsData(state)).doctors)
+        val registry = loadPublishedRegistry(state)
         validateDoctorRegistry(registry)
         val published = registry.filterNot { it.isDeleted }.associateBy { it.id }
         val invalidRoster = shift.doctorIds.any { it !in published }
@@ -294,8 +290,7 @@ class DoctorSyncCoordinator @Inject constructor(
         require(actor.telegramId != null && sessions.current()?.telegramId == actor.telegramId) {
             "تغير حساب المدير المرتبط؛ سجّل الدخول مجدداً"
         }
-        val registry = doctorRepository.normalizeRemoteRegistry(
-            DoctorsRegistryCodec.decode(downloadDoctorsData(state)).doctors)
+        val registry = loadPublishedRegistry(state)
         require(registry.any { it.id == actor.id && it.isAdmin && (!permanentOnly || it.isPermanentAdmin) && !it.isDeleted && it.telegramId == actor.telegramId }) {
             "صلاحية المدير لم تعد متاحة في السجل المنشور"
         }
@@ -309,8 +304,7 @@ class DoctorSyncCoordinator @Inject constructor(
         require(actor.telegramId != null && session.telegramId == actor.telegramId) {
             "تغير حساب الطبيب المرتبط؛ سجّل الدخول مجدداً"
         }
-        val registry = doctorRepository.normalizeRemoteRegistry(
-            DoctorsRegistryCodec.decode(downloadDoctorsData(state)).doctors)
+        val registry = loadPublishedRegistry(state)
         require(registry.any { it.id == actor.id && !it.isDeleted && it.telegramId == actor.telegramId }) {
             "الطبيب الحالي غير متاح في السجل المنشور"
         }
@@ -336,6 +330,25 @@ class DoctorSyncCoordinator @Inject constructor(
         val ranks = doctors.filter { it.rank > 0 }.map { it.rank }
         require(ranks.distinct().size == ranks.size) { "رتب المديرين مكررة؛ راجع تعارض إسناد الرتبة" }
         DoctorsRegistryCodec.encode(doctors) // Also validates clinical role/group invariants.
+    }
+
+    private fun canModify(actor: Doctor, target: Doctor): Boolean =
+        actor.isPermanentAdmin || (!target.isPermanentAdmin && actor.rank > target.rank)
+
+    private val registryCacheMutex = Mutex()
+    private var cachedRegistryKey: String? = null
+    private var cachedRegistry: List<Doctor>? = null
+
+    private suspend fun loadPublishedRegistry(state: SyncState): List<Doctor> {
+        val decoded = registryCacheMutex.withLock {
+        val key = state.doctorsData?.let { "inline:$it" } ?: "file:${requireNotNull(state.doctorsFileId)}"
+        if (cachedRegistryKey == key) return@withLock requireNotNull(cachedRegistry)
+        val registry = DoctorsRegistryCodec.decode(downloadDoctorsData(state)).doctors
+        cachedRegistryKey = key
+        cachedRegistry = registry
+        registry
+        }
+        return doctorRepository.normalizeRemoteRegistry(decoded)
     }
 
     private suspend fun downloadDoctorsData(state: SyncState): String {

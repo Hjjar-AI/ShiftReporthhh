@@ -41,7 +41,7 @@ internal class ReportLocalActions(
 
     private fun previewPdfFor(supervisorId: String?) {
         val current = _state.value
-        if (current.savingPdfOptions || current.savingDoctors || current.previewingPdf || current.exportingLocalPdf || current.sharingPdf || current.sending || current.shift == null) return
+        if (current.isBusy || current.shift == null) return
         val reviewGeneration = current.pdfReviewGeneration
         _state.update { it.copy(previewingPdf = true, error = null, doctorRegistryAction = null, retryAction = null,
             openedPdfUris = it.openedPdfUris - listOfNotNull(it.pdfReviewUris[pdfWorkspace.pdfKey(supervisorId)]).toSet(),
@@ -93,9 +93,7 @@ internal class ReportLocalActions(
 
     fun sharePdf() {
         val current = _state.value
-        if (current.savingPdfOptions || current.savingDoctors || current.sharingPdf || current.exportingLocalPdf || current.previewingPdf ||
-            current.sending || current.shift == null
-        ) return
+        if (current.isBusy || current.shift == null) return
         _state.update { it.copy(sharingPdf = true, error = null, doctorRegistryAction = null, retryAction = null) }
         viewModelScope.launch {
             try {
@@ -143,8 +141,7 @@ internal class ReportLocalActions(
 
     fun exportAssignments() {
         val current = _state.value
-        if (current.loading || current.savingPdfOptions || current.savingDoctors || current.exportingLocalPdf || current.previewingPdf ||
-            current.sharingPdf || current.sending || current.shift == null) return
+        if (current.isBusy || current.shift == null) return
         _state.update { it.copy(exportingLocalPdf = true, error = null, doctorRegistryAction = null, retryAction = null) }
         viewModelScope.launch {
             try {
@@ -182,7 +179,7 @@ internal class ReportLocalActions(
 
     private fun exportLocally(separate: Boolean) {
         val current = _state.value
-        if (current.savingPdfOptions || current.savingDoctors || current.exportingLocalPdf || current.previewingPdf || current.sharingPdf || current.sending || current.shift == null) return
+        if (current.isBusy || current.shift == null) return
         _state.update { it.copy(exportingLocalPdf = true, error = null, doctorRegistryAction = null, retryAction = null) }
         viewModelScope.launch {
             try {

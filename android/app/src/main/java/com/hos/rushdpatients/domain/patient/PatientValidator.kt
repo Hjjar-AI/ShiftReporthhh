@@ -37,7 +37,7 @@ object PatientValidator {
         }
 
         if (runCatching {
-                PatientTasks.requireValid(patient.tasks, requireCompletion = false)
+                PatientTasks.requireValid(patient.tasks)
             }.isFailure) errors += PatientValidationError.TASKS_INVALID
 
         return if (errors.isEmpty()) {

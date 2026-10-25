@@ -38,14 +38,14 @@ private fun WardDesignGallery() {
                 Column(Modifier.verticalScroll(rememberScrollState()).padding(UiSpacing.screen),
                     verticalArrangement = Arrangement.spacedBy(UiSpacing.screen)) {
                     PatientCard(
-        state = PatientCardState(patient = patient, taskNowEpochMillis = System.currentTimeMillis(),
+        state = PatientCardState(patient = patient,
             expanded = false,
             twoColumn = false,
             doctorNames = names),
         actions = PatientCardActions.None
     )
                     PatientCard(
-        state = PatientCardState(patient = patient, taskNowEpochMillis = System.currentTimeMillis(),
+        state = PatientCardState(patient = patient,
             expanded = true,
             twoColumn = false,
             doctorNames = names),
@@ -54,7 +54,7 @@ private fun WardDesignGallery() {
                     AppNotice("تعذر جلب البيانات — أعد المحاولة", kind = NoticeKind.ERROR)
                     AppNotice("تم الحفظ على الجهاز", kind = NoticeKind.SUCCESS)
                     EmptyState("لا يوجد مرضى", actionLabel = "إضافة مريض", onAction = {})
-                    WardTaskRow(WardTaskEntry(patient, patient.tasks.first()), names, System.currentTimeMillis(), {})
+                    WardTaskRow(WardTaskEntry(patient, patient.tasks.first()))
                 }
             }
         }

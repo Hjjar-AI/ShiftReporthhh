@@ -32,20 +32,17 @@ import java.time.ZoneId
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
-// Keep the former personal-task argument source-compatible; all pending checklist items are shown.
-@Suppress("UNUSED_PARAMETER")
-internal fun WardTaskBoard(patients: List<Patient>, doctors: List<Doctor>, now: Long,
-    onDismiss: () -> Unit, onPatient: (String) -> Unit, currentDoctorId: String? = null,
+internal fun WardTaskBoard(patients: List<Patient>, doctors: List<Doctor>,
+    onDismiss: () -> Unit, onPatient: (String) -> Unit,
     editable: Boolean = false, snackbarHost: SnackbarHostState,
     onComplete: (com.hos.rushdpatients.domain.task.WardTaskEntry) -> Unit) {
     val uiText = rememberUiStrings()
     var supervisor by rememberSaveable { mutableStateOf<String?>(null) }
     var resident by rememberSaveable { mutableStateOf<String?>(null) }
-    val names = remember(doctors) { doctors.associate { it.id to it.fullName } }
     val supervisors = remember(doctors) { doctors.filter { !it.isDeleted && it.clinicalRole == ClinicalRole.SUPERVISOR } }
     val residents = remember(doctors) { doctors.filter { !it.isDeleted && it.clinicalRole == ClinicalRole.RESIDENT } }
     val rows = remember(patients, supervisor, resident) {
-        PatientTasks.wardPending(patients, supervisor, resident, now)
+        PatientTasks.wardPending(patients, supervisor, resident)
     }
     val completed = remember { mutableStateMapOf<String, com.hos.rushdpatients.domain.task.WardTaskEntry>() }
     var previousPending by remember { mutableStateOf(rows) }
@@ -98,7 +95,7 @@ internal fun WardTaskBoard(patients: List<Patient>, doctors: List<Doctor>, now: 
                                 Column(Modifier.padding(UiPadding.content), verticalArrangement = Arrangement.spacedBy(UiSpacing.small)) {
                                     AppTextButton(onClick = { onPatient(patient.id) }) { Text(patient.displayName) }
                                     entries.sortedBy { task -> patient.tasks.indexOfFirst { it.id == task.task.id } }.forEach { entry ->
-                                        key(entry.task.id) { WardTaskRow(entry, names, now, onPatient, editable, onComplete) }
+                                        key(entry.task.id) { WardTaskRow(entry, editable, onComplete) }
                                     }
                                 }
                             }
@@ -128,10 +125,7 @@ private fun TaskDoctorFilter(label: String, doctors: List<Doctor>, selected: Str
 }
 
 @Composable
-// Legacy row presentation arguments remain compatible; pending rows need only checklist text.
-@Suppress("UNUSED_PARAMETER")
 internal fun WardTaskRow(entry: com.hos.rushdpatients.domain.task.WardTaskEntry,
-    names: Map<String, String>, now: Long, onPatient: (String) -> Unit,
     editable: Boolean = false, onComplete: (com.hos.rushdpatients.domain.task.WardTaskEntry) -> Unit = {}) {
     val uiText = rememberUiStrings()
     Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {

@@ -39,11 +39,11 @@ data class ReportUiState(
     val loading: Boolean = true,
     val isAdmin: Boolean = false,
     val shift: Shift? = null,
-    val isReadOnly: Boolean = false,
     val patients: List<Patient> = emptyList(),
     val doctors: List<Doctor> = emptyList(),
     val availableDoctors: List<Doctor> = emptyList(),
     val savingDoctors: Boolean = false,
+    val fetchingDoctors: Boolean = false,
     val supervisorTargets: List<SupervisorReportTarget> = emptyList(),
     val summary: ReportSummary? = null,
     val previewMarkdown: String = "",
@@ -72,4 +72,7 @@ data class ReportUiState(
     val error: String? = null,
     val doctorRegistryAction: com.hos.rushdpatients.domain.doctor.DoctorRegistryAction? = null,
     val snackbar: String? = null
-)
+) {
+    val isBusy: Boolean get() = loading || savingDoctors || fetchingDoctors || sending || previewingPdf ||
+        exportingLocalPdf || sharingPdf || savingPdfOptions
+}

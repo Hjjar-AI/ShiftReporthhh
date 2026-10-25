@@ -99,7 +99,7 @@ class LoginViewModel @Inject constructor(
     fun pickDoctor(doctor: Doctor) {
         if (_state.value.busy) return
         verifyJob?.cancel()
-        if (doctor.telegramId != null && doctor.extraOptions.any { it.startsWith("pin:") }) {
+        if (doctor.telegramId != null && doctor.options.pinHash != null) {
             _state.update { it.copy(step = LoginStep.EnterPin(doctor), busy = false, error = null) }
         } else {
             verifyViaTelegram(doctor)
@@ -178,7 +178,7 @@ class LoginViewModel @Inject constructor(
     }
 
     private suspend fun onVerified(doctor: Doctor, telegramId: Long) {
-        val hasPin = doctor.extraOptions.any { it.startsWith("pin:") }
+        val hasPin = doctor.options.pinHash != null
         if (hasPin) {
             startSession(doctor, telegramId)
         } else {
@@ -219,9 +219,7 @@ class LoginViewModel @Inject constructor(
         }
         viewModelScope.launch {
             _state.update { it.copy(busy = true, error = null) }
-            val updatedExtra = doctor.extraOptions
-                .filterNot { it.startsWith("pin:") }
-                .toSet() + "pin:${hasher.hash(pin)}"
+            val updatedExtra = doctor.options.withPinHash(hasher.hash(pin))
             val updated = doctor.copy(extraOptions = updatedExtra, updatedAt = Instant.now())
             doctorRepository.upsert(updated)
             startSession(updated, telegramId)

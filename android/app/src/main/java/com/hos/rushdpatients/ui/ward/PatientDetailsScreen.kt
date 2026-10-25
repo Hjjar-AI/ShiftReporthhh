@@ -82,7 +82,6 @@ internal fun PatientDetailsScreen(
     onNavigateToPatient: (String) -> Unit = {}
 ) {
     val uiText = rememberUiStrings()
-    val now = LocalWardTaskNow.current
     val haptics = LocalHapticFeedback.current
     val session = rememberSaveable(saver = PatientDetailsSession.Saver) { PatientDetailsSession() }
     val position = session.forPatient(patient.id)
@@ -160,7 +159,7 @@ internal fun PatientDetailsScreen(
             ) {
                 when (section) {
                     PatientDetailSection.CLINICAL -> PatientCard(
-        state = PatientCardState(patient = patient, taskNowEpochMillis = now,
+        state = PatientCardState(patient = patient,
             expanded = true,
             twoColumn = true,
             doctorNames = doctorNames,
@@ -171,7 +170,7 @@ internal fun PatientDetailsScreen(
     )
                     PatientDetailSection.TASKS -> AppClinicalCard(
                         title = uiText(R.string.ui_patient_details_screen_002),
-                        content = PatientTasks.summary(patient.tasks, doctorNames, nowEpochMillis = now)
+                        content = PatientTasks.summary(patient.tasks)
                             .ifBlank { uiText(R.string.ui_patient_details_screen_003) }
                     )
                     PatientDetailSection.WARNINGS -> AppClinicalCard(

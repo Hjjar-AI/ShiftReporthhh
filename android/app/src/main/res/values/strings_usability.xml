@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="sync_publish_fetch">نشر الكل ثم الجلب</string>
+    <string name="sync_publish_fetch">مراجعة ونشر التعديلات</string>
     <string name="sync_replace_fetch">استبدال نسختي بالنسخة المنشورة</string>
-    <string name="sync_publish_fetch_confirm">نشر ثم جلب</string>
+    <string name="sync_publish_fetch_confirm">نشر التعديلات</string>
     <string name="sync_older_admin_title">تأكيد المدير: جلب نسخة أقدم</string>
     <string name="sync_older_admin_confirm">استبدال مع الاحتفاظ بالتراجع</string>
     <string name="sync_fetch_choice_body">اختر ما تريد فعله بالتعديلات المحلية. الاستبدال قابل للتراجع من «تراجع عن آخر جلب».</string>
@@ -67,4 +67,6 @@
     <string name="ui_progress_prepare_preview">جار تجهيز معاينة التقرير…</string>
     <string name="ui_ward_refresh_retained">تعذر تحديث العرض: %1$s\nالبيانات المعروضة محفوظة سابقاً. أعد المحاولة قبل التعديل.</string>
     <string name="ui_ward_refresh_before_edit">أعد تحميل بيانات المناوبة قبل التعديل.</string>
+    <string name="sync_publication_complete">تم نشر النسخة المراجعة</string>
+    <string name="report_shift_settings_changed">تغيّر ترتيب القائمة أو أطباء المناوبة</string>
 </resources>

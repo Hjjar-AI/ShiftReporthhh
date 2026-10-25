@@ -96,8 +96,7 @@ internal class WardPatientActions(
         _state.update { it.copy(patientDraft = null) }
     }
 
-    fun addPatient(patient: Patient, position: Int? = null, expectedPatients: List<Patient>? = null,
-        expectedShiftRevision: Long? = null, onSuccess: () -> Unit = {}) {
+    fun addPatient(patient: Patient, position: Int? = null, onSuccess: () -> Unit = {}) {
         val shiftId = saveGuard.editableShiftId() ?: return
         viewModelScope.launch {
             if (!saveGuard.validateForSave(patient)) return@launch
@@ -110,7 +109,7 @@ internal class WardPatientActions(
                 onSuccess()
             }) {
                 saveGuard.requireEditableShift(shiftId)
-                wardMutations.addPatient(patient, shiftId, sessionManager.current(), position, expectedPatients, expectedShiftRevision)
+                wardMutations.addPatient(patient, shiftId, position)
                 clearDraft()
             }
         }
@@ -118,10 +117,9 @@ internal class WardPatientActions(
 
     fun movePatientToTop(patient: Patient) {
         val shiftId = saveGuard.editableShiftId() ?: return
-        val revision = _state.value.shift?.revision ?: return
         viewModelScope.launch {
             saveGuard.saveAction(onSuccess = {}) {
-                wardMutations.movePatientToTop(patient, shiftId, revision, sessionManager.current())
+                wardMutations.movePatientToTop(patient, shiftId, sessionManager.current())
             }
         }
     }
@@ -146,7 +144,7 @@ internal class WardPatientActions(
                 }
             }) {
                 saveGuard.requireEditableShift(shiftId)
-                wardMutations.updatePatient(patient, shiftId, sessionManager.current())
+                wardMutations.updatePatient(patient, shiftId)
                 clearEditDraft(patient.id)
             }
         }
@@ -164,7 +162,7 @@ internal class WardPatientActions(
                     if (task.id != taskId) task else task.copy(done = done,
                         completedByDoctorId = null, completedByName = null, completedAtEpochMillis = null)
                 })
-                saved = wardMutations.updatePatient(changed, shiftId, sessionManager.current())
+                saved = wardMutations.updatePatient(changed, shiftId)
             }
         }
     }
@@ -175,7 +173,7 @@ internal class WardPatientActions(
         viewModelScope.launch {
             saveGuard.saveAction(onSuccess = { deleted?.let(onSuccess) }) {
                 saveGuard.requireEditableShift(shiftId)
-                deleted = wardMutations.deletePatient(patient, shiftId, sessionManager.current())
+                deleted = wardMutations.deletePatient(patient, shiftId)
             }
         }
     }
@@ -192,7 +190,7 @@ internal class WardPatientActions(
         viewModelScope.launch {
             saveGuard.saveAction(onSuccess = { loadRecycleBin() }) {
                 saveGuard.requireEditableShift(shiftId)
-                wardMutations.restorePatient(patient, shiftId, sessionManager.current())
+                wardMutations.restorePatient(patient, shiftId)
             }
         }
     }
@@ -205,7 +203,7 @@ internal class WardPatientActions(
                 saveGuard.requireEditableShift(shiftId)
                 val latest = patientRepository.getById(patient.id) ?: throw StalePatientEditException()
                 wardMutations.updatePatient(
-                    latest.copy(isPriority = priority), shiftId, sessionManager.current()
+                    latest.copy(isPriority = priority), shiftId
                 )
             }
         }
@@ -213,8 +211,6 @@ internal class WardPatientActions(
 
     fun setShiftDoctors(
         ids: List<String>,
-        expectedRevision: Long,
-        onStale: (Shift?) -> Unit,
         onSuccess: () -> Unit = {}
     ) {
         val shiftId = saveGuard.editableShiftId() ?: return
@@ -231,17 +227,11 @@ internal class WardPatientActions(
             }
         }
         viewModelScope.launch {
-            saveGuard.saveAction(onSuccess, onStale = { error ->
-                if (error !is StaleShiftEditException) false else {
-                    onStale(shiftRepository.getById(shiftId))
-                    true
-                }
-            }) {
+            saveGuard.saveAction(onSuccess) {
                 saveGuard.requireEditableShift(shiftId)
                 wardMutations.setShiftDoctors(
                     shiftId = shift.id,
                     doctorIds = ids,
-                    expectedRevision = expectedRevision,
                     actor = sessionManager.current()
                 )
             }
@@ -250,23 +240,15 @@ internal class WardPatientActions(
 
     fun applySort(
         spec: SortSpec,
-        expectedRevision: Long,
-        onStale: (Shift?) -> Unit,
         onSuccess: () -> Unit = {}
     ) {
         val shiftId = saveGuard.editableShiftId() ?: return
         viewModelScope.launch {
-            saveGuard.saveAction(onSuccess, onStale = { error ->
-                if (error !is StaleShiftEditException) false else {
-                    onStale(shiftRepository.getById(shiftId))
-                    true
-                }
-            }) {
+            saveGuard.saveAction(onSuccess) {
                 saveGuard.requireEditableShift(shiftId)
                 wardMutations.setShiftSort(
                     shiftId = shiftId,
                     sortSpecJson = SortSpecCodec.encode(spec),
-                    expectedRevision = expectedRevision,
                     actor = sessionManager.current()
                 )
             }

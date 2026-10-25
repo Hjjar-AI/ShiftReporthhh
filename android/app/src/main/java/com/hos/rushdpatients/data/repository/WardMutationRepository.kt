@@ -16,15 +16,13 @@ import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** Clinical last-save-wins mutations and their pending-sync marker commit together. */
-@Suppress("UNUSED_PARAMETER")
+/** Clinical last-save-wins mutations commit atomically; pending state derives from their content. */
 @Singleton
 class WardMutationRepository @Inject constructor(
     private val database: AppDatabase,
     private val patients: PatientRepository,
     private val doctors: DoctorRepository,
     private val shifts: ShiftRepository,
-    private val settings: SettingsRepository,
     private val audit: AuditRepository,
     private val dispatchers: DispatcherProvider
 ) {
@@ -35,13 +33,13 @@ class WardMutationRepository @Inject constructor(
                     "قائمة المرضى لم تعد متاحة"
                 }
                 val result = block()
-                settings.putBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, true)
+
                 result
             }
         }
 
-    suspend fun addPatient(patient: Patient, shiftId: String, actor: Session?,
-        position: Int? = null, expectedPatients: List<Patient>? = null, expectedShiftRevision: Long? = null) =
+    suspend fun addPatient(patient: Patient, shiftId: String,
+        position: Int? = null) =
         mutate(shiftId) {
             require(patients.getById(patient.id) == null) {
                 "المريض موجود بالفعل؛ أعد مراجعة القائمة قبل الإضافة"
@@ -55,16 +53,16 @@ class WardMutationRepository @Inject constructor(
                 stored, SortSpecCodec.decode(shifts.getById(shiftId)?.sortSpecJson),
                 doctors.getAllIncludingDeleted().associate { it.id to it.fullName })
             if (position != null) {
-                val shift = requireNotNull(shifts.getById(shiftId))
                 require(position in 1..current.size + 1) { "موضع المريض خارج القائمة" }
                 val priorityCount = current.count { it.isPriority }
                 require(if (patient.isPriority) position <= priorityCount + 1 else position > priorityCount) {
                     "مرضى الأولوية أولاً؛ اختر موضعاً ضمن مجموعة أولوية المريض"
                 }
-                shifts.updateSortSpec(shiftId, SortSpecCodec.encode(SortSpec.EMPTY), shift.revision)
+                // Explicit placement switches to manual order inside this transaction.
+                shifts.updateSortSpec(shiftId, SortSpecCodec.encode(SortSpec.EMPTY))
             }
             val order = position ?: ((current.maxOfOrNull { it.sortOrder } ?: 0) + 1)
-            val prepared = prepareTasks(patient, null, actor)
+            val prepared = prepareTasks(patient)
             val added = prepared.copy(
                 sortOrder = order,
                 revision = 1,
@@ -75,51 +73,39 @@ class WardMutationRepository @Inject constructor(
             if (position != null) {
                 current.toMutableList().apply { add(position - 1, added) }.forEachIndexed { index, row ->
                     if (row.id != added.id && storedOrders[row.id] != index + 1)
-                        patients.updateOptimistically(row.copy(sortOrder = index + 1), shiftId, row.revision)
+                        patients.save(row.copy(sortOrder = index + 1), shiftId)
                 }
             }
-            recordPatientChange(
-                actor, AppConstants.AUDIT_PATIENT_ADDED, null,
-                requireNotNull(patients.getById(added.id))
-            )
+
         }
 
-    suspend fun updatePatient(patient: Patient, shiftId: String, actor: Session?): Patient =
+    suspend fun updatePatient(patient: Patient, shiftId: String): Patient =
         mutate(shiftId) {
-            val before = patients.getById(patient.id)
-            val updated = patients.updateOptimistically(
-                prepareTasks(patient, before, actor).copy(
+            val updated = patients.save(
+                prepareTasks(patient).copy(
                     lastEditedByDoctorId = null,
                     lastEditedByName = null
                 ),
-                shiftId,
-                patient.revision
+                shiftId
             )
-            recordPatientChange(actor, AppConstants.AUDIT_PATIENT_EDITED, before, updated)
             updated
         }
 
-    suspend fun deletePatient(patient: Patient, shiftId: String, actor: Session?): Patient =
+    suspend fun deletePatient(patient: Patient, shiftId: String): Patient =
         mutate(shiftId) {
-            val before = patients.getById(patient.id)
-            val deleted = patients.softDeleteOptimistically(patient.id, shiftId, patient.revision)
-            recordPatientChange(actor, AppConstants.AUDIT_PATIENT_DELETED, before, null)
-            deleted
+            patients.softDelete(patient.id, shiftId)
         }
 
-    suspend fun restorePatient(patient: Patient, shiftId: String, actor: Session?): Patient =
+    suspend fun restorePatient(patient: Patient, shiftId: String): Patient =
         mutate(shiftId) {
-            val before = patients.getById(patient.id)
-            val restored = patients.restoreOptimistically(patient.id, shiftId, patient.revision)
+            val restored = patients.restore(patient.id, shiftId)
             PatientDoctorAssignments.requireValid(restored, doctors.getAll().associateBy { it.id })
-            recordPatientChange(actor, AppConstants.AUDIT_PATIENT_RESTORED, before, restored)
             restored
         }
 
     suspend fun setShiftDoctors(
         shiftId: String,
         doctorIds: List<String>,
-        expectedRevision: Long,
         actor: Session?
     ) = mutate(shiftId) {
         require(doctorIds.isNotEmpty() && doctorIds.distinct().size == doctorIds.size) {
@@ -127,7 +113,7 @@ class WardMutationRepository @Inject constructor(
         }
         doctorIds.forEach { require(doctors.getActiveById(it) != null) { "أحد الأطباء لم يعد نشطاً" } }
         val before = requireNotNull(shifts.getById(shiftId))
-        shifts.updateDoctorIds(shiftId, doctorIds, expectedRevision)
+        shifts.updateDoctorIds(shiftId, doctorIds)
         audit.record(
             actor?.doctorId, actor?.doctorName, "shift_doctors_edited", shiftId,
             beforeValue = before.doctorIds.joinToString(","),
@@ -138,11 +124,10 @@ class WardMutationRepository @Inject constructor(
     suspend fun setShiftSort(
         shiftId: String,
         sortSpecJson: String?,
-        expectedRevision: Long,
         actor: Session?
     ) = mutate(shiftId) {
         val before = requireNotNull(shifts.getById(shiftId))
-        shifts.updateSortSpec(shiftId, sortSpecJson, expectedRevision)
+        shifts.updateSortSpec(shiftId, sortSpecJson)
         val current = patients.getForShift(shiftId)
         val ordered = PatientComparators.ordered(
             current, SortSpecCodec.decode(sortSpecJson),
@@ -150,7 +135,7 @@ class WardMutationRepository @Inject constructor(
         )
         val previousOrders = current.associate { it.id to it.sortOrder }
         ordered.filter { previousOrders[it.id] != it.sortOrder }.forEach { patient ->
-            patients.updateOptimistically(patient, shiftId, patient.revision)
+            patients.save(patient, shiftId)
         }
         audit.record(
             actor?.doctorId, actor?.doctorName, "shift_sort_edited", shiftId,
@@ -159,7 +144,7 @@ class WardMutationRepository @Inject constructor(
         )
     }
 
-    suspend fun movePatientToTop(patient: Patient, shiftId: String, expectedShiftRevision: Long, actor: Session?) = mutate(shiftId) {
+    suspend fun movePatientToTop(patient: Patient, shiftId: String, actor: Session?) = mutate(shiftId) {
         val shift = requireNotNull(shifts.getById(shiftId))
         val rows = PatientComparators.ordered(patients.getForShift(shiftId), SortSpecCodec.decode(shift.sortSpecJson),
             doctors.getAllIncludingDeleted().associate { it.id to it.fullName })
@@ -168,16 +153,17 @@ class WardMutationRepository @Inject constructor(
         // Keep the established priority section first; move to the start of the patient's section.
         val ordered = if (saved.isPriority) listOf(saved) + rest
             else rest.filter { it.isPriority } + saved + rest.filterNot { it.isPriority }
-        shifts.updateSortSpec(shiftId, SortSpecCodec.encode(SortSpec.EMPTY), shift.revision)
+        // Moving a row explicitly selects manual order; all renumbering commits atomically.
+        shifts.updateSortSpec(shiftId, SortSpecCodec.encode(SortSpec.EMPTY))
         ordered.forEachIndexed { index, row ->
-            if (row.sortOrder != index + 1) patients.updateOptimistically(row.copy(sortOrder = index + 1), shiftId, row.revision)
+            if (row.sortOrder != index + 1) patients.save(row.copy(sortOrder = index + 1), shiftId)
         }
         audit.record(actor?.doctorId, actor?.doctorName, "patient_moved_to_top", patientId = saved.id)
     }
 
-    private suspend fun prepareTasks(patient: Patient, before: Patient?, actor: Session?): Patient {
+    private suspend fun prepareTasks(patient: Patient): Patient {
         PatientDoctorAssignments.requireValid(patient, doctors.getAll().associateBy { it.id })
-        PatientTasks.requireValid(patient.tasks, requireCompletion = false)
+        PatientTasks.requireValid(patient.tasks)
         val tasks = patient.tasks.map { task ->
             task.copy(description = task.description.trim(), completedByDoctorId = null,
                 completedByName = null, completedAtEpochMillis = null)
@@ -186,7 +172,4 @@ class WardMutationRepository @Inject constructor(
         return patient.copy(tasks = tasks)
     }
 
-    private suspend fun recordPatientChange(
-        actor: Session?, action: String, before: Patient?, after: Patient?
-    ) = Unit
 }

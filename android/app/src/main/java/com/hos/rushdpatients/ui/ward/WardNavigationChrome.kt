@@ -28,7 +28,7 @@ internal fun WardHeader(
     onSearch: () -> Unit, onWorkflow: () -> Unit
 ) {
     val uiText = rememberUiStrings()
-    val dayLabel = remember(LocalWardTaskNow.current) { com.hos.rushdpatients.util.ShiftDate.current() }
+    val dayLabel = LocalWardDayLabel.current
     Column {
     WardToolbarLayout(foldingFeature) {
         AppCompactTopBar(title = {

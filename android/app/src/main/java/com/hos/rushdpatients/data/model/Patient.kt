@@ -34,14 +34,14 @@ data class Patient(
 
     val isDeleted: Boolean get() = deletedAt != null
 
-    val age: Int?
-        get() = birthDate?.let {
-            ChronoUnit.YEARS.between(it, LocalDate.now()).coerceAtLeast(0).toInt()
-        }
+    fun ageOn(date: LocalDate): Int? = birthDate?.let {
+        ChronoUnit.YEARS.between(it, date).coerceAtLeast(0).toInt()
+    }
 
-    val admittanceDays: Int?
-        get() = admittanceDate?.let {
-            ChronoUnit.DAYS.between(it, LocalDate.now()).coerceAtLeast(0).toInt()
-        }
+    fun admittanceDaysOn(date: LocalDate): Int? = admittanceDate?.let {
+        ChronoUnit.DAYS.between(it, date).coerceAtLeast(0).toInt()
+    }
 
+    val age: Int? get() = ageOn(com.hos.rushdpatients.util.ShiftDate.current())
+    val admittanceDays: Int? get() = admittanceDaysOn(com.hos.rushdpatients.util.ShiftDate.current())
 }

@@ -10,10 +10,6 @@ object ShiftDate {
     fun endOf(date: LocalDate): java.time.Instant = date.plusDays(1).atTime(rolloverTime)
         .atZone(java.time.ZoneId.systemDefault()).toInstant()
 
-    /** Compatibility API: the day label never imposes a publishing deadline. */
-    @Suppress("UNUSED_PARAMETER")
-    fun canPublish(date: LocalDate, now: LocalDateTime = LocalDateTime.now()): Boolean = true
-
     /** The previous calendar date remains active until 08:30 local time. */
     fun current(now: LocalDateTime = LocalDateTime.now()): LocalDate =
         if (now.toLocalTime().isBefore(rolloverTime)) {

@@ -18,49 +18,50 @@ class RemoteSyncStateStore @Inject constructor(
 ) {
     private val remoteStateMutex = Mutex()
 
-    suspend fun updateState(transform: (SyncState) -> SyncState): SyncState =
-        remoteStateMutex.withLock {
-            val updated = transform(readState() ?: SyncState()).copy(v = SyncState.CURRENT_VERSION)
-            writeState(updated)
-            readState() ?: updated
-        }
-
-    suspend fun readState(): SyncState? {
-        val chat = telegram.getChat(topics.chatId)
-        val pinned = chat.pinnedMessage ?: return null
-        val text = pinned.text ?: return null
-        return runCatching { json.decodeFromString<SyncState>(text) }
-            .getOrNull()
-            ?.takeIf { it.isRecognized }
+    sealed interface PinnedState {
+        object Absent : PinnedState
+        object Unrecognized : PinnedState
+        data class Valid(val messageId: Long, val state: SyncState) : PinnedState
     }
 
+    suspend fun readPinnedState(): PinnedState {
+        val pinned = telegram.getChat(topics.chatId).pinnedMessage ?: return PinnedState.Absent
+        val state = pinned.text?.let { text -> runCatching { json.decodeFromString<SyncState>(text) }.getOrNull() }
+        return if (state?.isRecognized == true) PinnedState.Valid(pinned.messageId, state)
+            else PinnedState.Unrecognized
+    }
+
+    private fun PinnedState.recognizedOrNull(): SyncState? = when (this) {
+        PinnedState.Absent -> null
+        PinnedState.Unrecognized -> error("فهرس المشروع غير معروف أو يتطلب إصداراً أحدث؛ لن يُستبدل التثبيت")
+        is PinnedState.Valid -> state
+    }
+
+    suspend fun readState(): SyncState? = readPinnedState().recognizedOrNull()
+
+    suspend fun updateState(transform: (SyncState) -> SyncState): SyncState =
+        update(requireExisting = false, replaceCsvHistory = false, transform = transform)
+
     suspend fun updateExistingState(replaceCsvHistory: Boolean = false, transform: (SyncState) -> SyncState): SyncState =
-        remoteStateMutex.withLock {
-            val current = requireNotNull(readState()) { "فهرس المشروع غير متاح؛ أعد الجلب" }
-            writeState(transform(current).copy(v = SyncState.CURRENT_VERSION), requireExisting = true, replaceCsvHistory = replaceCsvHistory)
-            requireNotNull(readState()) { "تعذر تأكيد فهرس المشروع" }
-        }
+        update(requireExisting = true, replaceCsvHistory = replaceCsvHistory, transform = transform)
 
-    private suspend fun writeState(state: SyncState, requireExisting: Boolean = false, replaceCsvHistory: Boolean = false) {
-        val chat = telegram.getChat(topics.chatId)
-        val existing = chat.pinnedMessage?.takeIf { message ->
-            val text = message.text ?: return@takeIf false
-            runCatching { json.decodeFromString<SyncState>(text) }
-                .getOrNull()
-                ?.isRecognized == true
-        }
+    private suspend fun update(requireExisting: Boolean, replaceCsvHistory: Boolean,
+                               transform: (SyncState) -> SyncState): SyncState = remoteStateMutex.withLock {
+        val pinned = readPinnedState()
+        val current = pinned.recognizedOrNull()
+        require(!requireExisting || current != null) { "فهرس المشروع غير متاح؛ أعد الجلب" }
+        val updated = transform(current ?: SyncState()).copy(v = SyncState.CURRENT_VERSION)
+        writeState(updated, pinned as? PinnedState.Valid, replaceCsvHistory)
+        requireNotNull(readState()) { "تعذر تأكيد فهرس المشروع" }
+    }
 
-        require(!requireExisting || existing != null) { "اختفى فهرس المشروع؛ لن يُنشأ تثبيت بديل" }
-        val existingState = existing?.text?.let { text ->
-            runCatching { json.decodeFromString<SyncState>(text) }.getOrNull()
-        }
+    private suspend fun writeState(state: SyncState, existing: PinnedState.Valid?, replaceCsvHistory: Boolean) {
+        val existingState = existing?.state
         val stateToWrite = if (existingState == null) state else {
             val snapshots = listOfNotNull(
                 state.currentCsvSnapshot(), state.previousCsvSnapshot(),
                 existingState.currentCsvSnapshot(), existingState.previousCsvSnapshot()
             ).distinctBy { it.messageId }.sortedByDescending { it.messageId }
-            val latest = if (replaceCsvHistory) state.currentCsvSnapshot() else snapshots.firstOrNull()
-            val previous = if (replaceCsvHistory) null else snapshots.getOrNull(1)
             val doctorsState = listOf(state, existingState).maxWithOrNull(
                 compareBy<SyncState> { it.doctorsMessageId ?: Long.MIN_VALUE }
                     .thenBy { it.doctorsUpdatedAt }
@@ -69,15 +70,7 @@ class RemoteSyncStateStore @Inject constructor(
                 compareBy<SyncState> { it.announcementUpdatedAt }
                     .thenBy { it.announcementMessageId ?: Long.MIN_VALUE }
             ) ?: state
-            state.copy(
-                csvFileId = latest?.fileId,
-                csvMessageId = latest?.messageId,
-                csvDate = latest?.date,
-                csvUpdatedAt = latest?.updatedAt ?: 0L,
-                previousCsvFileId = previous?.fileId,
-                previousCsvMessageId = previous?.messageId,
-                previousCsvDate = previous?.date,
-                previousCsvUpdatedAt = previous?.updatedAt ?: 0L,
+            state.withCsvHistory(if (replaceCsvHistory) listOfNotNull(state.currentCsvSnapshot()) else snapshots).copy(
                 publicationJournal = (state.publicationJournal + if (replaceCsvHistory) emptyList() else existingState.publicationJournal)
                     .distinctBy { it.messageId }
                     .sortedByDescending { it.messageId }

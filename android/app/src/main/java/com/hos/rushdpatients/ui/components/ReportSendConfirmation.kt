@@ -12,7 +12,7 @@ import com.hos.rushdpatients.ui.theme.UiSpacing
 
 @Composable
 fun ReportSendConfirmation(destinations: List<String>, format: String, warningCount: Int,
-    enabled: Boolean, unavailableReason: String? = null, onConfirm: (Boolean) -> Unit, onDismiss: () -> Unit, patientCount: Int = 0) {
+    enabled: Boolean, unavailableReason: String? = null, onConfirm: () -> Unit, onDismiss: () -> Unit, patientCount: Int = 0) {
     val uiText = rememberUiStrings()
     AppAlertDialog(onDismissRequest = onDismiss, title = { Text(uiText(R.string.ui_report_send_confirmation_001)) }, text = {
         Column(Modifier.appDialogBody().verticalScroll(rememberScrollState()),
@@ -21,6 +21,6 @@ fun ReportSendConfirmation(destinations: List<String>, format: String, warningCo
             Text(uiText(R.string.report_send_summary, destinations.joinToString("، "), format, uiNumber(patientCount), uiNumber(warningCount)))
             Text(uiText(R.string.report_send_shared_copy))
         }
-    }, confirmButton = { AppButton(onClick = { onConfirm(true) }, enabled = enabled) { Text(uiText(R.string.ui_report_send_confirmation_008)) } },
+    }, confirmButton = { AppButton(onClick = { onConfirm() }, enabled = enabled) { Text(uiText(R.string.ui_report_send_confirmation_008)) } },
         dismissButton = { AppTextButton(onClick = onDismiss) { Text(uiText(R.string.ui_cancel)) } })
 }

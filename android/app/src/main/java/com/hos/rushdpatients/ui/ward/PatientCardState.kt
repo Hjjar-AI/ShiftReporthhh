@@ -2,7 +2,7 @@ package com.hos.rushdpatients.ui.ward
 
 import com.hos.rushdpatients.data.model.Patient
 
-internal val LocalWardTaskNow = androidx.compose.runtime.staticCompositionLocalOf { 0L }
+internal val LocalWardDayLabel = androidx.compose.runtime.staticCompositionLocalOf { com.hos.rushdpatients.util.ShiftDate.current() }
 
 /** Display snapshots; callers replace patient/list/map values rather than mutating collections in place. */
 @androidx.compose.runtime.Immutable
@@ -11,8 +11,7 @@ data class PatientCardState(
     val doctorNames: Map<String, String> = emptyMap(), val readOnly: Boolean = false,
     val selected: Boolean = false, val recentlyEdited: Boolean = false, val pinned: Boolean = false,
     val showViewControls: Boolean = true, val showIdentity: Boolean = true,
-    val compact: Boolean = false, val animateExpansion: Boolean = false,
-    val taskNowEpochMillis: Long
+    val compact: Boolean = false, val animateExpansion: Boolean = false
 )
 
 @androidx.compose.runtime.Immutable

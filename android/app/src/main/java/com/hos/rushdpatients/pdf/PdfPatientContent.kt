@@ -5,10 +5,10 @@ import com.hos.rushdpatients.domain.task.PatientTasks
 
 /** Clinical formatting shared by the table and linked patient cards. */
 internal object PdfPatientContent {
-    fun buildPatientCell(patient: Patient, includeName: Boolean = true): String {
+    fun buildPatientCell(patient: Patient, includeName: Boolean = true, reportDate: java.time.LocalDate = com.hos.rushdpatients.util.ShiftDate.current()): String {
         if (!includeName) return buildList {
             add(if (patient.gender == com.hos.rushdpatients.data.model.Gender.MALE) "ذكر" else "أنثى")
-            patient.age?.let { age ->
+            patient.ageOn(reportDate)?.let { age ->
                 add(listOfNotNull(patient.birthDate?.year?.toString(), "$age ${PdfStrings.YEAR_SUFFIX}").joinToString(" • "))
             }
             if (patient.isPriority) add("[أولوية]")
@@ -17,7 +17,7 @@ internal object PdfPatientContent {
         val sb = StringBuilder()
         if (patient.isPriority) sb.append("[أولوية] ")
         if (includeName) sb.append(patient.displayName)
-        patient.age?.let { age ->
+        patient.ageOn(reportDate)?.let { age ->
             if (sb.isNotEmpty()) sb.append('\n')
             patient.birthDate?.let {
                 sb.append(it.year)
@@ -36,7 +36,7 @@ internal object PdfPatientContent {
         return sb.toString()
     }
 
-    fun buildAdmitCell(patient: Patient): String {
+    fun buildAdmitCell(patient: Patient, reportDate: java.time.LocalDate = com.hos.rushdpatients.util.ShiftDate.current()): String {
         val sb = StringBuilder()
         if (patient.admittanceNumber.isNotBlank()) sb.append(patient.admittanceNumber)
         sb.append('\n')
@@ -44,7 +44,7 @@ internal object PdfPatientContent {
         sb.append('\n')
         patient.admittanceDate?.let { date ->
             sb.append("يوم ")
-            sb.append(patient.admittanceDays ?: 0)
+            sb.append(patient.admittanceDaysOn(reportDate) ?: 0)
             sb.append('\n')
             sb.append(date)
         }
@@ -62,7 +62,7 @@ internal object PdfPatientContent {
         ).joinToString("\n${PdfStrings.SEPARATOR}\n")
     }
 
-    fun buildNotesCell(patient: Patient, doctorNames: Map<String, String>, nowEpochMillis: Long = System.currentTimeMillis()): String {
+    fun buildNotesCell(patient: Patient): String {
         val sb = StringBuilder()
         if (patient.followUp.isNotBlank()) {
             sb.append("المتابعة: ")
@@ -70,7 +70,7 @@ internal object PdfPatientContent {
         }
         if (patient.tasks.isNotEmpty()) {
             if (sb.isNotEmpty()) sb.append('\n')
-            sb.append("المهام: ").append(PatientTasks.summary(patient.tasks, doctorNames, includeUnassigned = false, includeRoutinePriority = false, nowEpochMillis = nowEpochMillis))
+            sb.append("المهام: ").append(PatientTasks.summary(patient.tasks))
         }
         if (patient.labs.isNotBlank()) {
             if (sb.isNotEmpty()) sb.append('\n')

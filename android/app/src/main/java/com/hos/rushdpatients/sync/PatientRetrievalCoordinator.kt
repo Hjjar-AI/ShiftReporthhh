@@ -53,7 +53,8 @@ internal class PatientRetrievalCoordinator(
     private val dispatchers: DispatcherProvider,
     private val remoteState: RemoteSyncStateStore,
     private val downloadUndo: LocalDownloadUndo,
-    private val doctorSync: DoctorSyncCoordinator
+    private val doctorSync: DoctorSyncCoordinator,
+    private val publicationStatus: PatientPublicationStatus
 ) {
 
     suspend fun fetchLatestCsv(replaceLocal: Boolean = false, allowOlder: Boolean = false): Result<CsvFetchResult> = patientSyncMutex.withLock {
@@ -62,25 +63,18 @@ internal class PatientRetrievalCoordinator(
 
     suspend fun describeLocalChanges(shiftId: String): HandoverChangeSummary =
         withContext(dispatchers.io) {
-            val current = patientRepository.getForShift(shiftId).associateBy(Patient::id)
-            val base = settingsRepository.get(AppConstants.SETTING_KNOWN_SHIFT_SNAPSHOT_PREFIX + shiftId)
-                ?.let { csv -> runCatching { CsvCodec.decode(csv) }.getOrNull() }
-                ?.patients.orEmpty().associateBy(Patient::id)
-            HandoverChangeSummary(
-                added = (current.keys - base.keys).mapNotNull { current[it]?.name }.sorted(),
-                changed = (current.keys intersect base.keys)
-                    .filter { !samePatientContent(current[it], base[it]) }
-                    .mapNotNull { current[it]?.name }
-                    .sorted(),
-                removed = (base.keys - current.keys).mapNotNull { base[it]?.name }.sorted()
-            )
+            val changes = KnownShiftSnapshot.changes(shiftRepository.getById(shiftId),
+                patientRepository.getForShift(shiftId),
+                settingsRepository.get(AppConstants.SETTING_KNOWN_SHIFT_SNAPSHOT_PREFIX + shiftId))
+            HandoverChangeSummary(changes.added.map { it.displayName }, changes.changed.map { it.displayName },
+                changes.removed.map { it.displayName }, changes.settingsChanged)
         }
 
     private suspend fun fetchCsv(replaceLocal: Boolean = false, allowOlder: Boolean = false): Result<CsvFetchResult> =
         withContext(dispatchers.io) {
             try {
                 if (!replaceLocal) {
-                    if (settingsRepository.getBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, false)) {
+                    if (publicationStatus.hasPending()) {
                         throw LocalPatientChangesPendingException()
                     }
                 }
@@ -92,8 +86,7 @@ internal class PatientRetrievalCoordinator(
                     val message = "لا يوجد ملف منشور بعد"
                     return@withContext Result.failure(IllegalStateException(message))
                 }
-                val lastKnownMessageId = maxOf(syncStateRepository.lastMessageId(SyncChannel.CSV) ?: 0L,
-                    settingsRepository.getLong("csv_known_message_high_water", 0L))
+                val lastKnownMessageId = syncStateRepository.csvMessageHighWater()
                 if (!allowOlder && snapshot.messageId < lastKnownMessageId) throw OlderRemoteSnapshotException()
 
 
@@ -118,9 +111,7 @@ internal class PatientRetrievalCoordinator(
                 val doctorsById = buildMap {
                     activeDoctors.forEach { doctor ->
                         put(doctor.id, doctor)
-                        doctor.extraOptions.asSequence()
-                            .filter { it.startsWith("syncAlias:") }
-                            .map { it.removePrefix("syncAlias:") }
+                        doctor.options.syncAliases.asSequence()
                             .filter { it.isNotBlank() }
                             .forEach { alias -> put(alias, doctor) }
                     }
@@ -135,10 +126,7 @@ internal class PatientRetrievalCoordinator(
                         ?.let { patientRepository.getForShift(it.id) }
                         .orEmpty()
                     require(
-                        (replaceLocal || !settingsRepository.getBoolean(
-                            AppConstants.SETTING_PATIENTS_SYNC_PENDING,
-                            false
-                        )) &&
+                        (replaceLocal || !publicationStatus.hasPending()) &&
                         sameEditableShift(currentShift, guardedShift) &&
                             samePublishedPatients(currentPatients, guardedPatients)
                     ) {
@@ -165,13 +153,6 @@ internal class PatientRetrievalCoordinator(
                         }
                     }
                     downloadUndo.record(beforeDownload, downloaded.map { it.shift.id })
-                    val pending = shiftRepository.getRecent(12).any { localShift ->
-                        val rows = patientRepository.getForShift(localShift.id)
-                        val baseline = settingsRepository.get(AppConstants.SETTING_KNOWN_SHIFT_SNAPSHOT_PREFIX + localShift.id)
-                        if (baseline == null) (rows.isNotEmpty() || localShift.doctorIds.isNotEmpty())
-                        else KnownShiftSnapshot.compare(localShift, rows, baseline) == KnownShiftState.CHANGED
-                    }
-                    settingsRepository.putBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, pending)
                     downloaded
                 }
                 settingsRepository.pruneShiftSyncCache(shiftRepository.getRecent(12).map { it.id }.toSet() + applied.map { it.shift.id })
@@ -179,10 +160,6 @@ internal class PatientRetrievalCoordinator(
                 val inserted = applied.sumOf { it.inserted }
                 val updated = applied.sumOf { it.updated }
 
-                // A one-time older-copy override must not erase the protection's high watermark.
-                settingsRepository.putLong("csv_known_message_high_water", maxOf(snapshot.messageId,
-                    syncStateRepository.lastMessageId(SyncChannel.CSV) ?: 0L,
-                    settingsRepository.getLong("csv_known_message_high_water", 0L)))
                 syncStateRepository.update(
                     channel = SyncChannel.CSV,
                     offset = snapshot.updatedAt,
@@ -260,10 +237,13 @@ internal class PatientRetrievalCoordinator(
         var inserted = 0
         var updated = 0
         val toUpsert = prepared.patients.mapIndexed { index, patient ->
-            val normalized = patient.copy(sortOrder = index + 1,
-                revision = maxOf(patient.revision, existing[patient.id]?.revision ?: 0L) + 1)
-            if (existing.containsKey(normalized.id)) updated++ else inserted++
-            normalized
+            val previous = existing[patient.id]
+            val ordered = patient.copy(sortOrder = index + 1)
+            if (previous != null && samePatientContent(previous, ordered) && previous.sortOrder == ordered.sortOrder) previous
+            else {
+                if (previous == null) inserted++ else updated++
+                ordered.copy(revision = maxOf(patient.revision, previous?.revision ?: 0L) + 1)
+            }
         }
         val shift = existingShift
             ?: shiftRepository.getOrCreateForDate(parsed.shiftDate, parsed.shiftId)
@@ -274,7 +254,7 @@ internal class PatientRetrievalCoordinator(
             "معرّف المريض ${conflicting?.id} مستخدم في وردية أخرى"
         }
         patientRepository.softDeleteMissingFromShift(shift.id, toUpsert.map(Patient::id))
-        patientRepository.upsertAll(toUpsert, shift.id, preserveUpdatedAt = true)
+        patientRepository.upsertAll(toUpsert.filter { row -> row != existing[row.id] }, shift.id)
         val updatedShift = shift.copy(
             doctorIds = prepared.doctorIds,
             sortSpecJson = parsed.sortSpecJson,

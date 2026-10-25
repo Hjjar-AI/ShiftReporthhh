@@ -40,7 +40,7 @@ class TextReportBuilder @Inject constructor() {
         }
         titles += buildTitle(shift, roster)
         val patientBlocks = patients.map {
-            buildPatientBlock(it, residentNames, supervisorNames)
+            buildPatientBlock(it, residentNames, supervisorNames, summary.shiftDate)
         }
         val summaryBlock = buildSummary(summary) + "\n" + Markdown.escape("يجوز تعيين مقيم من فريق آخر للتغطية الفردية؛ لا تتغير عضوية الفريق الثابتة.")
         return titles.dropLast(1) + ReportChunking.chunk(titles.last(), patientBlocks, summaryBlock)
@@ -67,7 +67,8 @@ class TextReportBuilder @Inject constructor() {
     fun buildPatientBlock(
         patient: Patient,
         residentNames: Map<String, String>,
-        supervisorNames: Map<String, String>
+        supervisorNames: Map<String, String>,
+        reportDate: java.time.LocalDate = com.hos.rushdpatients.util.ShiftDate.current()
     ): String = buildString {
         val header = buildString {
             append(patient.sortOrder)
@@ -83,7 +84,7 @@ class TextReportBuilder @Inject constructor() {
         ))
         patient.birthDate?.let { date ->
             append('\n')
-            append(Markdown.escape("سنة الميلاد: ${date.year} (${patient.age} سنة)"))
+            append(Markdown.escape("سنة الميلاد: ${date.year} (${patient.ageOn(reportDate)} سنة)"))
         }
         append('\n')
         append(Markdown.escape("نوع التشخيص: ${patient.diagnosisType.arabicLabel}"))
@@ -105,7 +106,7 @@ class TextReportBuilder @Inject constructor() {
             append('\n')
             append(Markdown.escape("تاريخ الدخول: $date"))
             append(" ")
-            append(Markdown.escape("(${patient.admittanceDays} يوم)"))
+            append(Markdown.escape("(${patient.admittanceDaysOn(reportDate)} يوم)"))
         }
         val residentName = patient.responsibleResidentId
             ?.let(residentNames::get)
@@ -135,8 +136,7 @@ class TextReportBuilder @Inject constructor() {
             append('\n')
             append(Markdown.underline("المهام"))
             append('\n')
-            append(Markdown.escape(PatientTasks.summary(
-                patient.tasks, residentNames + supervisorNames)))
+            append(Markdown.escape(PatientTasks.summary(patient.tasks)))
         }
         if (patient.labs.isNotBlank()) {
             append('\n')

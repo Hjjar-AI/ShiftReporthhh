@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.sync
 
+import com.hos.rushdpatients.data.model.DoctorOptions
 import java.util.Locale
 import com.hos.rushdpatients.domain.doctor.DoctorTeams
 import com.hos.rushdpatients.data.model.Doctor
@@ -185,7 +186,7 @@ object DoctorsRegistryCodec {
                 rank = parsedRank,
                 isPermanentAdmin = parsedOptions.isPermanent,
                 extraOptions = if (teamSupervisorIdIdx >= 0) cols[teamSupervisorIdIdx].takeIf { it.isNotBlank() }
-                    ?.let { setOf(DoctorTeams.PREFIX + it) }.orEmpty() else emptySet()
+                    ?.let { DoctorOptions.from(emptySet()).withTeamSupervisor(it) }.orEmpty() else emptySet()
             )
         }
 

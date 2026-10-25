@@ -35,13 +35,14 @@ class SyncService @Inject constructor(
     private val remoteState: RemoteSyncStateStore,
     private val doctorSync: DoctorSyncCoordinator,
     private val reportBuilder: ReportBuilder,
-    private val downloadUndo: LocalDownloadUndo
+    private val downloadUndo: LocalDownloadUndo,
+    private val publicationStatus: PatientPublicationStatus
 ) {
 
     private val patientSyncMutex = Mutex()
 
     private val retrieval = PatientRetrievalCoordinator(
-        patientSyncMutex, context, telegram, shiftRepository, patientRepository, doctorRepository, syncStateRepository, settingsRepository, database, auditRepository, dispatchers, remoteState, downloadUndo, doctorSync)
+        patientSyncMutex, context, telegram, shiftRepository, patientRepository, doctorRepository, syncStateRepository, settingsRepository, database, auditRepository, dispatchers, remoteState, downloadUndo, doctorSync, publicationStatus)
 
     private val publication = PatientPublicationCoordinator(
         patientSyncMutex, context, telegram, topics, shiftRepository, patientRepository, doctorRepository, syncStateRepository, settingsRepository, auditRepository, dispatchers, remoteState, doctorSync, reportBuilder, database)
@@ -65,11 +66,11 @@ class SyncService @Inject constructor(
 
     suspend fun describeLocalChanges(shiftId: String): HandoverChangeSummary = retrieval.describeLocalChanges(shiftId)
 
-    suspend fun prepareCsvPublication(shiftId: String, forceLocal: Boolean = false, reviewed: com.hos.rushdpatients.domain.report.BuiltReport? = null): CsvPublicationReview = publication.prepareCsvPublication(shiftId, forceLocal, reviewed)
+    suspend fun prepareCsvPublication(shiftId: String, reviewed: com.hos.rushdpatients.domain.report.BuiltReport? = null): CsvPublicationReview = publication.prepareCsvPublication(shiftId, reviewed)
 
     suspend fun uploadCsv(shiftId: String): Result<CsvUploadResult> = publication.uploadCsv(shiftId)
 
-    suspend fun uploadReviewedCsv(review: CsvPublicationReview, forceLocal: Boolean = false): Result<CsvUploadResult> = publication.uploadReviewedCsv(review, forceLocal)
+    suspend fun uploadReviewedCsv(review: CsvPublicationReview): Result<CsvUploadResult> = publication.uploadReviewedCsv(review)
 
     suspend fun prepareRollback(): CsvRollbackReview = publication.prepareRollback()
     suspend fun publishRollback(review: CsvRollbackReview): Result<Unit> = publication.publishRollback(review)

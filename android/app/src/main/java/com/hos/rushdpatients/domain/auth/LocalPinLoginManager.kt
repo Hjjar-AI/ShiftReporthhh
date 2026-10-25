@@ -30,8 +30,7 @@ class LocalPinLoginManager @Inject constructor(
             if (pin.length !in AppConstants.PIN_MIN_LENGTH..AppConstants.PIN_MAX_LENGTH ||
                 !pin.all(Char::isDigit)) throw LocalPinException(LocalPinFailure.INVALID_FORMAT)
             val doctor = doctors.getActiveById(doctorId) ?: throw LocalPinException(LocalPinFailure.UNAVAILABLE)
-            val hash = doctor.extraOptions.firstOrNull { it.startsWith("pin:") }
-                ?.removePrefix("pin:") ?: throw LocalPinException(LocalPinFailure.NOT_ENROLLED)
+            val hash = doctor.options.pinHash ?: throw LocalPinException(LocalPinFailure.NOT_ENROLLED)
             if (doctor.telegramId == null) throw LocalPinException(LocalPinFailure.NOT_LINKED)
 
             // Room is encrypted. Persist only counters/deadlines, never the submitted PIN.
@@ -58,7 +57,7 @@ class LocalPinLoginManager @Inject constructor(
 
             val current = doctors.getActiveById(doctorId) ?: throw LocalPinException(LocalPinFailure.UNAVAILABLE)
             if (current.telegramId != doctor.telegramId ||
-                current.extraOptions.firstOrNull { it.startsWith("pin:") } != "pin:$hash")
+                current.options.pinHash != hash)
                 throw LocalPinException(LocalPinFailure.ACCOUNT_CHANGED)
             settings.delete(key)
             // Session privileges come from the live record, not the selected card's snapshot.

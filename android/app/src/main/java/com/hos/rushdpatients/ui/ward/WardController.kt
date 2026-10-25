@@ -11,15 +11,15 @@ internal interface WardController {
     val liveProject: Boolean
     val state: StateFlow<WardUiState>
     val online: StateFlow<Boolean>
-    val taskNow: StateFlow<Long>
+    val dayLabel: StateFlow<java.time.LocalDate>
     val editor: WardEditorState
-    fun addPatient(patient: Patient, position: Int? = null, expectedPatients: List<Patient>? = null, expectedShiftRevision: Long? = null, onSuccess: () -> Unit = {})
-    fun applySort(spec: SortSpec, expectedRevision: Long, onStale: (Shift?) -> Unit,
+    fun addPatient(patient: Patient, position: Int? = null, onSuccess: () -> Unit = {})
+    fun applySort(spec: SortSpec,
         onSuccess: () -> Unit = {})
     fun bringLatestData()
     fun replaceAndFetch(allowOlder: Boolean = false) {}
-    fun reviewPublishAndFetch() {}
-    fun confirmPublishAndFetch() {}
+    fun reviewPendingPublication() {}
+    fun confirmPendingPublication() {}
     fun dismissFetchReview() {}
     fun deletePatient(patient: Patient, onSuccess: (Patient) -> Unit = {})
     fun dismissSnackbar()
@@ -46,15 +46,15 @@ internal class LiveWardController(private val viewModel: WardViewModel) : WardCo
     override val liveProject = true
     override val state get() = viewModel.state
     override val online get() = viewModel.online
-    override val taskNow get() = viewModel.taskNow
+    override val dayLabel get() = viewModel.dayLabel
     override val editor get() = viewModel.editor
-    override fun addPatient(patient: Patient, position: Int?, expectedPatients: List<Patient>?, expectedShiftRevision: Long?, onSuccess: () -> Unit) { viewModel.addPatient(patient, position, expectedPatients, expectedShiftRevision, onSuccess) }
-    override fun applySort(spec: SortSpec, expectedRevision: Long, onStale: (Shift?) -> Unit,
-        onSuccess: () -> Unit) { viewModel.applySort(spec, expectedRevision, onStale, onSuccess) }
+    override fun addPatient(patient: Patient, position: Int?, onSuccess: () -> Unit) { viewModel.addPatient(patient, position, onSuccess) }
+    override fun applySort(spec: SortSpec,
+        onSuccess: () -> Unit) { viewModel.applySort(spec, onSuccess) }
     override fun bringLatestData() { viewModel.bringLatestData() }
     override fun replaceAndFetch(allowOlder: Boolean) { viewModel.replaceAndFetch(allowOlder) }
-    override fun reviewPublishAndFetch() { viewModel.reviewPublishAndFetch() }
-    override fun confirmPublishAndFetch() { viewModel.confirmPublishAndFetch() }
+    override fun reviewPendingPublication() { viewModel.reviewPendingPublication() }
+    override fun confirmPendingPublication() { viewModel.confirmPendingPublication() }
     override fun dismissFetchReview() { viewModel.dismissFetchReview() }
     override fun deletePatient(patient: Patient, onSuccess: (Patient) -> Unit) { viewModel.deletePatient(patient, onSuccess) }
     override fun dismissSnackbar() { viewModel.dismissSnackbar() }

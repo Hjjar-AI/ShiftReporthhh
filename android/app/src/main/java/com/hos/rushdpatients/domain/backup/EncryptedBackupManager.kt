@@ -85,7 +85,7 @@ class EncryptedBackupManager @Inject constructor(
                 patientRepository.upsertAll(restored, shift.id)
                 shiftRepository.upsert(shift.copy(doctorIds = parsed.doctorIds.distinct(),
                     sortSpecJson = parsed.sortSpecJson, revision = nextRevision(shift.revision, parsed.shiftRevision)))
-                settingsRepository.putBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, true)
+
             }
             parsed.patients.size
         } finally {

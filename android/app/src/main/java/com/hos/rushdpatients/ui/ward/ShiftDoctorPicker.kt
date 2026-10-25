@@ -39,9 +39,8 @@ import com.hos.rushdpatients.ui.theme.UiSpacing
 fun ShiftDoctorPicker(
     allDoctors: List<Doctor>,
     initialSelected: List<String>,
-    initialRevision: Long,
     saving: Boolean = false,
-    onConfirm: (List<String>, Long, (Shift?) -> Unit) -> Unit,
+    onConfirm: (List<String>) -> Unit,
     onDismiss: () -> Unit
 ) {
     val uiText = rememberUiStrings()
@@ -93,7 +92,7 @@ fun ShiftDoctorPicker(
             AppDialogConfirmAction(text = UiAction.SAVE.label(uiText), loading = saving,
                 onClick = {
                     val draft = selected.toList()
-                    onConfirm(draft, initialRevision) {}
+                    onConfirm(draft)
                 },
                 enabled = selected.isNotEmpty() && !saving
             )

@@ -65,7 +65,7 @@ internal fun WardDrawer(
     onAction: (WardDrawerAction) -> Unit
 ) {
     val uiText = rememberUiStrings()
-    val dayLabel = remember(LocalWardTaskNow.current) { com.hos.rushdpatients.util.ShiftDate.current() }
+    val dayLabel = LocalWardDayLabel.current
     var preferencesMenuExpanded by rememberSaveable { mutableStateOf(false) }
     var helpMenuExpanded by rememberSaveable { mutableStateOf(false) }
 

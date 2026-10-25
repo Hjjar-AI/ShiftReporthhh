@@ -110,8 +110,8 @@ internal fun WardWorkspace(
     drawerContent: (@Composable ((() -> Unit) -> Unit) -> Unit)? = null,
     patientFilterIds: Set<String>? = null, onBackToPreview: (() -> Unit)? = null
 ) {
-    val now by viewModel.taskNow.collectAsStateWithLifecycle()
-    androidx.compose.runtime.CompositionLocalProvider(LocalWardTaskNow provides now) {
+    val dayLabel by viewModel.dayLabel.collectAsStateWithLifecycle()
+    androidx.compose.runtime.CompositionLocalProvider(LocalWardDayLabel provides dayLabel) {
         WardWorkspaceContent(isAdmin, currentDoctorId, navigation, viewModel, initialView, onViewChanged, drawerContent, patientFilterIds, onBackToPreview)
     }
 }
@@ -132,9 +132,7 @@ private fun WardWorkspaceContent(
     val onOpenDataManagement = navigation.onOpenDataManagement
     val onOpenWorkspace = navigation.onOpenWorkspace
     val uiText = rememberUiStrings()
-    val liveState by viewModel.state.collectAsStateWithLifecycle()
-    // Retained content is readable during local reload/error, but cannot initiate edits.
-    val state = if (liveState.loading || liveState.error != null) liveState.copy(isReadOnly = true) else liveState
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val online by viewModel.online.collectAsStateWithLifecycle()
     var offlineFetchFailed by rememberSaveable { mutableStateOf(false) }
     var showBackOnline by rememberSaveable { mutableStateOf(false) }
@@ -147,7 +145,7 @@ private fun WardWorkspaceContent(
         }
     }
     val patientIds = remember(state.patients) { state.patients.map { it.id } }
-    val taskNowEpochMillis = LocalWardTaskNow.current
+    val dayLabel = LocalWardDayLabel.current
     val filtersState = rememberSaveable(saver = WardFilters.Saver) { WardFilters(WardFilterOptions(viewMode = initialView ?: WardViewMode.ALL)) }
     var searchQuery by filtersState::searchQuery
     var viewMode by filtersState::viewMode
@@ -220,12 +218,12 @@ private fun WardWorkspaceContent(
         state.patients.any { patient -> if (state.patientDetailsExpanded) patient.id !in collapsedIds else patient.id in expandedIds }
     }
     fun toggleAllCards() = setAllPatientsExpanded(!anyCardsExpanded)
-    val visiblePatients = remember(state.patients, filters, currentDoctorId, taskNowEpochMillis, searchIndex, patientFilterIds) {
-        filterWardPatients(state.patients, filters, currentDoctorId, 0L, emptySet(), searchIndex)
+    val visiblePatients = remember(state.patients, filters, currentDoctorId, dayLabel, searchIndex, patientFilterIds) {
+        filterWardPatients(state.patients, filters, currentDoctorId, dayLabel, emptySet(), searchIndex)
             .filter { patientFilterIds == null || it.id in patientFilterIds }
     }
-    val presetCounts = remember(state.patients, currentDoctorId, taskNowEpochMillis) {
-        val summary = com.hos.rushdpatients.domain.patient.WardSummary.from(state.patients, currentDoctorId, taskNowEpochMillis)
+    val presetCounts = remember(state.patients, currentDoctorId, dayLabel) {
+        val summary = com.hos.rushdpatients.domain.patient.WardSummary.from(state.patients, currentDoctorId, dayLabel)
         mapOf(DashboardFilter.ALL to state.patients.size, DashboardFilter.MINE to summary.mine,
             DashboardFilter.URGENT to summary.urgent, DashboardFilter.TASK_PENDING to summary.tasks.pending,
             DashboardFilter.UNASSIGNED to summary.unassigned, DashboardFilter.WARNINGS to summary.warnings,
@@ -288,8 +286,8 @@ private fun WardWorkspaceContent(
             recentlyEditedId = null
         }
     }
-    if (showWardTasks) WardTaskBoard(state.patients, state.doctors, taskNowEpochMillis,
-        currentDoctorId = currentDoctorId, snackbarHost = snackbarHost,
+    if (showWardTasks) WardTaskBoard(state.patients, state.doctors,
+        snackbarHost = snackbarHost,
         editable = !state.isReadOnly && !state.saving && !state.syncing,
         onComplete = { entry ->
             viewModel.setTaskDone(entry.patient, entry.task.id, true) { saved ->
@@ -447,7 +445,7 @@ private fun WardWorkspaceContent(
                 WardHeader(state, viewMode, patientDestination, anyCardsExpanded, foldingFeature,
                     onMenu = { scope.launch { drawerState.open() } }, onToggleCards = ::toggleAllCards,
                     showAddAction = !showAddFloatingAction,
-                    onAdd = { editor.openAdd(state.patients, state.shift?.revision) }, onSearch = {
+                    onAdd = { editor.openAdd(state.patients) }, onSearch = {
                         if (patientDestination && showSearch && searchQuery.isBlank()) {
                             showSearch = false
                             requestSearchFocus = false
@@ -496,7 +494,7 @@ private fun WardWorkspaceContent(
             floatingActionButton = {
                 if (showAddFloatingAction) {
                     AppButton(
-                        onClick = { editor.openAdd(state.patients, state.shift?.revision) },
+                        onClick = { editor.openAdd(state.patients) },
                         enabled = !state.loading && !state.saving && !state.syncing &&
                             !editor.showAdd && editor.editTarget == null && editor.copyTarget == null,
                         contentPadding = UiPadding.content,
@@ -604,7 +602,7 @@ private fun WardWorkspaceContent(
                                 currentDoctorId = currentDoctorId,
                                 syncStatus = state.syncStatus,
                             online = online, freshnessLabel = freshnessLabel,
-                                nowEpochMillis = taskNowEpochMillis,
+                                dayLabel = dayLabel,
                                 bottomClearance = scrollBottomClearance,
                                 onFilter = ::applyDashboardFilter,
                                 onSync = onOpenDataManagement,
@@ -617,7 +615,7 @@ private fun WardWorkspaceContent(
                             EmptyWardPatients(isReadOnly = state.isReadOnly,
                                 busy = state.syncing || state.saving,
                                 bottomClearance = scrollBottomClearance,
-                                onAdd = { editor.openAdd(state.patients, state.shift?.revision) },
+                                onAdd = { editor.openAdd(state.patients) },
                                 topContent = {})
                         } else {
                             WardPatientGrid(state, visiblePatients, dualPane, patientGridState,
@@ -655,7 +653,6 @@ private fun WardWorkspaceContent(
             selected = detailsTargetId == patient.id,
             recentlyEdited = recentlyEditedId == patient.id,
             pinned = false,
-            taskNowEpochMillis = taskNowEpochMillis,
             compact = state.compactCards),
         actions = remember(patient, state.patientDetailsExpanded, state.isReadOnly, state.saving, state.syncing, viewModel, editor, haptics) {
             PatientCardActions(
@@ -719,7 +716,6 @@ private fun WardWorkspaceContent(
 
     if (editor.showAdd) {
         val insertionPatients = editor.insertionPatients
-        val insertionRevision = editor.insertionRevision
         AddPatientDialog(
             doctors = state.doctors,
             draft = state.patientDraft,
@@ -732,7 +728,7 @@ private fun WardWorkspaceContent(
             onConfirm = {
                 val requested = editor.insertionPosition.map { digit -> Character.digit(digit, 10) }.joinToString("").toIntOrNull()
                 if (editor.insertionPosition.isBlank() || requested != null) {
-                    viewModel.addPatient(it, requested, insertionPatients, insertionRevision) { editor.showAdd = false }
+                    viewModel.addPatient(it, requested) { editor.showAdd = false }
                 }
             },
             onDismiss = { editor.showAdd = false }

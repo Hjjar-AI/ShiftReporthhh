@@ -11,8 +11,42 @@ object ReportReview {
         if (!sameContent(reviewed, current)) throw ReportChangedSinceReviewException()
     }
 
+    /** Explicit v1 field list: adding a model property cannot silently change delivery identity. */
+    fun fingerprint(report: BuiltReport): String = digestFields(buildList {
+        add("report-content-v1")
+        add(report.shift.id)
+        add(report.shift.date.toString())
+        add(report.summary.shiftDate.toString()) // Captured once at review, independent of wall-clock time.
+        add(report.shift.doctorIds.size.toString())
+        addAll(report.shift.doctorIds)
+        add(report.shift.multiDoctorMode.toString())
+        add(report.shift.sortSpecJson.orEmpty())
+        add(report.patients.size.toString())
+        report.patients.forEach { patient ->
+            add(patient.id); add(patient.admittanceNumber); add(patient.admittanceDate?.toString().orEmpty())
+            add(patient.gender.name); add(patient.name); add(patient.birthDate?.toString().orEmpty())
+            add(patient.hasCompanion.toString()); add(patient.diagnosisType.name)
+            add(patient.initialDiagnosis); add(patient.treatmentPlan); add(patient.followUp); add(patient.labs)
+            add(patient.responsibleResidentId.orEmpty()); add(patient.responsibleSpecialistId.orEmpty())
+            add(patient.isPriority.toString()); add(patient.sortOrder.toString())
+            add(patient.tasks.size.toString())
+            patient.tasks.forEach { task -> add(task.id); add(task.description); add(task.done.toString()) }
+            add(patient.badges.size.toString())
+            patient.badges.forEach { badge -> add(badge.text); add(badge.priority?.name.orEmpty()) }
+        }
+        val doctors = relevantDoctors(report)
+        add(doctors.size.toString())
+        doctors.forEach { doctor ->
+            add(doctor.id); add(doctor.fullName); add(doctor.gender.name); add(doctor.clinicalRole.name)
+            add(doctor.supervisorGroupChatId?.toString().orEmpty()); add(doctor.telegramId?.toString().orEmpty())
+            add(doctor.rank.toString()); add(doctor.isPermanentAdmin.toString()); add(doctor.isDeleted.toString())
+        }
+        add(report.textChunks.size.toString()); addAll(report.textChunks)
+    })
+
+    /** Read existing receipt keys during the transition; new receipts use the explicit field list. */
     /** Stable clinical identity; independent of publication revisions and PDF generation time. */
-    fun fingerprint(report: BuiltReport): String {
+    fun legacyFingerprint(report: BuiltReport): String {
         val fields = listOf(report.shift.id, report.shift.date.toString(), report.shift.doctorIds.toString(),
             report.shift.multiDoctorMode.toString(), report.shift.sortSpecJson.orEmpty(),
             report.patients.map(::clinicalPatient).toString(), relevantDoctors(report).toString(), report.textChunks.toString())
@@ -35,13 +69,10 @@ object ReportReview {
         return digest.digest().joinToString("") { "%02x".format(it.toInt() and 255) }
     }
 
-    private fun sameContent(a: BuiltReport, b: BuiltReport): Boolean {
-        val sameShift = a.shift.id == b.shift.id && a.shift.date == b.shift.date &&
-            a.shift.doctorIds == b.shift.doctorIds && a.shift.multiDoctorMode == b.shift.multiDoctorMode &&
-            a.shift.sortSpecJson == b.shift.sortSpecJson
-        return sameShift && a.patients.map(::clinicalPatient) == b.patients.map(::clinicalPatient) &&
-            relevantDoctors(a) == relevantDoctors(b) && a.textChunks == b.textChunks
-    }
+    private fun sameContent(a: BuiltReport, b: BuiltReport): Boolean = fingerprint(a) == fingerprint(b)
+
+    fun legacySupervisorFingerprint(report: BuiltReport, supervisorId: String): String =
+        digestFields(listOf("supervisor-pdf", supervisorId, legacyFingerprint(report)))
 
     private fun clinicalPatient(patient: Patient): Patient = patient.withoutTrackingMetadata().copy(
         revision = 0,

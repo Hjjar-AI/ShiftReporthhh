@@ -14,8 +14,7 @@ internal fun reportFlowGate(
     selectedTargets: List<SupervisorReportTarget>, reviewedText: String?, openedPdfUris: Set<String>,
     includeGeneral: Boolean = !supervisorMode
 ): ReportFlowGate {
-    val busy = state.loading || state.savingDoctors || state.sending || state.previewingPdf ||
-        state.exportingLocalPdf || state.sharingPdf || state.savingPdfOptions
+    val busy = state.isBusy
     val targets = if (supervisorMode) selectedTargets else emptyList()
     val hasDestination = includeGeneral || targets.isNotEmpty()
     val generalReady = !includeGeneral || if (state.reportAsPdf)
@@ -39,7 +38,6 @@ internal fun reportFlowGate(
     }
     val sendDisabledReason = when {
         busy -> R.string.ui_report_preview_screen_001
-        state.isReadOnly -> R.string.ui_report_preview_screen_008
         state.summary == null -> if (state.doctors.isEmpty()) R.string.ui_report_preview_screen_003 else R.string.ui_report_preview_screen_009
         !hasDestination -> R.string.ui_report_no_destination
         !previewReady -> R.string.ui_report_preview_each_selected

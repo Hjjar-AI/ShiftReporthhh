@@ -193,8 +193,8 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
                 val columnWidth = (right - left - 2 * columnGap) / 3f
                 val introColumns = listOf(
                     Triple("الفريق المسؤول", PdfPatientContent.buildSupervisorResidentCell(patient, residentNames, supervisorNames), left + columnWidth),
-                    Triple("القبول", PdfPatientContent.buildAdmitCell(patient), left + 2 * columnWidth + columnGap),
-                    Triple("بيانات المريض", PdfPatientContent.buildPatientCell(patient, includeName = false), right)
+                    Triple("القبول", PdfPatientContent.buildAdmitCell(patient, summary.shiftDate), left + 2 * columnWidth + columnGap),
+                    Triple("بيانات المريض", PdfPatientContent.buildPatientCell(patient, includeName = false, reportDate = summary.shiftDate), right)
                 )
                 val introLines = introColumns.map { PdfTextWrapper.wrap(it.second, body, columnWidth) }
                 val lineHeight = PdfTextWrapper.lineHeight(body)
@@ -222,13 +222,11 @@ internal class PdfPatientCardsRenderer(private val fonts: PdfFonts) {
                     y += lineHeight
                 }
                 y += gap
-                val tasks = PatientTasks.orderedForDisplay(patient.tasks, options.generatedAtEpochMillis)
-                val taskText = tasks.groupBy { PatientTasks.statusLabel(it, options.generatedAtEpochMillis) }
+                val tasks = PatientTasks.orderedForDisplay(patient.tasks)
+                val taskText = tasks.groupBy { PatientTasks.statusLabel(it) }
                     .entries.joinToString("\n") { (status, group) ->
                         "$status (${group.size})\n" + group.joinToString("\n") { task ->
-                            val metadata = PatientTasks.metadata(task, residentNames + supervisorNames,
-                                includeUnassigned = false, includeRoutinePriority = false)
-                            "• " + listOf(task.description, metadata).filter { it.isNotBlank() }.joinToString(" — ")
+                            "• " + task.description
                         }
                     }
                 val badgePaint = Paint(body).apply { typeface = fonts.bold }

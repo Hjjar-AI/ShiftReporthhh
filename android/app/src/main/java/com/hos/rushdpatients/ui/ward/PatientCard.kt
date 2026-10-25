@@ -96,7 +96,6 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
     val showIdentity = state.showIdentity
     val compact = state.compact
     val animateExpansion = state.animateExpansion
-    val taskNowEpochMillis = state.taskNowEpochMillis
     val onClick = actions.onOpen
     val onLongClick = actions.onLongPress
     val onEdit = actions.onEdit
@@ -112,7 +111,7 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
     val headerExpands = com.hos.rushdpatients.ui.theme.LocalUiPreferences.current.expandPatientHeader
     val cardDensity = UiPatientCard.density(compact)
     val sectionGap = cardDensity.sectionGap
-    val taskCounts = remember(patient.tasks, taskNowEpochMillis) { PatientTasks.counts(patient.tasks, taskNowEpochMillis) }
+    val taskCounts = remember(patient.tasks) { PatientTasks.counts(patient.tasks) }
     val badgesLabel = uiPlural(R.plurals.patient_badges, patient.badges.size)
     val pendingTasksLabel = uiPlural(R.plurals.patient_tasks_pending, taskCounts.pending)
     val clinicalColors = LocalClinicalColors.current
@@ -262,7 +261,7 @@ fun PatientCard(state: PatientCardState, actions: PatientCardActions, modifier: 
                         SingleColumnDetail(patient = patient, spacing = sectionGap)
                     }
                     if (patient.tasks.isNotEmpty()) AppClinicalSection(uiText(R.string.ui_tasks),
-                        PatientTasks.summary(patient.tasks, doctorNames, nowEpochMillis = taskNowEpochMillis))
+                        PatientTasks.summary(patient.tasks))
                 }
             }
             if (!showIdentity) Text(PatientIdentityText.details(uiText, patient),

@@ -13,6 +13,7 @@ import javax.inject.Singleton
 @Singleton
 class SyncStateRepository @Inject constructor(
     private val dao: SyncStateDao,
+    private val settings: SettingsRepository,
     private val dispatchers: DispatcherProvider
 ) {
 
@@ -33,6 +34,10 @@ class SyncStateRepository @Inject constructor(
         messageId: Long?,
         fileId: String?
     ) = withContext(dispatchers.io) {
+        if (channel == SyncChannel.CSV) {
+            settings.putLong(com.hos.rushdpatients.config.AppConstants.SETTING_CSV_MESSAGE_HIGH_WATER,
+                maxOf(csvMessageHighWater(), messageId ?: 0L))
+        }
         val existing = dao.get(channel.key)
         val syncedAt = Instant.now().toEpochMilli()
         if (existing == null) {
@@ -57,6 +62,10 @@ class SyncStateRepository @Inject constructor(
     suspend fun resetAll() = withContext(dispatchers.io) {
         dao.deleteAll()
     }
+
+    suspend fun csvMessageHighWater(): Long = maxOf(
+        lastMessageId(SyncChannel.CSV) ?: 0L,
+        settings.getLong(com.hos.rushdpatients.config.AppConstants.SETTING_CSV_MESSAGE_HIGH_WATER, 0L))
 
     suspend fun lastOffset(channel: SyncChannel): Long = withContext(dispatchers.io) {
         dao.get(channel.key)?.lastOffset ?: 0L

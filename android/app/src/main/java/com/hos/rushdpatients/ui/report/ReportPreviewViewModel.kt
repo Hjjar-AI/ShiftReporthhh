@@ -81,7 +81,7 @@ class ReportPreviewViewModel @Inject constructor(
 
     private val shiftId: String = savedStateHandle.get<String>("shiftId").orEmpty()
 
-    private val _state = MutableStateFlow(ReportUiState())
+    private val _state = MutableStateFlow(ReportUiState(loading = false))
     val state: StateFlow<ReportUiState> = _state.asStateFlow()
     private var reviewedReport: BuiltReport? = null
     private var reviewedActor: com.hos.rushdpatients.domain.auth.Session? = null
@@ -122,11 +122,11 @@ class ReportPreviewViewModel @Inject constructor(
     }
 
     fun load(reviewNotice: String? = null) {
-        if (_state.value.sending || _state.value.savingDoctors || _state.value.savingPdfOptions) return
+        if (_state.value.isBusy) return
         clearPdfReviews()
         reviewedReport = null
+        _state.update { it.copy(loading = true, summary = null, error = reviewNotice) }
         viewModelScope.launch {
-            _state.update { it.copy(loading = true, summary = null, error = reviewNotice) }
             try {
                 check(shiftId.isNotBlank()) { uiText(R.string.ui_report_preview_view_model_002) }
                 val pdfOptions = loadPdfOptions()
@@ -137,7 +137,7 @@ class ReportPreviewViewModel @Inject constructor(
                 val available = doctorRepository.getAll().filterNot { it.isDeleted }
                 _state.update { it.copy(shift = shift, availableDoctors = available,
                     doctors = available.filter { doctor -> doctor.id in shift.doctorIds },
-                    isReadOnly = false) }
+                    error = null) }
                 if (_state.value.doctors.isEmpty()) {
                     _state.update { it.copy(loading = false, previewMarkdown = "", error = null, doctorRegistryAction = null) }
                     return@launch
@@ -150,6 +150,7 @@ class ReportPreviewViewModel @Inject constructor(
                     changes.added.forEach { add(uiText(R.string.ui_report_preview_view_model_003, it)) }
                     changes.changed.forEach { add(uiText(R.string.ui_report_preview_view_model_004, it)) }
                     changes.removed.forEach { add(uiText(R.string.ui_report_preview_view_model_005, it)) }
+                    if (changes.settingsChanged) add(uiText(R.string.report_shift_settings_changed))
                 }
                 reviewedReport = built
                 reviewedActor = sessionManager.current()
@@ -157,7 +158,6 @@ class ReportPreviewViewModel @Inject constructor(
                     it.copy(
                         loading = false,
                         shift = built.shift,
-                        isReadOnly = false,
                         patients = built.patients,
                         doctors = built.doctors,
                         supervisorTargets = supervisorTargets,
@@ -166,9 +166,9 @@ class ReportPreviewViewModel @Inject constructor(
                             Markdown.toPlainText(it)
                         },
                         readinessWarnings = com.hos.rushdpatients.ui.components.readinessWarnings(uiText, built.patients),
-                        readinessIssues = ReportReadiness.issues(built.patients, built.shift.date),
+                        readinessIssues = ReportReadiness.issues(built.patients),
                         changeBriefing = briefing,
-                        registryChangeSummary = built.registryChangeSummary?.substringBefore("\nافتح")?.let { summary ->
+                        registryChangeSummary = built.registryChangeSummary?.summary?.let { summary ->
                             summary + "\n" + built.registryDoctors.filterNot { it.isDeleted }.joinToString("\n") {
                                 it.fullName + " · " + it.clinicalRole.arabicLabel
                             }
@@ -177,6 +177,7 @@ class ReportPreviewViewModel @Inject constructor(
                     )
                 }
             } catch (e: CancellationException) {
+                _state.update { it.copy(loading = false) }
                 throw e
             } catch (e: Exception) {
                 _state.update {
@@ -188,9 +189,8 @@ class ReportPreviewViewModel @Inject constructor(
 
     fun fetchDoctorsForReport() {
         val current = _state.value
-        if (current.loading || current.savingDoctors || current.sending || current.previewingPdf ||
-            current.savingPdfOptions || current.exportingLocalPdf || current.sharingPdf) return
-        _state.update { it.copy(savingDoctors = true, error = null, doctorRegistryAction = null) }
+        if (current.isBusy) return
+        _state.update { it.copy(fetchingDoctors = true, error = null, doctorRegistryAction = null) }
         viewModelScope.launch {
             var fetched = false
             try {
@@ -202,30 +202,27 @@ class ReportPreviewViewModel @Inject constructor(
             catch (e: Exception) {
                 _state.update { it.copy(error = com.hos.rushdpatients.ui.components.failureText(uiText, e) ?: uiText(R.string.ui_report_preview_view_model_007),
                     doctorRegistryAction = (e as? DoctorRegistryActionRequired)?.action) }
-            } finally { _state.update { it.copy(savingDoctors = false) } }
+            } finally { _state.update { it.copy(fetchingDoctors = false) } }
             if (fetched) load(uiText(R.string.ui_report_preview_view_model_008))
         }
     }
 
     fun setShiftDoctors(
-        ids: List<String>, expectedRevision: Long,
-        onStale: (Shift?) -> Unit, onSuccess: () -> Unit
+        ids: List<String>, onSuccess: () -> Unit
     ) {
         val current = _state.value
-        if (current.loading || current.savingPdfOptions || current.savingDoctors || current.sending || current.previewingPdf ||
-            current.exportingLocalPdf || current.sharingPdf) return
-        if (current.isReadOnly || current.shift == null) return
+        if (current.isBusy) return
+        if (current.shift == null) return
         _state.update { it.copy(savingDoctors = true, error = null, doctorRegistryAction = null) }
         viewModelScope.launch {
             try {
                 activeSendingActor()
-                wardMutations.setShiftDoctors(shiftId, ids, expectedRevision, sessionManager.current())
+                wardMutations.setShiftDoctors(shiftId, ids, sessionManager.current())
                 reviewedReport = null
                 _state.update { it.copy(savingDoctors = false) }
                 onSuccess()
                 load()
-            } catch (e: StaleShiftEditException) {
-                onStale(shiftRepository.getById(shiftId))
+
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -238,8 +235,7 @@ class ReportPreviewViewModel @Inject constructor(
 
     fun setReportAsPdf(value: Boolean) {
         val current = _state.value
-        if (current.loading || current.sending || current.savingDoctors || current.previewingPdf ||
-            current.exportingLocalPdf || current.sharingPdf || current.savingPdfOptions) return
+        if (current.isBusy) return
         _state.update { it.copy(savingPdfOptions = true) }
         viewModelScope.launch {
             try {
@@ -257,8 +253,7 @@ class ReportPreviewViewModel @Inject constructor(
 
     fun setPdfAppearance(style: PdfStyle, requested: PdfExportOptions) {
         val current = _state.value
-        if (current.loading || current.sending || current.savingDoctors || current.previewingPdf ||
-            current.exportingLocalPdf || current.sharingPdf || current.savingPdfOptions) return
+        if (current.isBusy) return
         val options = requested.copy(orientation = com.hos.rushdpatients.pdf.PdfOrientation.PORTRAIT, darkMode = false, ruleWeight = com.hos.rushdpatients.pdf.PdfRuleWeight.MEDIUM, ruleContrast = com.hos.rushdpatients.pdf.PdfRuleContrast.MEDIUM)
         _state.update { it.copy(savingPdfOptions = true) }
         viewModelScope.launch {
@@ -281,15 +276,14 @@ class ReportPreviewViewModel @Inject constructor(
         }
     }
 
-    private suspend fun prepareReviewedReport(reviewed: BuiltReport, forceLocal: Boolean): BuiltReport {
+    private suspend fun publishReviewedSnapshot(reviewed: BuiltReport) {
         val actor = activeSendingActor()
         val reviewer = reviewedActor
         require(reviewer != null && actor.id == reviewer.doctorId && actor.telegramId == reviewer.telegramId) { "تغير حساب المراجع؛ افتح التقرير بالحساب الذي راجعه" }
-        val publication = syncService.prepareCsvPublication(shiftId, forceLocal, reviewed)
+        val publication = syncService.prepareCsvPublication(shiftId, reviewed)
         _state.update { it.copy(publicationOutcome = ReportStepOutcome.IN_PROGRESS) }
-        syncService.uploadReviewedCsv(publication, forceLocal).getOrThrow()
+        syncService.uploadReviewedCsv(publication).getOrThrow()
         _state.update { it.copy(publicationOutcome = ReportStepOutcome.CONFIRMED) }
-        return reviewed
     }
 
     private suspend fun activeSendingActor(): com.hos.rushdpatients.data.model.Doctor {
@@ -342,20 +336,15 @@ class ReportPreviewViewModel @Inject constructor(
         }
     }
 
-    fun sendSupervisorReports(supervisorIds: Set<String>, forceLocal: Boolean = false) =
-        sendSelectedReports(false, supervisorIds, forceLocal)
+    fun sendSupervisorReports(supervisorIds: Set<String>) =
+        sendSelectedReports(false, supervisorIds)
 
-    fun send(forceLocal: Boolean = false) = sendSelectedReports(true, emptySet(), forceLocal)
+    fun send() = sendSelectedReports(true, emptySet())
 
-    fun sendSelectedReports(includeGeneral: Boolean, supervisorIds: Set<String>, forceLocal: Boolean = false) {
+    fun sendSelectedReports(includeGeneral: Boolean, supervisorIds: Set<String>) {
         val current = _state.value
         val reviewed = reviewedReport ?: return
-        if (current.loading || current.savingPdfOptions || current.savingDoctors || current.sending || current.previewingPdf ||
-            current.exportingLocalPdf || current.sharingPdf || current.shift == null) return
-        if (current.isReadOnly) {
-            _state.update { it.copy(error = uiText(R.string.ui_report_preview_view_model_011)) }
-            return
-        }
+        if (current.isBusy || current.shift == null) return
         val selected = current.supervisorTargets.filter { it.doctorId in supervisorIds && it.chatId != null }
         if ((!includeGeneral && selected.isEmpty()) || selected.size != supervisorIds.size) {
             _state.update { it.copy(error = uiText(R.string.ui_report_no_destination)) }
@@ -372,17 +361,17 @@ class ReportPreviewViewModel @Inject constructor(
             try {
                 // Check every selected route/artifact before publishing or sending any copy.
                 if (includeGeneral) {
-                    reportSender.checkGeneralDelivery(reviewed.shift, ReportReview.fingerprint(reviewed), current.reportAsPdf)
+                    reportSender.checkGeneralDelivery(reviewed.shift, ReportReview.fingerprint(reviewed), current.reportAsPdf, ReportReview.legacyFingerprint(reviewed))
                     if (current.reportAsPdf) checkedPdf(reviewed)
                 }
                 for (target in selected) {
-                    reportSender.checkSupervisorDelivery(reviewed.shift, ReportReview.supervisorFingerprint(reviewed, target.doctorId), requireNotNull(target.chatId))
+                    reportSender.checkSupervisorDelivery(reviewed.shift, ReportReview.supervisorFingerprint(reviewed, target.doctorId), requireNotNull(target.chatId), ReportReview.legacySupervisorFingerprint(reviewed, target.doctorId))
                     checkedPdf(reviewed, target.doctorId)
                 }
-                val built = prepareReviewedReport(reviewed, forceLocal)
+                publishReviewedSnapshot(reviewed)
+                val built = reviewed
                 val actor = activeSendingActor()
-                val targets = buildSupervisorTargets(built).filter { it.doctorId in supervisorIds && it.chatId != null }
-                check(targets == selected) { uiText(R.string.ui_report_preview_view_model_023) }
+                val targets = selected
                 for (target in targets) {
                     val live = doctorRepository.getActiveById(target.doctorId)
                     require(live != null && live.supervisorGroupChatId == target.chatId && live.clinicalRole.canBeSupervisor()) {
@@ -452,7 +441,7 @@ class ReportPreviewViewModel @Inject constructor(
         reportSender.sendTextReport(
             shift = built.shift,
             chunks = built.textChunks,
-            actor = actor, contentKey = ReportReview.fingerprint(built)
+            actor = actor, contentKey = ReportReview.fingerprint(built), legacyContentKey = ReportReview.legacyFingerprint(built)
         )
     }
 
@@ -472,7 +461,7 @@ class ReportPreviewViewModel @Inject constructor(
                     shift = built.shift,
                     pdfFile = tmp,
                     caption = caption,
-                    actor = actor, contentKey = ReportReview.fingerprint(built)
+                    actor = actor, contentKey = ReportReview.fingerprint(built), legacyContentKey = ReportReview.legacyFingerprint(built)
                 )
             }
         }
@@ -509,7 +498,8 @@ class ReportPreviewViewModel @Inject constructor(
         reportSender.sendSupervisorPdfReport(shift = built.shift, pdfFile = reviewedFile,
             caption = textReportBuilder.buildTitle(built.shift.copy(date = built.summary.shiftDate), listOf(supervisor)), actor = actor,
             supervisor = supervisor, chatId = requireNotNull(target.chatId),
-            contentKey = ReportReview.supervisorFingerprint(built, target.doctorId))
+            contentKey = ReportReview.supervisorFingerprint(built, target.doctorId),
+            legacyContentKey = ReportReview.legacySupervisorFingerprint(built, target.doctorId))
     }
 
     private fun reportFileName(date: java.time.LocalDate, suffix: String? = null): String = pdfWorkspace.reportFileName(date, suffix)

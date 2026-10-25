@@ -39,7 +39,7 @@ internal fun HandoverDashboard(
     syncStatus: PatientSyncStatus,
     online: Boolean,
     freshnessLabel: String,
-    nowEpochMillis: Long,
+    dayLabel: java.time.LocalDate = com.hos.rushdpatients.util.ShiftDate.current(),
     onFilter: (DashboardFilter) -> Unit,
     onSync: () -> Unit,
     onActivity: () -> Unit,
@@ -49,8 +49,8 @@ internal fun HandoverDashboard(
     reportStatus: String? = null, onReportStatus: () -> Unit = onSync
 ) {
     val uiText = rememberUiStrings()
-    val summary = remember(patients, currentDoctorId, nowEpochMillis) {
-        WardSummary.from(patients, currentDoctorId, nowEpochMillis)
+    val summary = remember(patients, currentDoctorId, dayLabel) {
+        WardSummary.from(patients, currentDoctorId, dayLabel)
     }
     val mine = summary.mine
     val taskCounts = summary.tasks

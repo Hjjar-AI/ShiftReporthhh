@@ -111,10 +111,9 @@ internal fun WardViewOptionsDialog(
                         }
                         if (showSort) PatientSortOptions(
                             initial = state.sortSpec,
-                            initialRevision = state.shift?.revision ?: 0,
                             saving = state.saving,
-                            onApply = { spec, revision, onStale ->
-                                viewModel.applySort(spec, revision, onStale) { onSortExpandedChange(false) }
+                            onApply = { spec ->
+                                viewModel.applySort(spec) { onSortExpandedChange(false) }
                             }
                         )
                     }

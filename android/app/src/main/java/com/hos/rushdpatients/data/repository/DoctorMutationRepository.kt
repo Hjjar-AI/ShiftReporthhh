@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.data.repository
 
+import com.hos.rushdpatients.data.model.DoctorOptions
 import androidx.room.withTransaction
 import com.hos.rushdpatients.config.AppConstants
 import com.hos.rushdpatients.data.db.AppDatabase
@@ -71,7 +72,7 @@ class DoctorMutationRepository @Inject constructor(
                 firstName = input.firstName.trim(), lastName = input.lastName.trim(),
                 gender = input.gender, clinicalRole = input.clinicalRole,
                 telegramId = input.telegramId, customTitle = input.customTitle?.takeIf { it.isNotBlank() },
-                extraOptions = setOf("pin:$pinHash")
+                extraOptions = DoctorOptions.from(emptySet()).withPinHash(pinHash)
             ), input.teamSupervisorId.takeIf { input.clinicalRole == ClinicalRole.RESIDENT })
             require(doctors.getById(doctor.id) == null) {
                 "يوجد سجل سابق لهذا الطبيب؛ لا يمكن استبداله بإضافة جديدة"
@@ -100,7 +101,7 @@ class DoctorMutationRepository @Inject constructor(
                 telegramId = input.telegramId,
                 customTitle = input.customTitle?.takeIf { it.isNotBlank() },
                 extraOptions = if (pinHash == null) current.extraOptions else
-                    current.extraOptions.filterNot { it.startsWith("pin:") }.toSet() + "pin:$pinHash"
+                    current.options.withPinHash(pinHash)
             ), input.teamSupervisorId.takeIf { input.clinicalRole == ClinicalRole.RESIDENT })
             requireUnique(updated)
             doctors.upsert(updated)
@@ -172,15 +173,10 @@ class DoctorMutationRepository @Inject constructor(
                 "بيانات ${incoming.fullName} تطابق أكثر من طبيب محلي"
             }
             val local = matches.singleOrNull()
-            val localSecrets = local?.extraOptions.orEmpty()
-                .filter { it.startsWith("syncAlias:") ||
-                    it.startsWith("pin:") && local?.telegramId == incoming.telegramId }
-                .toSet()
+            val localSecrets = DoctorOptions.from(local?.extraOptions.orEmpty()).localIdentity(includePin = local?.telegramId == incoming.telegramId)
             var result = incoming.copy(
                 id = local?.id ?: incoming.id,
-                extraOptions = incoming.extraOptions.filterNot {
-                    it.startsWith("pin:") || it.startsWith("syncAlias:")
-                }.toSet() + localSecrets,
+                extraOptions = incoming.options.portable + localSecrets,
                 // A portable file may be old; importing it must not delete a
                 // currently active local clinician implicitly.
                 deletedAt = if (local != null && !local.isDeleted) null else incoming.deletedAt

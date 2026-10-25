@@ -19,7 +19,7 @@ fun DoctorImportPlan.changes(): DoctorImportChanges {
     val before = expectedRegistry.associateBy { it.id }
     val touched = reviewedChanges.mapTo(mutableSetOf()) { it.id }
     fun portable(doctor: Doctor) = doctor.copy(updatedAt = java.time.Instant.EPOCH,
-        extraOptions = doctor.extraOptions.filterNot { it.startsWith("pin:") || it.startsWith("syncAlias:") }.toSet())
+        extraOptions = doctor.options.portable)
     return DoctorImportChanges(
         reviewedChanges.filter { !it.isDeleted && before[it.id] == null }.map { it.fullName },
         reviewedChanges.filter { !it.isDeleted && before[it.id]?.let { old -> portable(old) != portable(it) } == true }.map { it.fullName },

@@ -75,7 +75,7 @@ class DemoWardViewModel @Inject constructor(
     internal val editor = com.hos.rushdpatients.ui.ward.WardEditorState()
     private val _state = repository.state
     internal val state = _state.asStateFlow()
-    private val clock = MutableStateFlow(System.currentTimeMillis())
+    private val dayLabel = MutableStateFlow(com.hos.rushdpatients.util.ShiftDate.current())
     private val offline = MutableStateFlow(false)
     private fun wardState(snapshot: DemoWardState) = WardUiState(
         loading = false, hospitalName = uiText(R.string.ui_demo_navigation_001),
@@ -95,11 +95,10 @@ class DemoWardViewModel @Inject constructor(
         override val liveProject = false
         override val state get() = workspace
         override val online get() = offline
-        override val taskNow get() = clock
+        override val dayLabel get() = this@DemoWardViewModel.dayLabel
         override val editor get() = this@DemoWardViewModel.editor
         private fun unavailable() { message(uiText(R.string.ui_demo_local_only)) }
-        override fun addPatient(patient: Patient, position: Int?, expectedPatients: List<Patient>?,
-            expectedShiftRevision: Long?, onSuccess: () -> Unit) {
+        override fun addPatient(patient: Patient, position: Int?, onSuccess: () -> Unit) {
             val current = _state.value
             if (current.patients.any { it.id == patient.id }) { unavailable(); return }
             if (save(patient)) {
@@ -135,7 +134,7 @@ class DemoWardViewModel @Inject constructor(
         override fun restorePatient(patient: Patient) {
             if (_state.value.patients.none { it.id == patient.id }) restore(patient)
         }
-        override fun applySort(spec: SortSpec, expectedRevision: Long, onStale: (Shift?) -> Unit, onSuccess: () -> Unit) {
+        override fun applySort(spec: SortSpec, onSuccess: () -> Unit) {
             sort(spec); onSuccess()
         }
         override fun saveDraft(draft: PatientDraft) { _state.update { it.copy(draft = draft) } }

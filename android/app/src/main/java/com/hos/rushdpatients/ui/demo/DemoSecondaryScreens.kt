@@ -82,7 +82,7 @@ internal fun DemoReportContent(
                 AppClinicalSection(uiText(R.string.ui_demo_secondary_screens_010), patient.treatmentPlan)
                 AppClinicalSection(uiText(R.string.ui_patient_form_dialog_012), patient.followUp)
                 AppClinicalSection(uiText(R.string.ui_labs), patient.labs, kind = ClinicalTextKind.LABS)
-                Text(PatientTasks.summary(patient.tasks, state.names), style = MaterialTheme.typography.bodySmall)
+                Text(PatientTasks.summary(patient.tasks), style = MaterialTheme.typography.bodySmall)
             }
         }
     }

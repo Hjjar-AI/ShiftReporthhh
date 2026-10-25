@@ -53,9 +53,9 @@ private fun SelectedWardPreview(preferences: UiPreferences, appearance: AppAppea
     val now = remember { System.currentTimeMillis() }
     val names = remember { doctors.associate { it.id to it.fullName } }
     RushdPatientsTheme(appearance = appearance, uiPreferences = preferences) {
-        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl, LocalWardTaskNow provides now) {
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl, LocalWardDayLabel provides com.hos.rushdpatients.util.ShiftDate.current()) {
             val uiText = rememberUiStrings()
-            val summary = WardSummary.from(patients, doctors.first().id, now)
+            val summary = WardSummary.from(patients, doctors.first().id)
             val visible = if (search) patients.filter { it.name.contains("شاي") } else patients
             val counts = mapOf(DashboardFilter.ALL to patients.size, DashboardFilter.MINE to summary.mine,
                 DashboardFilter.URGENT to summary.urgent, DashboardFilter.TASK_PENDING to summary.tasks.pending)
@@ -79,7 +79,7 @@ private fun SelectedWardPreview(preferences: UiPreferences, appearance: AppAppea
                                         requestFocus = false, onFocusRequested = {})
                                 }
                             }, headerContent = {}, patientCard = { patient, modifier ->
-                                PatientCard(PatientCardState(patient = patient, taskNowEpochMillis = now, doctorNames = names),
+                                PatientCard(PatientCardState(patient = patient, doctorNames = names),
                                     PatientCardActions.None, modifier)
                             })
                     }

@@ -1,5 +1,6 @@
 package com.hos.rushdpatients.data.repository
 
+import com.hos.rushdpatients.data.model.DoctorOptions
 import com.hos.rushdpatients.domain.doctor.DoctorTeams
 
 import androidx.room.withTransaction
@@ -27,7 +28,6 @@ class DoctorRepository @Inject constructor(
     private val dispatchers: DispatcherProvider
 ) {
 
-    private val syncAliasPrefix = "syncAlias:"
 
     fun observeAll(): Flow<List<Doctor>> =
         dao.observeAll().map { list -> list.map(DoctorMapper::fromEntity) }
@@ -104,14 +104,14 @@ class DoctorRepository @Inject constructor(
     }
 
     /** User-facing portable changes only; never include PINs, aliases or credentials. */
-    suspend fun pendingSharedChangesSummary(): String? = withContext(dispatchers.io) {
+    suspend fun pendingSharedChangesSummary(): com.hos.rushdpatients.domain.doctor.RegistryChangeSummary? = withContext(dispatchers.io) {
         database.withTransaction {
             if (!hasPendingSharedChanges()) return@withTransaction null
             val local = getAll().associateBy { it.id }
             val raw = settingsRepository.get(AppConstants.SETTING_DOCTORS_BASE_REGISTRY)
             val base = try { raw?.let { DoctorsRegistryCodec.decode(it).doctors } }
                 catch (e: IllegalArgumentException) { null }
-            if (base.isNullOrEmpty()) return@withTransaction "لم يتأكد نشر سجل الأطباء المحلي. افتح سجل الأطباء، راجع النسخة ثم اختر «نشر سجل الأطباء»."
+            if (base.isNullOrEmpty()) return@withTransaction com.hos.rushdpatients.domain.doctor.RegistryChangeSummary("لم يتأكد نشر سجل الأطباء المحلي.")
             val previous = base.associateBy { it.id }
             val lines = buildList {
                 (local.keys - previous.keys).forEach { add("إضافة طبيب: ${local.getValue(it).fullName}") }
@@ -132,17 +132,14 @@ class DoctorRepository @Inject constructor(
                     if (fields.isNotEmpty()) add("${next.fullName}: ${fields.joinToString("، ")}")
                 }
             }
-            "تعديلات سجل الأطباء غير المنشورة:\n" + lines.joinToString("\n") +
-                "\nافتح سجل الأطباء، راجع التعديلات ثم اختر «نشر سجل الأطباء»."
+            com.hos.rushdpatients.domain.doctor.RegistryChangeSummary("تعديلات سجل الأطباء غير المنشورة:\n" + lines.joinToString("\n"))
         }
     }
 
-    private fun invalidateUnchangedPin(doctor: Doctor, previous: Doctor?): Doctor = doctor.copy(
-        extraOptions = doctor.extraOptions.filterNot {
-            it.startsWith("pin:") && previous != null && previous.telegramId != doctor.telegramId &&
-                it in previous.extraOptions
-        }.toSet()
-    )
+    private fun invalidateUnchangedPin(doctor: Doctor, previous: Doctor?): Doctor =
+        if (previous != null && previous.telegramId != doctor.telegramId)
+            doctor.copy(extraOptions = doctor.options.withoutInheritedPin(previous.options))
+        else doctor
 
     suspend fun upsert(doctor: Doctor) = mutate {
         val previous = dao.getById(doctor.id)?.let(DoctorMapper::fromEntity)
@@ -167,7 +164,7 @@ class DoctorRepository @Inject constructor(
         val local = getAllIncludingDeleted()
         val normalized = doctors.map { remote ->
             val matches = local.filter {
-                it.id == remote.id || "$syncAliasPrefix${remote.id}" in it.extraOptions
+                it.id == remote.id || remote.id in it.options.syncAliases
             }
             require(matches.size <= 1) { "هوية الطبيب المنشورة ترتبط بأكثر من سجل محلي" }
             remote.copy(id = matches.singleOrNull()?.id ?: remote.id)
@@ -191,7 +188,7 @@ class DoctorRepository @Inject constructor(
                 updatedAtMillis = Instant.now().toEpochMilli()
             )
             if (changed != 1) throw StaleShiftEditException()
-            settingsRepository.putBoolean(AppConstants.SETTING_PATIENTS_SYNC_PENDING, true)
+
             com.hos.rushdpatients.data.mapper.ShiftMapper.fromEntity(shift)
         }
 
@@ -237,9 +234,9 @@ class DoctorRepository @Inject constructor(
                     firstName = existing?.takeIf { it.fullName == incoming.fullName }?.firstName ?: incoming.firstName,
                     lastName = existing?.takeIf { it.fullName == incoming.fullName }?.lastName ?: incoming.lastName,
                     // Identity changes invalidate the previous account's device-local PIN.
-                    extraOptions = DoctorTeams.sharedOptions(existing?.extraOptions.orEmpty().filterNot {
-                        it.startsWith("pin:") && existing?.telegramId != incoming.telegramId
-                    }.toSet(), incoming),
+                    extraOptions = DoctorTeams.sharedOptions(DoctorOptions.from(existing?.extraOptions.orEmpty()).let { options ->
+                        if (existing?.telegramId == incoming.telegramId) existing?.extraOptions.orEmpty() else options.withPinHash(null)
+                    }, incoming),
                     telegramUsername = existing?.telegramUsername.takeIf {
                         existing?.telegramId == incoming.telegramId
                     },
@@ -271,10 +268,8 @@ class DoctorRepository @Inject constructor(
                 if (existing == null) remote else remote.copy(
                     id = existing.id,
                     // PINs and other device-only secrets never travel through Telegram.
-                    extraOptions = DoctorTeams.sharedOptions(existing.extraOptions.filterNot {
-                        it.startsWith("pin:") && existing.telegramId != remote.telegramId
-                    }.toSet(), remote) + if (remote.id != existing.id) {
-                        setOf("$syncAliasPrefix${remote.id}")
+                    extraOptions = DoctorTeams.sharedOptions(if (existing.telegramId == remote.telegramId) existing.extraOptions else existing.options.withPinHash(null), remote) + if (remote.id != existing.id) {
+                        DoctorOptions.from(emptySet()).withAlias(remote.id)
                     } else emptySet(),
                     updatedAt = Instant.now()
                 )

@@ -33,9 +33,8 @@ import com.hos.rushdpatients.domain.sort.SortSpec
 @Composable
 fun SortSheet(
     initial: SortSpec,
-    initialRevision: Long,
     saving: Boolean = false,
-    onApply: (SortSpec, Long, (Shift?) -> Unit) -> Unit,
+    onApply: (SortSpec) -> Unit,
     onDismiss: () -> Unit
 ) {
     val uiText = rememberUiStrings()
@@ -44,7 +43,7 @@ fun SortSheet(
         Column(Modifier.fillMaxWidth().appDialogBody(UiDialog.sheetMaxHeight).padding(UiSpacing.screen)) {
             AppDialogHeader(uiText(R.string.ui_sort_sheet_001))
             Column(Modifier.fillMaxWidth().weight(1f, fill = false).verticalScroll(rememberScrollState())) {
-                PatientSortOptions(initial, initialRevision, saving, onApply)
+                PatientSortOptions(initial, saving, onApply)
             }
             AppDialogDismissAction(onClick = onDismiss, enabled = !saving)
         }
@@ -55,9 +54,8 @@ fun SortSheet(
 @Composable
 internal fun PatientSortOptions(
     initial: SortSpec,
-    initialRevision: Long,
     saving: Boolean = false,
-    onApply: (SortSpec, Long, (Shift?) -> Unit) -> Unit
+    onApply: (SortSpec) -> Unit
 ) {
     val uiText = rememberUiStrings()
     val presets = listOf(
@@ -71,7 +69,7 @@ internal fun PatientSortOptions(
         presets.forEach { (label, spec) ->
             com.hos.rushdpatients.ui.components.AppFilterChip(
                 selected = initial == spec, enabled = !saving,
-                onClick = { onApply(spec, initialRevision) {} },
+                onClick = { onApply(spec) },
                 label = { Text(uiText(label)) })
         }
     }

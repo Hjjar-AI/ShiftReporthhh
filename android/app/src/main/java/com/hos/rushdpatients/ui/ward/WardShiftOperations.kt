@@ -31,7 +31,7 @@ internal class WardShiftOperations(
         fetchPublication = null
         _state.update { it.copy(fetchReviewText = null, olderRemoteConfirmation = false, fetchChoiceRequired = false) }
     }
-    fun reviewPublishAndFetch() {
+    fun reviewPendingPublication() {
         val shift = _state.value.shift ?: return
         if (_state.value.syncing || _state.value.saving) return
         _state.update { it.copy(syncing = true, syncProgressRes = R.string.ui_progress_prepare_publication) }
@@ -45,21 +45,19 @@ internal class WardShiftOperations(
             finally { _state.update { it.copy(syncing = false) } }
         }
     }
-    fun confirmPublishAndFetch() {
+    fun confirmPendingPublication() {
         val review = fetchPublication ?: return
         if (_state.value.syncing || _state.value.saving) return
         dismissFetchReview()
         _state.update { it.copy(syncing = true, syncProgressRes = R.string.ui_progress_publish_patients) }
         viewModelScope.launch {
-            val published = try {
+            try {
                 syncService.uploadReviewedCsv(review).fold(
-                    onSuccess = { true },
-                    onFailure = { showDownloadIssue(it, WardRetryAction.FETCH_LATEST); false })
+                    onSuccess = { _state.update { it.copy(snackbar = uiText(R.string.sync_publication_complete), syncIssue = null, syncRecovery = null, retryAction = null) } },
+                    onFailure = { showDownloadIssue(it, WardRetryAction.FETCH_LATEST) })
             } catch (e: CancellationException) { throw e }
-            catch (e: Exception) { showDownloadIssue(e, WardRetryAction.FETCH_LATEST); false }
+            catch (e: Exception) { showDownloadIssue(e, WardRetryAction.FETCH_LATEST) }
             finally { _state.update { it.copy(syncing = false) } }
-            // Release this operation before the follow-up fetch takes ownership of busy state.
-            if (published) fetchRemoteData()
         }
     }
 

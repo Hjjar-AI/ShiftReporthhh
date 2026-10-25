@@ -6,7 +6,7 @@ import androidx.compose.runtime.setValue
 import com.hos.rushdpatients.data.model.Patient
 
 internal sealed interface WardDialog {
-    class Add(val patients: List<Patient>, val revision: Long?) : WardDialog {
+    class Add(val patients: List<Patient>) : WardDialog {
         val form = PatientFormStateStore()
         var position by mutableStateOf("")
     }
@@ -24,15 +24,14 @@ internal class WardEditorState {
         private set
     val addForm get() = (dialog as WardDialog.Add).form
     val insertionPatients get() = (dialog as WardDialog.Add).patients
-    val insertionRevision get() = (dialog as WardDialog.Add).revision
     var insertionPosition: String
         get() = (dialog as WardDialog.Add).position
         set(value) { (dialog as? WardDialog.Add)?.position = value }
     var showAdd: Boolean
         get() = dialog is WardDialog.Add
         set(value) { if (!value && dialog is WardDialog.Add) dialog = null }
-    fun openAdd(patients: List<Patient>, revision: Long?) {
-        if (dialog !is WardDialog.Add) dialog = WardDialog.Add(patients.toList(), revision)
+    fun openAdd(patients: List<Patient>) {
+        if (dialog !is WardDialog.Add) dialog = WardDialog.Add(patients.toList())
     }
     var editTarget: Patient?
         get() = (dialog as? WardDialog.Edit)?.patient

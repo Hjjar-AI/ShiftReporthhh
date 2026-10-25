@@ -114,10 +114,8 @@ fun DemoWardScreen(onExit: () -> Unit, viewModel: DemoWardViewModel = hiltViewMo
             if (showReset) ConfirmDialog(uiText(R.string.ui_demo_ward_screen_011), uiText(R.string.ui_demo_ward_screen_012),
                 confirmText = uiText(R.string.ui_demo_ward_screen_013), destructive = true,
                 onConfirm = { viewModel.reset(); tab = DemoDestination.PATIENTS; showReset = false }, onDismiss = { showReset = false })
-            if (showDoctors) ShiftDoctorPicker(allDoctors = state.doctors, initialSelected = state.shiftDoctorIds,
-                initialRevision = state.revision, onConfirm = { ids, revision, onStale ->
-                    if (revision != viewModel.state.value.revision) onStale(ward.shift)
-                    else { viewModel.selectDoctors(ids); showDoctors = false }
+            if (showDoctors) ShiftDoctorPicker(allDoctors = state.doctors, initialSelected = state.shiftDoctorIds, onConfirm = { ids ->
+                    viewModel.selectDoctors(ids); showDoctors = false
                 }, onDismiss = { showDoctors = false })
             if (showRecycle) PatientRecycleBinDialog(state.deleted, readOnly = false,
                 onRestore = viewModel.controller::restorePatient, onDismiss = { showRecycle = false })

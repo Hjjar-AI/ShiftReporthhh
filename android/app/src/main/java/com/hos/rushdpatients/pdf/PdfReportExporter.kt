@@ -30,7 +30,7 @@ class PdfReportExporter @Inject constructor(@ApplicationContext context: Context
 
     private val exportMutex = Mutex()
     private var documentLabel: String? = null
-    private var reportNowEpochMillis: Long = 0
+    private var reportDate: java.time.LocalDate = com.hos.rushdpatients.util.ShiftDate.current()
 
     private var pageWidth = 595f
     private var pageHeight = 842f
@@ -116,6 +116,7 @@ class PdfReportExporter @Inject constructor(@ApplicationContext context: Context
                 )
             }
             configure(options)
+            reportDate = summary.shiftDate
             this@PdfReportExporter.documentLabel = documentLabel
             val document = PdfDocument()
             try {
@@ -231,7 +232,6 @@ class PdfReportExporter @Inject constructor(@ApplicationContext context: Context
     }
 
     private fun configure(options: PdfExportOptions) {
-        reportNowEpochMillis = options.generatedAtEpochMillis
         val paper = options.paperSize
         val portraitWidth = paper.widthPoints.toFloat()
         val portraitHeight = paper.heightPoints.toFloat()
@@ -385,12 +385,12 @@ class PdfReportExporter @Inject constructor(@ApplicationContext context: Context
     ): List<CellLines> {
         val cells = listOf(
             patient.sortOrder.toString() to bodyCenterPaint,
-            PdfPatientContent.buildPatientCell(patient) to bodyCenterPaint,
+            PdfPatientContent.buildPatientCell(patient, reportDate = reportDate) to bodyCenterPaint,
             PdfPatientContent.buildDiagnosisCell(patient) to bodyCenterPaint,
-            PdfPatientContent.buildAdmitCell(patient) to bodyCenterPaint,
+            PdfPatientContent.buildAdmitCell(patient, reportDate) to bodyCenterPaint,
             PdfPatientContent.buildSupervisorResidentCell(patient, residentNames, supervisorNames) to bodyCenterPaint,
             patient.treatmentPlan to bodyCenterPaint,
-            PdfPatientContent.buildNotesCell(patient, residentNames + supervisorNames, reportNowEpochMillis) to bodyCenterPaint
+            PdfPatientContent.buildNotesCell(patient) to bodyCenterPaint
         ).asReversed()
         return cells.mapIndexed { index, (text, paint) ->
             val maxWidth = colWidths[index] - 2 * cellPadding

@@ -13,7 +13,6 @@ import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
-@Suppress("UNUSED_PARAMETER")
 @Singleton
 class ShiftRepository @Inject constructor(
     private val dao: ShiftDao,
@@ -101,8 +100,7 @@ class ShiftRepository @Inject constructor(
 
     suspend fun updateDoctorIds(
         shiftId: String,
-        doctorIds: List<String>,
-        expectedRevision: Long
+        doctorIds: List<String>
     ) =
         withContext(dispatchers.io) {
             val changed = dao.updateDoctorIds(
@@ -115,8 +113,7 @@ class ShiftRepository @Inject constructor(
 
     suspend fun updateSortSpec(
         shiftId: String,
-        sortSpecJson: String?,
-        expectedRevision: Long
+        sortSpecJson: String?
     ) =
         withContext(dispatchers.io) {
             val changed = dao.updateSortSpec(
@@ -130,5 +127,5 @@ class ShiftRepository @Inject constructor(
 }
 
 class StaleShiftEditException : IllegalStateException(
-    "تغيّرت إعدادات المناوبة على هذا الجهاز. راجع أحدث نسخة ثم أعد المحاولة."
+    "قائمة المرضى لم تعد متاحة. أعد تحميل القائمة."
 )

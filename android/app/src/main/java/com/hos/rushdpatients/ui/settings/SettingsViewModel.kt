@@ -63,6 +63,7 @@ class SettingsViewModel @Inject constructor(
     private val syncStateRepository: SyncStateRepository,
     private val sessionManager: SessionManager,
     private val syncService: SyncService,
+    private val publicationStatus: com.hos.rushdpatients.sync.PatientPublicationStatus,
     private val emptyStart: EmptyStartCoordinator,
     private val csvExporter: PatientCsvExporter,
     private val biometricHelper: BiometricHelper,
@@ -197,8 +198,8 @@ class SettingsViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
-            settingsRepository.observe(AppConstants.SETTING_PATIENTS_SYNC_PENDING).collect { pending ->
-                _state.update { it.copy(patientsPending = pending == "true") }
+            publicationStatus.observePending().collect { pending ->
+                _state.update { it.copy(patientsPending = pending) }
             }
         }
         viewModelScope.launch {

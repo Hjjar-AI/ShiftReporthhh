@@ -15,7 +15,6 @@ import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 
-@Suppress("UNUSED_PARAMETER")
 @Singleton
 class PatientRepository @Inject constructor(
     private val dao: PatientDao,
@@ -50,14 +49,13 @@ class PatientRepository @Inject constructor(
         dao.upsert(PatientMapper.toEntity(patient.withoutTrackingMetadata(), shiftId))
     }
 
-    suspend fun upsertAll(patients: List<Patient>, shiftId: String, preserveUpdatedAt: Boolean = false) = withContext(dispatchers.io) {
+    suspend fun upsertAll(patients: List<Patient>, shiftId: String) = withContext(dispatchers.io) {
         dao.upsertAll(patients.map { PatientMapper.toEntity(it.withoutTrackingMetadata(), shiftId) })
     }
 
-    suspend fun updateOptimistically(
+    suspend fun save(
         patient: Patient,
-        shiftId: String,
-        expectedRevision: Long
+        shiftId: String
     ): Patient = withContext(dispatchers.io) {
         database.withTransaction {
             val current = dao.getById(patient.id)
@@ -78,10 +76,9 @@ class PatientRepository @Inject constructor(
         }
     }
 
-    suspend fun softDeleteOptimistically(
+    suspend fun softDelete(
         id: String,
-        shiftId: String,
-        expectedRevision: Long
+        shiftId: String
     ): Patient = withContext(dispatchers.io) {
         database.withTransaction {
             val current = dao.getById(id) ?: throw StalePatientEditException()
@@ -102,10 +99,9 @@ class PatientRepository @Inject constructor(
         }
     }
 
-    suspend fun restoreOptimistically(
+    suspend fun restore(
         id: String,
-        shiftId: String,
-        expectedRevision: Long
+        shiftId: String
     ): Patient = withContext(dispatchers.io) {
         database.withTransaction {
             val current = dao.getById(id) ?: throw StalePatientEditException()

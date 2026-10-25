@@ -20,8 +20,9 @@ data class Doctor(
     val updatedAt: Instant = Instant.now(),
     val deletedAt: Instant? = null
 ) {
+    val options: DoctorOptions get() = DoctorOptions.from(extraOptions)
     val teamSupervisorId: String?
-        get() = extraOptions.firstOrNull { it.startsWith("teamSupervisor:") }?.removePrefix("teamSupervisor:")
+        get() = options.teamSupervisorId
     val isDeleted: Boolean get() = deletedAt != null
     val role: Role get() = Role.fromRank(rank, isPermanentAdmin)
     val isAdmin: Boolean get() = role.isAdmin
